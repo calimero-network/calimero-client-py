@@ -13,48 +13,112 @@ The **Calimero Python Client SDK** helps developers interact with decentralized 
 ## Installation
 
 ```bash
-pip install calimero-client-py
+pip install calimero-client-py==0.1.2
 ```
 
 ## Quick Start
 
-### Using JsonRpcClient
+Here's a complete example of using the SDK to interact with a key-value store:
 
 ```python
-from calimero import JsonRpcClient
+import asyncio
+import toml
+import os
+from pathlib import Path
+from calimero import JsonRpcClient, Ed25519Keypair
 
-client = JsonRpcClient(
-    base_url="http://localhost:2428",
-    endpoint="/jsonrpc"
-)
+async def main():
+    # Load keypair from config file
+    config_path = os.path.expanduser("~/.calimero/node1/config.toml")
+    try:
+        with open(config_path, 'r') as f:
+            config_data = toml.load(f)
+            keypair_value = config_data.get('identity', {}).get('keypair')
+            if not keypair_value:
+                raise ValueError("'keypair' not found in [identity] section")
+            keypair = Ed25519Keypair.from_base58(keypair_value)
+    except Exception as e:
+        raise ValueError(f"Failed to load keypair from config: {str(e)}")
 
-params = {
-    "applicationId": "your_application_id",
-    "method": "create_post",
-    "argsJson": {"title": "My First Post", "text": "This is my first post"}
-}
+    # Initialize the client
+    client = JsonRpcClient(
+        base_url="http://localhost:2428",
+        endpoint="/jsonrpc",
+        keypair=keypair
+    )
 
-response = await client.mutate(params)
-print(response)
+    # Example: Set a key-value pair
+    set_params = {
+        "applicationId": "your_application_id",
+        "method": "set",
+        "argsJson": {"key": "my_key", "value": "my_value"}
+    }
+    set_response = await client.mutate(set_params)
+    print("Set response:", set_response)
+
+    # Example: Get a value
+    get_params = {
+        "applicationId": "your_application_id",
+        "method": "get",
+        "argsJson": {"key": "my_key"}
+    }
+    get_response = await client.query(get_params)
+    print("Get response:", get_response)
+
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
-### Using WsSubscriptionsClient
+### WebSocket Example
+
+Here's how to use the WebSocket client for real-time updates:
 
 ```python
-from calimero import WsSubscriptionsClient
+import asyncio
+import toml
+import os
+from pathlib import Path
+from calimero import WsSubscriptionsClient, Ed25519Keypair
 
-client = WsSubscriptionsClient(
-    base_url="http://localhost:2428",
-    endpoint="/ws"
-)
+async def main():
+    # Load keypair from config file
+    config_path = os.path.expanduser("~/.calimero/node1/config.toml")
+    try:
+        with open(config_path, 'r') as f:
+            config_data = toml.load(f)
+            keypair_value = config_data.get('identity', {}).get('keypair')
+            if not keypair_value:
+                raise ValueError("'keypair' not found in [identity] section")
+            keypair = Ed25519Keypair.from_base58(keypair_value)
+    except Exception as e:
+        raise ValueError(f"Failed to load keypair from config: {str(e)}")
 
-await client.connect()
-client.subscribe(["your_application_id"])
+    # Initialize the client
+    client = WsSubscriptionsClient(
+        base_url="http://localhost:2428",
+        endpoint="/ws",
+        keypair=keypair
+    )
 
-def callback(data):
-    print(data)
+    # Connect and subscribe
+    await client.connect()
+    client.subscribe(["your_application_id"])
 
-client.add_callback(callback)
+    # Add callback for received messages
+    def callback(data):
+        print("Received update:", data)
+
+    client.add_callback(callback)
+
+    # Keep the connection alive
+    try:
+        while True:
+            await asyncio.sleep(1)
+    except KeyboardInterrupt:
+        await client.disconnect()
+
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
 ## Documentation
@@ -65,15 +129,23 @@ For detailed documentation, please visit [our documentation site](https://docs.c
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. 
 
-## Test Dependencies and Commands
+## Development
 
-To run tests, you need to install the test dependencies and then run the tests.
+### Setting Up Development Environment
 
 ```bash
-# Install test dependencies
-pip install -e ".[test]"
+# Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Run tests
+# Install development dependencies
+pip install -e ".[test]"
+```
+
+### Running Tests
+
+```bash
+# Run all tests
 pytest
 
 # Run tests with coverage
@@ -81,4 +153,17 @@ pytest --cov=calimero
 
 # Run specific test file
 pytest tests/test_keypair.py
+```
+
+### Building and Publishing
+
+```bash
+# Install build tools
+pip install --upgrade build twine
+
+# Build the package
+python -m build
+
+# Publish to PyPI
+twine upload dist/*
 ``` 
