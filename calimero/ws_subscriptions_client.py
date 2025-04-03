@@ -41,9 +41,16 @@ class WsSubscriptionsClient:
                     callback(data)
             except websockets.exceptions.ConnectionClosed:
                 if self._running:
-                    await self.connect()
+                    try:
+                        await self.connect()
+                    except Exception as e:
+                        print(f"Failed to reconnect: {e}")
+                        self._running = False
+                        break
             except Exception as e:
                 print(f"Error in WebSocket listener: {e}")
+                self._running = False
+                break
 
     def subscribe(self, application_ids: List[str]):
         if not self.ws:

@@ -1,47 +1,70 @@
 import pytest
 import os
-from calimero import Config
+import tempfile
+import toml
+import base58
+import nacl.signing
+from calimero import Config, ConfigError, Ed25519Keypair
 
-def test_config_creation(config):
-    """Test Config instance creation."""
+def test_config_creation(temp_config_file, mock_env_vars):
+    """Test config creation."""
+    config = Config.load_from_file(temp_config_file)
     assert config.node_url == "http://localhost:2428"
-    assert config.application_id == "test_app_id"
-    assert config.executor_public_key == "test_public_key"
-    assert config.keypair is None
+    assert config.context_id == "test-context"
+    assert config.executor_public_key == "test-executor"
+    assert config.node_name == "test-node"
+    assert isinstance(config.keypair, Ed25519Keypair)
 
-def test_config_from_file(temp_config_file):
+def test_config_from_file(temp_config_file, mock_env_vars):
     """Test loading config from file."""
     config = Config.load_from_file(temp_config_file)
     assert config.node_url == "http://localhost:2428"
-    assert config.application_id == "test_app_id"
-    assert config.executor_public_key == "test_public_key"
+    assert config.context_id == "test-context"
+    assert config.executor_public_key == "test-executor"
+    assert config.node_name == "test-node"
+    assert isinstance(config.keypair, Ed25519Keypair)
 
-def test_config_from_env(monkeypatch):
+def test_config_from_env(mock_env_vars, temp_config_file):
     """Test loading config from environment variables."""
-    # Set environment variables
-    monkeypatch.setenv('CALIMERO_NODE_URL', 'http://test:2428')
-    monkeypatch.setenv('CALIMERO_APPLICATION_ID', 'test_app')
-    monkeypatch.setenv('CALIMERO_EXECUTOR_PUBLIC_KEY', 'test_key')
-    
     config = Config.load_from_env()
-    assert config.node_url == 'http://test:2428'
-    assert config.application_id == 'test_app'
-    assert config.executor_public_key == 'test_key'
+    assert config.node_url == "http://localhost:2428"
+    assert config.context_id == "test-context"
+    assert config.executor_public_key == "test-executor"
+    assert config.node_name == "test-node"
+    assert isinstance(config.keypair, Ed25519Keypair)
 
-def test_config_default_values(monkeypatch):
-    """Test config default values when environment variables are not set."""
+def test_config_missing_env_vars(monkeypatch):
+    """Test config behavior when environment variables are missing."""
     # Clear environment variables
-    monkeypatch.delenv('CALIMERO_NODE_URL', raising=False)
-    monkeypatch.delenv('CALIMERO_APPLICATION_ID', raising=False)
-    monkeypatch.delenv('CALIMERO_EXECUTOR_PUBLIC_KEY', raising=False)
-    
-    config = Config.load_from_env()
-    assert config.node_url == 'http://localhost:2428'
-    assert config.application_id == ''
-    assert config.executor_public_key == ''
+    monkeypatch.delenv('RPC_URL', raising=False)
+    monkeypatch.delenv('CONTEXT_ID', raising=False)
+    monkeypatch.delenv('EXECUTOR_PUBLIC_KEY', raising=False)
+    monkeypatch.delenv('CALIMERO_NODE_NAME', raising=False)
+    monkeypatch.delenv('CALIMERO_KEYPAIR', raising=False)
 
-def test_config_with_keypair(config, ed25519_keypair):
-    """Test Config with Ed25519Keypair."""
-    config.keypair = ed25519_keypair
-    assert config.keypair == ed25519_keypair
-    assert config.keypair.public_key is not None 
+    # Should raise ConfigError when required variables are missing
+    with pytest.raises(ConfigError):
+        Config.load_from_env()
+
+def test_config_with_keypair(temp_config_file, mock_env_vars):
+    """Test config with keypair."""
+    config = Config.load_from_file(temp_config_file)
+    assert isinstance(config.keypair, Ed25519Keypair)
+    assert len(config.keypair.public_key) == 32
+    assert len(config.keypair.private_key) == 32
+
+def test_config_missing_keypair():
+    """Test config behavior when keypair is missing."""
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.toml', delete=False) as f:
+        toml.dump({
+            'network': {
+                'rpc_url': 'http://localhost:2428',
+                'context_id': 'test-context',
+                'executor_public_key': 'test-executor',
+                'node_name': 'test-node'
+            }
+        }, f)
+        f.flush()
+        
+        with pytest.raises(ConfigError):
+            Config.load_from_file(f.name) 

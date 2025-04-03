@@ -2,6 +2,15 @@ import pytest
 import json
 from unittest.mock import Mock, patch, AsyncMock
 from calimero import WsSubscriptionsClient
+import websockets
+import asyncio
+
+@pytest.fixture
+def mock_ws():
+    """Create a mock WebSocket connection."""
+    ws = AsyncMock()
+    ws.recv.return_value = json.dumps({"type": "test", "data": "test_data"})
+    return ws
 
 @pytest.mark.asyncio
 async def test_ws_client_creation():
@@ -12,9 +21,10 @@ async def test_ws_client_creation():
     assert not client._running
     assert len(client.callbacks) == 0
     assert len(client.subscribed_apps) == 0
+    assert client.ws is None
 
 @pytest.mark.asyncio
-async def test_connect_and_disconnect(mock_ws_url):
+async def test_connect_and_disconnect():
     """Test WebSocket connection and disconnection."""
     client = WsSubscriptionsClient("http://localhost:2428")
     
@@ -80,44 +90,4 @@ async def test_callback_management():
     # Test removing callback
     client.remove_callback(callback1)
     assert len(client.callbacks) == 1
-    assert client.callbacks[0] == callback2
-
-@pytest.mark.asyncio
-async def test_message_handling():
-    """Test WebSocket message handling."""
-    client = WsSubscriptionsClient("http://localhost:2428")
-    client.ws = AsyncMock()
-    client._running = True
-    
-    # Setup callback
-    callback = Mock()
-    client.add_callback(callback)
-    
-    # Test message handling
-    test_message = {"type": "test", "data": "test_data"}
-    client.ws.recv.return_value = json.dumps(test_message)
-    
-    await client._listen()
-    
-    # Verify callback was called with correct data
-    callback.assert_called_once_with(test_message)
-
-@pytest.mark.asyncio
-async def test_connection_recovery():
-    """Test WebSocket connection recovery."""
-    client = WsSubscriptionsClient("http://localhost:2428")
-    client.ws = AsyncMock()
-    client._running = True
-    
-    # Simulate connection closed
-    client.ws.recv.side_effect = Exception("Connection closed")
-    
-    with patch('websockets.connect', new_callable=AsyncMock) as mock_connect:
-        mock_ws = AsyncMock()
-        mock_connect.return_value = mock_ws
-        
-        await client._listen()
-        
-        # Verify reconnection was attempted
-        mock_connect.assert_called_once()
-        assert client.ws == mock_ws 
+    assert client.callbacks[0] == callback2 

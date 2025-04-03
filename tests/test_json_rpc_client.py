@@ -1,30 +1,70 @@
 import pytest
 import aiohttp
+import os
 from unittest.mock import Mock, patch
-from calimero import JsonRpcClient, RpcQueryParams, RequestConfig
+from calimero import JsonRpcClient, Ed25519Keypair, JsonRpcError
+
+@pytest.fixture
+def mock_keypair():
+    """Create a mock keypair for testing."""
+    keypair = Mock(spec=Ed25519Keypair)
+    keypair.sign.return_value = b"signature"
+    return keypair
 
 @pytest.mark.asyncio
-async def test_json_rpc_client_creation():
+async def test_json_rpc_client_creation(mock_keypair):
     """Test JsonRpcClient initialization."""
-    client = JsonRpcClient("http://localhost:2428")
-    assert client.base_url == "http://localhost:2428"
-    assert client.endpoint == "/jsonrpc"
+    client = JsonRpcClient(
+        rpc_url="http://localhost:2428",
+        keypair=mock_keypair,
+        context_id="test_context",
+        executor_public_key="test_key"
+    )
+    assert client.rpc_url == "http://localhost:2428"
+    assert client.context_id == "test_context"
+    assert client.executor_public_key == "test_key"
 
 @pytest.mark.asyncio
-async def test_json_rpc_client_context_manager():
-    """Test JsonRpcClient context manager."""
-    async with JsonRpcClient("http://localhost:2428") as client:
-        assert isinstance(client, JsonRpcClient)
-        assert client.session is not None
+async def test_prepare_headers(mock_keypair):
+    """Test header preparation."""
+    client = JsonRpcClient(
+        rpc_url="http://localhost:2428",
+        keypair=mock_keypair,
+        context_id="test_context",
+        executor_public_key="test_key"
+    )
+    headers = client._prepare_headers()
+    
+    assert 'Content-Type' in headers
+    assert 'X-Signature' in headers
+    assert 'X-Timestamp' in headers
+    assert headers['Content-Type'] == 'application/json'
 
 @pytest.mark.asyncio
-async def test_execute_request(mock_rpc_url):
+async def test_prepare_request(mock_keypair):
+    """Test request preparation."""
+    client = JsonRpcClient(
+        rpc_url="http://localhost:2428",
+        keypair=mock_keypair,
+        context_id="test_context",
+        executor_public_key="test_key"
+    )
+    request = client._prepare_request("test_method", {"arg": "value"})
+    
+    assert request['jsonrpc'] == '2.0'
+    assert request['method'] == 'execute'
+    assert request['params']['contextId'] == 'test_context'
+    assert request['params']['method'] == 'test_method'
+    assert request['params']['argsJson'] == {"arg": "value"}
+    assert request['params']['executorPublicKey'] == 'test_key'
+
+@pytest.mark.asyncio
+async def test_execute_request(mock_keypair):
     """Test executing RPC request."""
-    client = JsonRpcClient("http://localhost:2428")
-    params = RpcQueryParams(
-        application_id="test_app",
-        method="test_method",
-        args_json={"arg1": "value1"},
+    client = JsonRpcClient(
+        rpc_url="http://localhost:2428",
+        keypair=mock_keypair,
+        context_id="test_context",
         executor_public_key="test_key"
     )
     
@@ -36,64 +76,36 @@ async def test_execute_request(mock_rpc_url):
     
     with patch('aiohttp.ClientSession.post') as mock_post:
         mock_post.return_value.__aenter__.return_value.json.return_value = mock_response
-        mock_post.return_value.__aenter__.return_value.raise_for_status = Mock()
+        mock_post.return_value.__aenter__.return_value.status = 200
         
-        response = await client.execute(params)
+        response = await client.execute("test_method", {"arg": "value"})
         assert response == mock_response
         
         # Verify request was made with correct parameters
         mock_post.assert_called_once()
         call_args = mock_post.call_args[1]
         assert "json" in call_args
-        assert call_args["json"]["method"] == "test_method"
-        assert call_args["json"]["params"]["applicationId"] == "test_app"
+        assert call_args["json"]["method"] == "execute"
+        assert call_args["json"]["params"]["contextId"] == "test_context"
 
 @pytest.mark.asyncio
-async def test_execute_with_custom_config():
-    """Test executing RPC request with custom config."""
-    client = JsonRpcClient("http://localhost:2428")
-    params = RpcQueryParams(
-        application_id="test_app",
-        method="test_method",
-        args_json={"arg1": "value1"},
-        executor_public_key="test_key"
-    )
-    
-    config = RequestConfig(
-        timeout=2000,
-        headers={"X-Custom-Header": "value"}
-    )
-    
-    with patch('aiohttp.ClientSession.post') as mock_post:
-        mock_post.return_value.__aenter__.return_value.json.return_value = {"result": "success"}
-        mock_post.return_value.__aenter__.return_value.raise_for_status = Mock()
-        
-        await client.execute(params, config)
-        
-        # Verify custom config was used
-        call_args = mock_post.call_args[1]
-        assert call_args["timeout"] == 2.0  # Converted from ms to seconds
-        assert call_args["headers"]["X-Custom-Header"] == "value"
-
-@pytest.mark.asyncio
-async def test_mutate_and_query():
-    """Test mutate and query methods."""
-    client = JsonRpcClient("http://localhost:2428")
-    params = RpcQueryParams(
-        application_id="test_app",
-        method="test_method",
-        args_json={"arg1": "value1"},
+async def test_execute_request_error(mock_keypair):
+    """Test error handling in RPC request."""
+    client = JsonRpcClient(
+        rpc_url="http://localhost:2428",
+        keypair=mock_keypair,
+        context_id="test_context",
         executor_public_key="test_key"
     )
     
     with patch('aiohttp.ClientSession.post') as mock_post:
-        mock_post.return_value.__aenter__.return_value.json.return_value = {"result": "success"}
-        mock_post.return_value.__aenter__.return_value.raise_for_status = Mock()
+        mock_post.return_value.__aenter__.return_value.json.return_value = {
+            "jsonrpc": "2.0",
+            "error": {"code": -32000, "message": "Error message"},
+            "id": 1
+        }
+        mock_post.return_value.__aenter__.return_value.status = 200
         
-        # Test mutate
-        mutate_response = await client.mutate(params)
-        assert mutate_response == {"result": "success"}
-        
-        # Test query
-        query_response = await client.query(params)
-        assert query_response == {"result": "success"} 
+        with pytest.raises(JsonRpcError) as exc_info:
+            await client.execute("test_method", {"arg": "value"})
+        assert "JSON-RPC error" in str(exc_info.value) 
