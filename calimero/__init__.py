@@ -2,7 +2,7 @@
 Calimero Network Python Client SDK
 """
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
 from .config import Config, ConfigError
 from .keypair import Ed25519Keypair, KeypairError
