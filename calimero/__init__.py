@@ -2,12 +2,13 @@
 Calimero Network Python Client SDK
 """
 
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 
 from .config import Config, ConfigError
 from .keypair import Ed25519Keypair, KeypairError
 from .json_rpc_client import JsonRpcClient, JsonRpcError
 from .ws_subscriptions_client import WsSubscriptionsClient
+from .admin_client import AdminClient, AdminApiResponse
 
 __all__ = [
     'Config',
@@ -16,5 +17,7 @@ __all__ = [
     'KeypairError',
     'JsonRpcClient',
     'JsonRpcError',
-    'WsSubscriptionsClient'
+    'WsSubscriptionsClient',
+    'AdminClient',
+    'AdminApiResponse'
 ] 

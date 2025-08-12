@@ -19,6 +19,12 @@ class Ed25519Keypair:
         self._verify_key = signing_key.verify_key
 
     @classmethod
+    def generate(cls) -> 'Ed25519Keypair':
+        """Generate a new random Ed25519 keypair."""
+        signing_key = nacl.signing.SigningKey.generate()
+        return cls(signing_key)
+
+    @classmethod
     def from_base58(cls, base58_keypair: str) -> 'Ed25519Keypair':
         """Create a keypair from a base58-encoded keypair string."""
         if not base58_keypair:
