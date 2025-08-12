@@ -128,32 +128,3 @@ class JsonRpcClient:
         async with aiohttp.ClientSession() as session:
             async with session.post(url, json=payload, headers=headers) as response:
                 return await self._handle_response(response)
-
-
-
-
-    
-
-
-
-    
-
-
-
-    
-
-    
-
-    
-
-    
-
-
-
-
-
-    
-
-    
-
-
