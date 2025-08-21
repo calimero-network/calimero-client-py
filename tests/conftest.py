@@ -61,4 +61,21 @@ def mock_ws_url():
 @pytest.fixture
 def mock_rpc_url():
     """Return a mock RPC URL for testing."""
-    return "http://localhost:2428/jsonrpc" 
+    return "http://localhost:2428/jsonrpc"
+
+# Merobox fixtures for real node testing
+@pytest.fixture(scope="session")
+def merobox_cluster():
+    """Session-scoped fixture providing a Calimero cluster for integration tests."""
+    from merobox.testing import cluster
+    
+    with cluster(count=1, prefix="integration-test", scope="session") as env:
+        yield env
+
+@pytest.fixture(scope="function")
+def merobox_node():
+    """Function-scoped fixture providing a single Calimero node for unit tests."""
+    from merobox.testing import cluster
+    
+    with cluster(count=1, prefix="unit-test", scope="function") as env:
+        yield env 
