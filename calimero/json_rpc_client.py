@@ -1,21 +1,12 @@
 import asyncio
-import time
-import base58
 import json
-from typing import Optional, Dict, Any, TypedDict, List
+from typing import Optional, Dict, Any, Union
 import aiohttp
-from .keypair import Ed25519Keypair
 
-class JsonRpcError(Exception):
-    """Base exception for JSON-RPC errors."""
-    pass
-
-class JsonRpcResponse(TypedDict):
-    """Type definition for JSON-RPC response."""
-    jsonrpc: str
-    id: int
-    result: Optional[Dict[str, Any]]
-    error: Optional[Dict[str, Any]]
+from .types import (
+    JsonRpcRequest, JsonRpcExecuteRequest, JsonRpcResponse, JsonRpcErrorInfo,
+    JsonRpcApiResponse, ErrorResponse
+)
 
 class JsonRpcClient:
     """JSON-RPC client for Calimero.
@@ -32,37 +23,28 @@ class JsonRpcClient:
     def __init__(
         self,
         rpc_url: str,
-        keypair: Ed25519Keypair,
-        context_id: str,
-        executor_public_key: str
+        context_id: str = None,
+        executor_public_key: str = None
     ):
         """Initialize the JSON-RPC client with all required parameters.
         
         Args:
             rpc_url: The URL of the Calimero JSON-RPC server.
-            keypair: The Ed25519 keypair for signing requests.
-            context_id: The context ID for the requests.
-            executor_public_key: The public key of the executor.
+            context_id: Optional context ID for the requests.
+            executor_public_key: Optional public key of the executor.
         """
         self.rpc_url = rpc_url.rstrip('/')
-        self.keypair = keypair
         self.context_id = context_id
         self.executor_public_key = executor_public_key
     
     def _prepare_headers(self) -> Dict[str, str]:
-        """Prepare request headers with signature and timestamp.
+        """Prepare request headers.
         
         Returns:
             Dictionary containing request headers.
         """
-        timestamp = str(int(time.time()))
-        signature = self.keypair.sign(timestamp.encode())
-        signature_b58 = base58.b58encode(signature).decode()
-        
         return {
-            'Content-Type': 'application/json',
-            'X-Signature': signature_b58,
-            'X-Timestamp': timestamp
+            'Content-Type': 'application/json'
         }
     
     def _prepare_request(self, method: str, args: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -98,15 +80,15 @@ class JsonRpcClient:
             The parsed JSON-RPC response.
             
         Raises:
-            JsonRpcError: If the response indicates an error.
+            ValueError: If the response indicates an error.
         """
         try:
             data = await response.json()
             if 'error' in data and data['error']:
-                raise JsonRpcError(f"JSON-RPC error: {data['error']}")
+                raise ValueError(f"JSON-RPC error: {data['error']}")
             return data
         except json.JSONDecodeError as e:
-            raise JsonRpcError(f"Failed to decode JSON response: {str(e)}")
+            raise ValueError(f"Failed to decode JSON response: {str(e)}")
     
     async def execute(self, method: str, args: Optional[Dict[str, Any]] = None) -> JsonRpcResponse:
         """Execute a JSON-RPC method.
@@ -119,9 +101,13 @@ class JsonRpcClient:
             The JSON-RPC response.
             
         Raises:
-            JsonRpcError: If the request fails or returns an error.
+            ValueError: If the request fails or returns an error.
         """
-        url = f"{self.rpc_url}{self.JSONRPC_PATH}"
+        # Only add JSONRPC_PATH if it's not already in the URL
+        if self.JSONRPC_PATH in self.rpc_url:
+            url = self.rpc_url
+        else:
+            url = f"{self.rpc_url}{self.JSONRPC_PATH}"
         headers = self._prepare_headers()
         payload = self._prepare_request(method, args)
         

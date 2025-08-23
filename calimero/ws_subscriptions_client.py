@@ -2,11 +2,10 @@ import asyncio
 import json
 from typing import Any, Callable, List, Optional
 import websockets
-from pydantic import BaseModel
-
-class SubscriptionMessage(BaseModel):
-    type: str
-    data: Any
+from .types import (
+    WebSocketMessage, SubscribeRequest, UnsubscribeRequest, SubscriptionUpdate,
+    WebSocketApiResponse, ErrorResponse
+)
 
 class WsSubscriptionsClient:
     def __init__(self, base_url: str, endpoint: str = "/ws"):
@@ -18,6 +17,10 @@ class WsSubscriptionsClient:
         self._running = False
 
     async def connect(self):
+        # Don't create a new connection if already connected
+        if self.ws and self._running:
+            return
+            
         ws_url = f"ws://{self.base_url.lstrip('http://').lstrip('https://')}{self.endpoint}"
         self.ws = await websockets.connect(ws_url)
         self._running = True
@@ -52,31 +55,31 @@ class WsSubscriptionsClient:
                 self._running = False
                 break
 
-    def subscribe(self, application_ids: List[str]):
+    def subscribe(self, request: SubscribeRequest):
         if not self.ws:
             raise RuntimeError("WebSocket connection not established")
 
-        self.subscribed_apps.extend(application_ids)
-        message = {
-            "type": "subscribe",
-            "data": {
-                "applicationIds": application_ids
+        self.subscribed_apps.extend(request.application_ids)
+        message = WebSocketMessage(
+            type="subscribe",
+            data={
+                "applicationIds": request.application_ids
             }
-        }
-        asyncio.create_task(self.ws.send(json.dumps(message)))
+        )
+        asyncio.create_task(self.ws.send(json.dumps(message.model_dump())))
 
-    def unsubscribe(self, application_ids: List[str]):
+    def unsubscribe(self, request: UnsubscribeRequest):
         if not self.ws:
             raise RuntimeError("WebSocket connection not established")
 
-        self.subscribed_apps = [app_id for app_id in self.subscribed_apps if app_id not in application_ids]
-        message = {
-            "type": "unsubscribe",
-            "data": {
-                "applicationIds": application_ids
+        self.subscribed_apps = [app_id for app_id in self.subscribed_apps if app_id not in request.application_ids]
+        message = WebSocketMessage(
+            type="unsubscribe",
+            data={
+                "applicationIds": request.application_ids
             }
-        }
-        asyncio.create_task(self.ws.send(json.dumps(message)))
+        )
+        asyncio.create_task(self.ws.send(json.dumps(message.model_dump())))
 
     def add_callback(self, callback: Callable[[Any], None]):
         self.callbacks.append(callback)
