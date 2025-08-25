@@ -53,11 +53,10 @@ from ..types import (
     ErrorResponse,
 )
 
-from .context import ContextManager
+from .context import ContextManager, Capability
 from .identity import IdentityManager
 from .application import ApplicationManager
 from .blob import BlobManager
-from .capability import CapabilityManager
 from .proposal import ProposalManager
 from .alias import AliasManager
 from .system import SystemManager
@@ -86,10 +85,12 @@ class AdminClient:
         self.identities = IdentityManager(self)
         self.applications = ApplicationManager(self)
         self.blobs = BlobManager(self)
-        self.capabilities = CapabilityManager(self)
         self.proposals = ProposalManager(self)
         self.aliases = AliasManager(self)
         self.system = SystemManager(self)
+
+        # Capability enum is available through contexts
+        self.Capability = Capability
 
     async def __aenter__(self):
         """Async context manager entry."""
@@ -235,8 +236,15 @@ class AdminClient:
         Returns:
             The capability grant response.
         """
-        return await self.capabilities.grant(
-            context_id, granter_id, grantee_id, capability
+        # Convert string capability to enum if possible
+        try:
+            cap_enum = Capability(capability)
+        except ValueError:
+            # If not a valid enum value, use as-is
+            cap_enum = capability
+        
+        return await self.contexts.grant_capability(
+            context_id, granter_id, grantee_id, cap_enum
         )
 
     async def invite_to_context(
