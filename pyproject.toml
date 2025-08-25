@@ -20,6 +20,7 @@ dev = [
     "pytest-asyncio",
     "merobox",
     "black",
+    "pre-commit",
 ]
 
 [tool.pytest.ini_options]
