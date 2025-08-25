@@ -1,4 +1,4 @@
-.PHONY: help test test-verbose test-quick clean format format-check setup-pre-commit
+.PHONY: help test test-verbose test-quick clean format format-check setup-pre-commit ci-check build build-clean publish
 
 help:  ## Show this help message
 	@echo "Calimero Client Commands:"
@@ -23,6 +23,35 @@ format-check:  ## Check if code is formatted with Black
 setup-pre-commit:  ## Install and setup pre-commit hooks
 	venv/bin/pip install pre-commit
 	venv/bin/pre-commit install
+
+ci-check:  ## Run CI checks locally (formatting + tests)
+	@echo "Running CI checks locally..."
+	@echo "1. Checking code formatting..."
+	@make format-check
+	@echo "2. Running tests..."
+	@make test
+	@echo "✅ All CI checks passed!"
+
+build:  ## Build the package distribution
+	@echo "Building package distribution..."
+	venv/bin/python -m build
+	@echo "✅ Build completed! Check dist/ directory"
+
+build-clean:  ## Clean build artifacts and rebuild
+	@echo "Cleaning build artifacts..."
+	rm -rf build/ dist/ *.egg-info/
+	@echo "Building package distribution..."
+	venv/bin/python -m build
+	@echo "✅ Clean build completed! Check dist/ directory"
+
+publish:  ## Publish to PyPI (requires TWINE_USERNAME and TWINE_PASSWORD)
+	@echo "Publishing to PyPI..."
+	@if [ -z "$$TWINE_USERNAME" ] || [ -z "$$TWINE_PASSWORD" ]; then \
+		echo "❌ Error: TWINE_USERNAME and TWINE_PASSWORD environment variables must be set"; \
+		exit 1; \
+	fi
+	venv/bin/twine upload dist/*
+	@echo "✅ Package published to PyPI!"
 
 clean:  ## Clean up test artifacts and cache
 	rm -rf .pytest_cache/
