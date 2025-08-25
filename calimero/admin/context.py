@@ -211,14 +211,33 @@ class ContextManager:
     ) -> GrantCapabilitiesResponse:
         """Grant capabilities to a user in a context."""
         payload = {
-            "contextId": context_id,
-            "granterId": granter_id,
-            "granteeId": grantee_id,
-            "capability": capability.value,
+            "capabilities": [(grantee_id, capability.value)],
+            "signer_id": granter_id,
         }
+        print(f"🔍 DEBUG: Grant capability payload: {payload}")
+        print(f"🔍 DEBUG: Endpoint: POST /admin-api/contexts/{context_id}/capabilities/grant")
+        
         result = await self.client._make_request(
             "POST", f"/admin-api/contexts/{context_id}/capabilities/grant", payload
         )
+        
+        print(f"🔍 DEBUG: Raw API result: {result}")
+        print(f"🔍 DEBUG: Result type: {type(result)}")
+        
+        # Handle None response (empty response body from backend)
+        if result is None:
+            print("⚠️  WARNING: Backend processed request but returned empty response")
+            # Create a minimal success response since the backend processed the request
+            return {
+                "success": True,
+                "data": {
+                    "context_id": context_id,
+                    "grantee_id": grantee_id,
+                    "granted_capability": capability.value
+                },
+                "note": "Backend processed request but returned empty response"
+            }
+        
         if isinstance(result, dict) and (result.get("success") or "data" in result):
             if "success" not in result:
                 result["success"] = True
@@ -231,14 +250,33 @@ class ContextManager:
     ) -> RevokeCapabilitiesResponse:
         """Revoke capabilities from a user in a context."""
         payload = {
-            "contextId": context_id,
-            "revokerId": revoker_id,
-            "revokeeId": revokee_id,
-            "capability": capability.value,
+            "capabilities": [(revokee_id, capability.value)],
+            "signer_id": revoker_id,
         }
+        print(f"🔍 DEBUG: Revoke capability payload: {payload}")
+        print(f"🔍 DEBUG: Endpoint: POST /admin-api/contexts/{context_id}/capabilities/revoke")
+        
         result = await self.client._make_request(
             "POST", f"/admin-api/contexts/{context_id}/capabilities/revoke", payload
         )
+        
+        print(f"🔍 DEBUG: Raw API result: {result}")
+        print(f"🔍 DEBUG: Result type: {type(result)}")
+        
+        # Handle None response (empty response body from backend)
+        if result is None:
+            print("⚠️  WARNING: Backend processed request but returned empty response")
+            # Create a minimal success response since the backend processed the request
+            return {
+                "success": True,
+                "data": {
+                    "context_id": context_id,
+                    "revokee_id": revokee_id,
+                    "revoked_capability": capability.value
+                },
+                "note": "Backend processed request but returned empty response"
+            }
+        
         if isinstance(result, dict) and (result.get("success") or "data" in result):
             if "success" not in result:
                 result["success"] = True
