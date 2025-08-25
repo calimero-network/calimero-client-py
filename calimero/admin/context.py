@@ -57,13 +57,11 @@ class ContextManager:
             "initializationParams": request.initialization_params
         }
         result = await self.client._make_request('POST', '/admin-api/contexts', payload)
-        if isinstance(result, dict) and result.get('success'):
-            return CreateContextResponse(
-                success=True,
-                data=result.get('data', {}),
-                context_id=result.get('data', {}).get('contextId'),
-                member_public_key=result.get('data', {}).get('memberPublicKey')
-            )
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
+            # Add success field if it doesn't exist, so the workflow engine can access it
+            if 'success' not in result:
+                result['success'] = True
+            return result
         else:
             raise ValueError(f"Failed to create context: {result}")
     
@@ -113,20 +111,11 @@ class ContextManager:
             The get context response containing the context information.
         """
         result = await self.client._make_request('GET', f'/admin-api/contexts/{context_id}')
-        if isinstance(result, dict) and result.get('success'):
-            ctx_data = result.get('data', {})
-            context = ContextInfo(
-                id=ctx_data.get('id', ''),
-                application_id=ctx_data.get('applicationId', ''),
-                protocol=ctx_data.get('protocol', ''),
-                status=ctx_data.get('status', ''),
-                created_at=ctx_data.get('createdAt'),
-                member_count=ctx_data.get('memberCount')
-            )
-            return GetContextResponse(
-                success=True,
-                context=context
-            )
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
+            # Add success field if it doesn't exist, so the workflow engine can access it
+            if 'success' not in result:
+                result['success'] = True
+            return result
         else:
             raise ValueError(f"Failed to get context: {result}")
     
@@ -141,11 +130,11 @@ class ContextManager:
             The delete context response.
         """
         result = await self.client._make_request('DELETE', f'/admin-api/contexts/{context_id}')
-        if isinstance(result, dict) and result.get('success'):
-            return DeleteContextResponse(
-                success=True,
-                context_id=context_id
-            )
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
+            # Add success field if it doesn't exist, so the workflow engine can access it
+            if 'success' not in result:
+                result['success'] = True
+            return result
         else:
             raise ValueError(f"Failed to delete context: {result}")
     
@@ -162,12 +151,11 @@ class ContextManager:
         """
         payload = {"applicationId": application_id}
         result = await self.client._make_request('PUT', f'/admin-api/contexts/{context_id}/application', payload)
-        if isinstance(result, dict) and result.get('success'):
-            return UpdateContextApplicationResponse(
-                success=True,
-                context_id=context_id,
-                application_id=application_id
-            )
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
+            # Add success field if it doesn't exist, so the workflow engine can access it
+            if 'success' not in result:
+                result['success'] = True
+            return result
         else:
             raise ValueError(f"Failed to update context application: {result}")
     
@@ -182,12 +170,11 @@ class ContextManager:
             The get context storage response.
         """
         result = await self.client._make_request('GET', f'/admin-api/contexts/{context_id}/storage')
-        if isinstance(result, dict) and result.get('success'):
-            return GetContextStorageResponse(
-                success=True,
-                context_id=context_id,
-                data=result.get('data', {})
-            )
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
+            # Add success field if it doesn't exist, so the workflow engine can access it
+            if 'success' not in result:
+                result['success'] = True
+            return result
         else:
             raise ValueError(f"Failed to get context storage: {result}")
     
@@ -203,13 +190,11 @@ class ContextManager:
             The get context value response.
         """
         result = await self.client._make_request('GET', f'/admin-api/contexts/{context_id}/storage/{key}')
-        if isinstance(result, dict) and result.get('success'):
-            return GetContextValueResponse(
-                success=True,
-                context_id=context_id,
-                key=key,
-                value=result.get('data')
-            )
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
+            # Add success field if it doesn't exist, so the workflow engine can access it
+            if 'success' not in result:
+                result['success'] = True
+            return result
         else:
             raise ValueError(f"Failed to get context value: {result}")
     
@@ -227,21 +212,11 @@ class ContextManager:
         """
         params = {"prefix": prefix, "limit": limit}
         result = await self.client._make_request('GET', f'/admin-api/contexts/{context_id}/storage/entries', params)
-        if isinstance(result, dict) and result.get('success'):
-            entries_data = result.get('data', [])
-            entries = [
-                {
-                    "key": entry.get('key', ''),
-                    "value": entry.get('value')
-                }
-                for entry in entries_data
-            ]
-            return GetContextStorageEntriesResponse(
-                success=True,
-                context_id=context_id,
-                entries=entries,
-                total_count=len(entries)
-            )
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
+            # Add success field if it doesn't exist, so the workflow engine can access it
+            if 'success' not in result:
+                result['success'] = True
+            return result
         else:
             raise ValueError(f"Failed to get context storage entries: {result}")
     
@@ -256,12 +231,11 @@ class ContextManager:
             The get proxy contract response.
         """
         result = await self.client._make_request('GET', f'/admin-api/contexts/{context_id}/proxy-contract')
-        if isinstance(result, dict) and result.get('success'):
-            return GetProxyContractResponse(
-                success=True,
-                context_id=context_id,
-                contract_data=result.get('data', {})
-            )
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
+            # Add success field if it doesn't exist, so the workflow engine can access it
+            if 'success' not in result:
+                result['success'] = True
+            return result
         else:
             raise ValueError(f"Failed to get proxy contract: {result}")
     
@@ -280,12 +254,11 @@ class ContextManager:
         else:
             result = await self.client._make_request('POST', '/admin-api/contexts/sync')
         
-        if isinstance(result, dict) and result.get('success'):
-            return SyncContextResponse(
-                success=True,
-                context_id=context_id,
-                sync_result=result.get('data', {})
-            )
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
+            # Add success field if it doesn't exist, so the workflow engine can access it
+            if 'success' not in result:
+                result['success'] = True
+            return result
         else:
             raise ValueError(f"Failed to sync context: {result}")
 

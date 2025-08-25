@@ -28,12 +28,10 @@ class IdentityManager:
         if isinstance(result, dict):
             # Handle both formats: {'success': true, 'data': {...}} and {'data': {...}}
             if result.get('success') or 'data' in result:
-                data = result.get('data', result)
-                return GenerateIdentityResponse(
-                    success=True,
-                    public_key=data.get('publicKey', ''),
-                    context_id=data.get('contextId')
-                )
+                # Add success field if it doesn't exist, so the workflow engine can access it
+                if 'success' not in result:
+                    result['success'] = True
+                return result
         raise ValueError(f"Failed to generate identity: {result}")
     
     async def list_in_context(self, context_id: str) -> ListIdentitiesResponse:
@@ -47,22 +45,11 @@ class IdentityManager:
             The list identities response containing the list of identities.
         """
         result = await self.client._make_request('GET', f'/admin-api/contexts/{context_id}/identities')
-        if isinstance(result, dict) and result.get('success'):
-            identities_data = result.get('data', [])
-            identities = [
-                IdentityInfo(
-                    public_key=identity.get('publicKey', ''),
-                    context_id=identity.get('contextId'),
-                    capabilities=identity.get('capabilities', []),
-                    created_at=identity.get('createdAt')
-                )
-                for identity in identities_data
-            ]
-            return ListIdentitiesResponse(
-                success=True,
-                identities=identities,
-                total_count=len(identities)
-            )
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
+            # Add success field if it doesn't exist, so the workflow engine can access it
+            if 'success' not in result:
+                result['success'] = True
+            return result
         else:
             raise ValueError(f"Failed to list identities: {result}")
 

@@ -52,13 +52,11 @@ class ApplicationManager:
             "metadata": list(request.metadata)  # Convert bytes to list for JSON serialization
         }
         result = await self.client._make_request('POST', '/admin-api/install-dev-application', payload)
-        if isinstance(result, dict) and result.get('success'):
-            data = result.get('data', {})
-            return InstallDevApplicationResponse(
-                success=True,
-                application_id=data.get('applicationId', ''),
-                path=request.path
-            )
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
+            # Add success field if it doesn't exist, so the workflow engine can access it
+            if 'success' not in result:
+                result['success'] = True
+            return result
         else:
             raise ValueError(f"Failed to install dev application: {result}")
     
@@ -98,14 +96,11 @@ class ApplicationManager:
         if request.hash:
             payload["hash"] = request.hash
         result = await self.client._make_request('POST', '/admin-api/install-application', payload)
-        if isinstance(result, dict) and result.get('success'):
-            data = result.get('data', {})
-            return InstallApplicationResponse(
-                success=True,
-                application_id=data.get('applicationId', ''),
-                url=request.url,
-                hash=request.hash
-            )
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
+            # Add success field if it doesn't exist, so the workflow engine can access it
+            if 'success' not in result:
+                result['success'] = True
+            return result
         else:
             raise ValueError(f"Failed to install application: {result}")
     
@@ -155,7 +150,7 @@ class ApplicationManager:
             The get application response containing the application information.
         """
         result = await self.client._make_request('GET', f'/admin-api/applications/{application_id}')
-        if isinstance(result, dict) and result.get('success'):
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
             app_data = result.get('data', {})
             application = ApplicationInfo(
                 id=app_data.get('id', ''),
@@ -183,7 +178,7 @@ class ApplicationManager:
             The uninstall application response confirming the uninstallation.
         """
         result = await self.client._make_request('DELETE', f'/admin-api/applications/{application_id}')
-        if isinstance(result, dict) and result.get('success'):
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
             return UninstallApplicationResponse(
                 success=True,
                 application_id=application_id

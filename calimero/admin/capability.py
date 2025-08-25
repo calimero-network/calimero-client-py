@@ -37,14 +37,11 @@ class CapabilityManager:
             "capability": capability
         }
         result = await self.client._make_request('POST', f'/admin-api/contexts/{context_id}/capabilities/grant', payload)
-        if isinstance(result, dict) and result.get('success'):
-            return GrantCapabilitiesResponse(
-                success=True,
-                context_id=context_id,
-                granter_id=granter_id,
-                grantee_id=grantee_id,
-                capability=capability
-            )
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
+            # Add success field if it doesn't exist, so the workflow engine can access it
+            if 'success' not in result:
+                result['success'] = True
+            return result
         else:
             raise ValueError(f"Failed to grant capability: {result}")
     
@@ -68,14 +65,11 @@ class CapabilityManager:
             "capability": capability
         }
         result = await self.client._make_request('POST', f'/admin-api/contexts/{context_id}/capabilities/revoke', payload)
-        if isinstance(result, dict) and result.get('success'):
-            return RevokeCapabilitiesResponse(
-                success=True,
-                context_id=context_id,
-                revoker_id=revoker_id,
-                revokee_id=revokee_id,
-                capability=capability
-            )
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
+            # Add success field if it doesn't exist, so the workflow engine can access it
+            if 'success' not in result:
+                result['success'] = True
+            return result
         else:
             raise ValueError(f"Failed to revoke capability: {result}")
 

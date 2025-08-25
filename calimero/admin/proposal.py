@@ -33,25 +33,11 @@ class ProposalManager:
         """
         params = {"offset": offset, "limit": limit}
         result = await self.client._make_request('GET', f'/admin-api/contexts/{context_id}/proposals', params)
-        if isinstance(result, dict) and result.get('success'):
-            proposals_data = result.get('data', [])
-            proposals = [
-                ProposalInfo(
-                    id=proposal.get('id', ''),
-                    context_id=proposal.get('contextId', ''),
-                    title=proposal.get('title', ''),
-                    description=proposal.get('description', ''),
-                    status=proposal.get('status', ''),
-                    created_at=proposal.get('createdAt'),
-                    updated_at=proposal.get('updatedAt')
-                )
-                for proposal in proposals_data
-            ]
-            return GetProposalsResponse(
-                success=True,
-                proposals=proposals,
-                total_count=len(proposals)
-            )
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
+            # Add success field if it doesn't exist, so the workflow engine can access it
+            if 'success' not in result:
+                result['success'] = True
+            return result
         else:
             raise ValueError(f"Failed to get proposals: {result}")
     
@@ -67,21 +53,11 @@ class ProposalManager:
             The get proposal response containing the proposal information.
         """
         result = await self.client._make_request('GET', f'/admin-api/contexts/{context_id}/proposals/{proposal_id}')
-        if isinstance(result, dict) and result.get('success'):
-            proposal_data = result.get('data', {})
-            proposal = ProposalInfo(
-                id=proposal_data.get('id', ''),
-                context_id=proposal_data.get('contextId', ''),
-                title=proposal_data.get('title', ''),
-                description=proposal_data.get('description', ''),
-                status=proposal_data.get('status', ''),
-                created_at=proposal_data.get('createdAt'),
-                updated_at=proposal_data.get('updatedAt')
-            )
-            return GetProposalResponse(
-                success=True,
-                proposal=proposal
-            )
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
+            # Add success field if it doesn't exist, so the workflow engine can access it
+            if 'success' not in result:
+                result['success'] = True
+            return result
         else:
             raise ValueError(f"Failed to get proposal: {result}")
     
@@ -96,12 +72,11 @@ class ProposalManager:
             The get number of active proposals response.
         """
         result = await self.client._make_request('GET', f'/admin-api/contexts/{context_id}/proposals/active/count')
-        if isinstance(result, dict) and result.get('success'):
-            return GetNumberOfActiveProposalsResponse(
-                success=True,
-                context_id=context_id,
-                count=result.get('data', 0)
-            )
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
+            # Add success field if it doesn't exist, so the workflow engine can access it
+            if 'success' not in result:
+                result['success'] = True
+            return result
         else:
             raise ValueError(f"Failed to get active proposals count: {result}")
     
@@ -117,13 +92,11 @@ class ProposalManager:
             The get proposal approvals count response.
         """
         result = await self.client._make_request('GET', f'/admin-api/contexts/{context_id}/proposals/{proposal_id}/approvals/count')
-        if isinstance(result, dict) and result.get('success'):
-            return GetProposalApprovalsCountResponse(
-                success=True,
-                context_id=context_id,
-                proposal_id=proposal_id,
-                count=result.get('data', 0)
-            )
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
+            # Add success field if it doesn't exist, so the workflow engine can access it
+            if 'success' not in result:
+                result['success'] = True
+            return result
         else:
             raise ValueError(f"Failed to get proposal approvals count: {result}")
     
@@ -139,15 +112,11 @@ class ProposalManager:
             The get proposal approvers response.
         """
         result = await self.client._make_request('GET', f'/admin-api/contexts/{context_id}/proposals/{proposal_id}/approvers')
-        if isinstance(result, dict) and result.get('success'):
-            approvers_data = result.get('data', [])
-            return GetProposalApproversResponse(
-                success=True,
-                context_id=context_id,
-                proposal_id=proposal_id,
-                approvers=approvers_data,
-                total_count=len(approvers_data)
-            )
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
+            # Add success field if it doesn't exist, so the workflow engine can access it
+            if 'success' not in result:
+                result['success'] = True
+            return result
         else:
             raise ValueError(f"Failed to get proposal approvers: {result}")
 

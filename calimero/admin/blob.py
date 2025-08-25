@@ -77,7 +77,7 @@ class BlobManager:
             The download blob response containing the blob data.
         """
         result = await self.client._make_request('GET', f'/admin-api/blobs/{blob_id}')
-        if isinstance(result, dict) and result.get('success'):
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
             return DownloadBlobResponse(
                 success=True,
                 blob_id=blob_id,
@@ -132,7 +132,7 @@ class BlobManager:
             The get blob info response containing the blob information.
         """
         result = await self.client._make_request('GET', f'/admin-api/blobs/{blob_id}/info')
-        if isinstance(result, dict) and result.get('success'):
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
             blob_data = result.get('data', {})
             blob_info = BlobInfo(
                 id=blob_data.get('id', ''),
@@ -159,7 +159,7 @@ class BlobManager:
             The delete blob response confirming the deletion.
         """
         result = await self.client._make_request('DELETE', f'/admin-api/blobs/{blob_id}')
-        if isinstance(result, dict) and result.get('success'):
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
             return DeleteBlobResponse(
                 success=True,
                 blob_id=blob_id

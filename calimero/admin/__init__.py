@@ -113,28 +113,28 @@ class AdminClient:
                         return await response.json()
                     else:
                         error_text = await response.text()
-                        return ErrorResponse(
-                            success=False,
-                            error=f"HTTP {response.status}: {error_text}",
-                            error_code=str(response.status)
-                        )
+                        return {
+                            "success": False,
+                            "error": f"HTTP {response.status}: {error_text}",
+                            "error_code": str(response.status)
+                        }
             else:
                 async with self.session.request(method, url, json=data, headers=headers) as response:
                     if response.status in [200, 201]:
                         return await response.json()
                     else:
                         error_text = await response.text()
-                        return ErrorResponse(
-                            success=False,
-                            error=f"HTTP {response.status}: {error_text}",
-                            error_code=str(response.status)
-                        )
+                        return {
+                            "success": False,
+                            "error": f"HTTP {response.status}: {error_text}",
+                            "error_code": str(response.status)
+                        }
         except Exception as e:
-            return ErrorResponse(
-                success=False,
-                error=str(e),
-                error_code="REQUEST_ERROR"
-            )
+            return {
+                "success": False,
+                "error": str(e),
+                "error_code": "REQUEST_ERROR"
+            }
     
     # Backward compatibility methods that delegate to specialized managers
     async def create_context(self, application_id: str, protocol: str = "near", initialization_params: list = None) -> CreateContextResponse:
@@ -152,6 +152,92 @@ class AdminClient:
     async def delete_context(self, context_id: str) -> DeleteContextResponse:
         """Delete a context (backward compatibility)."""
         return await self.contexts.delete(context_id)
+    
+    async def invite(self, context_id: str, granter_id: str, grantee_id: str, capability: str = "member"):
+        """
+        Invite an identity to a context.
+        
+        Args:
+            context_id: The ID of the context to invite to.
+            granter_id: The public key of the identity doing the inviting.
+            grantee_id: The public key of the identity being invited.
+            capability: The capability to grant (default: "member").
+            
+        Returns:
+            The invitation response.
+        """
+        # Create an invitation using the dedicated invite endpoint
+        payload = {
+            "contextId": context_id,
+            "inviterId": granter_id,  # The API expects 'inviterId' not 'granterId'
+            "inviteeId": grantee_id,  # The API expects 'inviteeId' not 'granteeId'
+            "capability": capability
+        }
+        result = await self._make_request('POST', '/admin-api/contexts/invite', payload)
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
+            # Add success field if it doesn't exist, so the workflow engine can access it
+            if 'success' not in result:
+                result['success'] = True
+            return result
+        else:
+            raise ValueError(f"Failed to create invitation: {result}")
+    
+    async def grant_capability(self, context_id: str, granter_id: str, grantee_id: str, capability: str):
+        """
+        Directly grant a capability to an identity in a context.
+        
+        Args:
+            context_id: The ID of the context.
+            granter_id: The public key of the identity granting the capability.
+            grantee_id: The public key of the identity receiving the capability.
+            capability: The capability to grant.
+            
+        Returns:
+            The capability grant response.
+        """
+        return await self.capabilities.grant(context_id, granter_id, grantee_id, capability)
+    
+    async def invite_to_context(self, context_id: str, granter_id: str, grantee_id: str, capability: str = "member"):
+        """
+        Invite an identity to a context (alias for invite method for compatibility).
+        
+        Args:
+            context_id: The ID of the context to invite to.
+            granter_id: The public key of the identity doing the inviting.
+            grantee_id: The public key of the identity being invited.
+            capability: The capability to grant (default: "member").
+            
+        Returns:
+            The invitation response.
+        """
+        return await self.invite(context_id, granter_id, grantee_id, capability)
+    
+    async def join_context(self, context_id: str, invitee_id: str, invitation: str):
+        """
+        Join a context using an invitation.
+        
+        Args:
+            context_id: The ID of the context to join.
+            invitee_id: The public key of the identity joining the context.
+            invitation: The invitation data received from the inviter.
+            
+        Returns:
+            The join context response.
+        """
+        # Join a context using the invitation received from the inviter
+        payload = {
+            "contextId": context_id,
+            "inviterId": invitee_id,  # The API expects 'inviterId' for the join endpoint
+            "invitationPayload": invitation  # The API expects 'invitationPayload' not 'invitation'
+        }
+        result = await self._make_request('POST', '/admin-api/contexts/join', payload)
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
+            # Add success field if it doesn't exist, so the workflow engine can access it
+            if 'success' not in result:
+                result['success'] = True
+            return result
+        else:
+            raise ValueError(f"Failed to join context: {result}")
     
     async def generate_identity(self) -> GenerateIdentityResponse:
         """Generate a new identity (backward compatibility)."""
@@ -226,11 +312,11 @@ class AdminClient:
         # This is a placeholder since the actual sync endpoint might not exist
         # Return a success response for compatibility
         from datetime import datetime
-        return SyncContextResponse(
-            success=True,
-            context_id=None,
-            synced_at=datetime.now()
-        )
+        return {
+            "success": True,
+            "context_id": None,
+            "synced_at": datetime.now().isoformat()
+        }
 
 
 # Export the main class

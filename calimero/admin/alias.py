@@ -35,15 +35,11 @@ class AliasManager:
             "type": "context"
         }
         result = await self.client._make_request('POST', '/admin-api/aliases', payload)
-        if isinstance(result, dict) and result.get('success'):
-            return CreateAliasResponse(
-                success=True,
-                alias=AliasInfo(
-                    name=name,
-                    target_id=context_id,
-                    type="context"
-                )
-            )
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
+            # Add success field if it doesn't exist, so the workflow engine can access it
+            if 'success' not in result:
+                result['success'] = True
+            return result
         else:
             raise ValueError(f"Failed to create context alias: {result}")
     
@@ -64,15 +60,11 @@ class AliasManager:
             "type": "application"
         }
         result = await self.client._make_request('POST', '/admin-api/aliases', payload)
-        if isinstance(result, dict) and result.get('success'):
-            return CreateAliasResponse(
-                success=True,
-                alias=AliasInfo(
-                    name=name,
-                    target_id=application_id,
-                    type="application"
-                )
-            )
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
+            # Add success field if it doesn't exist, so the workflow engine can access it
+            if 'success' not in result:
+                result['success'] = True
+            return result
         else:
             raise ValueError(f"Failed to create application alias: {result}")
     
@@ -95,16 +87,11 @@ class AliasManager:
             "type": "identity"
         }
         result = await self.client._make_request('POST', '/admin-api/aliases', payload)
-        if isinstance(result, dict) and result.get('success'):
-            return CreateAliasResponse(
-                success=True,
-                alias=AliasInfo(
-                    name=name,
-                    target_id=identity_id,
-                    type="identity",
-                    context_id=context_id
-                )
-            )
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
+            # Add success field if it doesn't exist, so the workflow engine can access it
+            if 'success' not in result:
+                result['success'] = True
+            return result
         else:
             raise ValueError(f"Failed to create identity alias: {result}")
     
@@ -119,16 +106,11 @@ class AliasManager:
             The lookup alias response.
         """
         result = await self.client._make_request('GET', f'/admin-api/aliases/{name}')
-        if isinstance(result, dict) and result.get('success'):
-            data = result.get('data', {})
-            return LookupAliasResponse(
-                success=True,
-                alias=AliasInfo(
-                    name=name,
-                    target_id=data.get('contextId', ''),
-                    type="context"
-                )
-            )
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
+            # Add success field if it doesn't exist, so the workflow engine can access it
+            if 'success' not in result:
+                result['success'] = True
+            return result
         else:
             raise ValueError(f"Failed to lookup context alias: {result}")
     
@@ -143,7 +125,7 @@ class AliasManager:
             The lookup alias response.
         """
         result = await self.client._make_request('GET', f'/admin-api/aliases/{name}')
-        if isinstance(result, dict) and result.get('success'):
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
             data = result.get('data', {})
             return LookupAliasResponse(
                 success=True,
@@ -168,7 +150,7 @@ class AliasManager:
             The lookup alias response.
         """
         result = await self.client._make_request('GET', f'/admin-api/aliases/{name}')
-        if isinstance(result, dict) and result.get('success'):
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
             data = result.get('data', {})
             return LookupAliasResponse(
                 success=True,
@@ -190,7 +172,7 @@ class AliasManager:
             The list aliases response.
         """
         result = await self.client._make_request('GET', '/admin-api/aliases/contexts')
-        if isinstance(result, dict) and result.get('success'):
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
             aliases_data = result.get('data', [])
             aliases = [
                 AliasInfo(
@@ -216,7 +198,7 @@ class AliasManager:
             The list aliases response.
         """
         result = await self.client._make_request('GET', '/admin-api/aliases/applications')
-        if isinstance(result, dict) and result.get('success'):
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
             aliases_data = result.get('data', [])
             aliases = [
                 AliasInfo(
@@ -245,7 +227,7 @@ class AliasManager:
             The list aliases response.
         """
         result = await self.client._make_request('GET', f'/admin-api/aliases/contexts/{context_id}/identities')
-        if isinstance(result, dict) and result.get('success'):
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
             aliases_data = result.get('data', [])
             aliases = [
                 AliasInfo(
@@ -275,7 +257,7 @@ class AliasManager:
             The delete alias response.
         """
         result = await self.client._make_request('DELETE', f'/admin-api/aliases/{name}')
-        if isinstance(result, dict) and result.get('success'):
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
             return DeleteAliasResponse(
                 success=True,
                 alias_name=name
@@ -294,7 +276,7 @@ class AliasManager:
             The delete alias response.
         """
         result = await self.client._make_request('DELETE', f'/admin-api/aliases/{name}')
-        if isinstance(result, dict) and result.get('success'):
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
             return DeleteAliasResponse(
                 success=True,
                 alias_name=name
@@ -314,7 +296,7 @@ class AliasManager:
             The delete alias response.
         """
         result = await self.client._make_request('DELETE', f'/admin-api/aliases/{name}')
-        if isinstance(result, dict) and result.get('success'):
+        if isinstance(result, dict) and (result.get('success') or 'data' in result):
             return DeleteAliasResponse(
                 success=True,
                 alias_name=name
