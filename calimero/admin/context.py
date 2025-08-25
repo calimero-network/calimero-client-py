@@ -211,8 +211,10 @@ class ContextManager:
     ) -> GrantCapabilitiesResponse:
         """Grant capabilities to a user in a context."""
         payload = {
-            "signer_id": granter_id,
-            "capabilities": [(grantee_id, capability.value)],
+            "contextId": context_id,
+            "granterId": granter_id,
+            "granteeId": grantee_id,
+            "capability": capability.value,
         }
         result = await self.client._make_request(
             "POST", f"/admin-api/contexts/{context_id}/capabilities/grant", payload
@@ -229,8 +231,10 @@ class ContextManager:
     ) -> RevokeCapabilitiesResponse:
         """Revoke capabilities from a user in a context."""
         payload = {
-            "signer_id": revoker_id,
-            "capabilities": [(revokee_id, capability.value)],
+            "contextId": context_id,
+            "revokerId": revoker_id,
+            "revokeeId": revokee_id,
+            "capability": capability.value,
         }
         result = await self.client._make_request(
             "POST", f"/admin-api/contexts/{context_id}/capabilities/revoke", payload
