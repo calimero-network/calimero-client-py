@@ -215,15 +215,17 @@ class ContextManager:
             "signer_id": granter_id,
         }
         print(f"🔍 DEBUG: Grant capability payload: {payload}")
-        print(f"🔍 DEBUG: Endpoint: POST /admin-api/contexts/{context_id}/capabilities/grant")
-        
+        print(
+            f"🔍 DEBUG: Endpoint: POST /admin-api/contexts/{context_id}/capabilities/grant"
+        )
+
         result = await self.client._make_request(
             "POST", f"/admin-api/contexts/{context_id}/capabilities/grant", payload
         )
-        
+
         print(f"🔍 DEBUG: Raw API result: {result}")
         print(f"🔍 DEBUG: Result type: {type(result)}")
-        
+
         # Handle None response (empty response body from backend)
         if result is None:
             print("⚠️  WARNING: Backend processed request but returned empty response")
@@ -233,11 +235,11 @@ class ContextManager:
                 "data": {
                     "context_id": context_id,
                     "grantee_id": grantee_id,
-                    "granted_capability": capability.value
+                    "granted_capability": capability.value,
                 },
-                "note": "Backend processed request but returned empty response"
+                "note": "Backend processed request but returned empty response",
             }
-        
+
         if isinstance(result, dict) and (result.get("success") or "data" in result):
             if "success" not in result:
                 result["success"] = True
@@ -254,15 +256,17 @@ class ContextManager:
             "signer_id": revoker_id,
         }
         print(f"🔍 DEBUG: Revoke capability payload: {payload}")
-        print(f"🔍 DEBUG: Endpoint: POST /admin-api/contexts/{context_id}/capabilities/revoke")
-        
+        print(
+            f"🔍 DEBUG: Endpoint: POST /admin-api/contexts/{context_id}/capabilities/revoke"
+        )
+
         result = await self.client._make_request(
             "POST", f"/admin-api/contexts/{context_id}/capabilities/revoke", payload
         )
-        
+
         print(f"🔍 DEBUG: Raw API result: {result}")
         print(f"🔍 DEBUG: Result type: {type(result)}")
-        
+
         # Handle None response (empty response body from backend)
         if result is None:
             print("⚠️  WARNING: Backend processed request but returned empty response")
@@ -272,11 +276,11 @@ class ContextManager:
                 "data": {
                     "context_id": context_id,
                     "revokee_id": revokee_id,
-                    "revoked_capability": capability.value
+                    "revoked_capability": capability.value,
                 },
-                "note": "Backend processed request but returned empty response"
+                "note": "Backend processed request but returned empty response",
             }
-        
+
         if isinstance(result, dict) and (result.get("success") or "data" in result):
             if "success" not in result:
                 result["success"] = True
