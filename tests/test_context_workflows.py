@@ -5,6 +5,7 @@ This module tests real-life scenarios involving context creation, management,
 and lifecycle operations.
 """
 
+import asyncio
 import pytest
 from calimero import CalimeroClient
 from calimero.admin import Capability
@@ -230,60 +231,66 @@ class TestContextWorkflows:
     @pytest.mark.asyncio
     async def test_capability_management_workflow(self, workflow_environment):
         """Test complete capability management workflow."""
-        # TODO: This test is disabled because the capability management API endpoints
-        # exist but return None responses, indicating incomplete backend implementation
-        pytest.skip(
-            "Capability management API endpoints are incomplete - returning None responses"
-        )
-
         env = workflow_environment
 
         context_id = env.get_captured_value("context_id")
         granter_id = env.get_captured_value("member_public_key")
-        admin_url = env.endpoints["calimero-node-1"]
+        grantee_id = env.get_captured_value("public_key")  # Use identity from node 2
 
-        client = CalimeroClient(admin_url)
+        # Use node 1 for invitation and capability management
+        node1_url = env.endpoints["calimero-node-1"]
+        # Use node 2 for joining context
+        node2_url = env.endpoints["calimero-node-2"]
 
-        print(" Testing capability management workflow")
+        client_node1 = CalimeroClient(node1_url)
+        client_node2 = CalimeroClient(node2_url)
 
-        new_identity = await client.identities.generate()
-        assert new_identity is not None
+        print("🚀 Testing capability management workflow")
+        print(f"🔑 Granter (node 1): {granter_id}")
+        print(f"👤 Grantee (node 2): {grantee_id}")
+        print(f"🏗️  Context: {context_id}")
 
-        if isinstance(new_identity, dict):
-            if "data" in new_identity and "publicKey" in new_identity["data"]:
-                grantee_id = new_identity["data"]["publicKey"]
-            elif "publicKey" in new_identity:
-                grantee_id = new_identity["publicKey"]
-            else:
-                grantee_id = None
-        else:
-            grantee_id = new_identity
-
-        print(f"✅ Generated new identity for capability testing: {grantee_id}")
-
-        # First, invite the identity to join the context
-        print("🔐 Inviting identity to join context before granting capabilities")
-        invitation = await client.contexts.invite_to_context(
+        # Step 1: Invite from node 1
+        print("🔐 Step 1: Inviting identity from node 1")
+        invitation = await client_node1.contexts.invite_to_context(
             context_id=context_id,
             inviter_id=granter_id,
             invitee_id=grantee_id,
         )
         assert invitation is not None
-        print("✅ Invitation created successfully")
+        print("✅ Invitation created successfully from node 1")
 
-        # Wait for invitation to be processed
-        print("⏳ Waiting for invitation to be processed...")
-        import asyncio
+        # Wait between steps
+        print("⏳ Waiting 2 seconds between invitation and join...")
+        await asyncio.sleep(2)
 
-        await asyncio.sleep(5)
+        # Step 2: Join from node 2
+        print("🔐 Step 2: Joining context from node 2")
+        print(f"🔍 Invitation type: {type(invitation)}")
+        print(f"🔍 Invitation content: {invitation}")
 
-        # Verify the identity is now a member
-        print("🔍 Verifying identity membership...")
-        identities = await client.identities.list_in_context(context_id)
-        assert identities is not None
-        print(f"✅ Current context members: {identities}")
+        # Handle invitation payload properly
+        if isinstance(invitation, dict):
+            # If invitation is a dict, extract the invitation data
+            invitation_payload = invitation.get("data", str(invitation))
+        else:
+            # If invitation is already a string, use it directly
+            invitation_payload = invitation
 
-        # Now the identity should be a member, so we can grant capabilities
+        join_result = await client_node2.contexts.join_context(
+            context_id=context_id,
+            invitee_id=grantee_id,
+            invitation_payload=invitation_payload,
+        )
+        assert join_result is not None
+        print("✅ Context joined successfully from node 2")
+
+        # Wait between steps
+        print("⏳ Waiting 2 seconds between join and capability grant...")
+        await asyncio.sleep(2)
+
+        # Step 3: Grant capabilities from node 1
+        print("🔐 Step 3: Granting capabilities from node 1")
         capabilities_to_test = [
             Capability.MANAGE_APPLICATION,
             Capability.MANAGE_MEMBERS,
@@ -296,7 +303,7 @@ class TestContextWorkflows:
             print(
                 f"📤 Granting {capability.value} to {grantee_id} in context {context_id}"
             )
-            grant_result = await client.contexts.grant_capability(
+            grant_result = await client_node1.contexts.grant_capability(
                 context_id=context_id,
                 granter_id=granter_id,
                 grantee_id=grantee_id,
@@ -310,6 +317,11 @@ class TestContextWorkflows:
             if isinstance(grant_result, dict):
                 assert grant_result.get("success", True)
                 print(f"✅ {capability.value} grant operation verified")
+
+            # Wait between capability grants
+            if capability != capabilities_to_test[-1]:  # Don't wait after the last one
+                print("⏳ Waiting 2 seconds between capability grants...")
+                await asyncio.sleep(2)
 
         print("🎉 Capability management workflow completed successfully")
 
@@ -352,62 +364,68 @@ class TestContextWorkflows:
     @pytest.mark.asyncio
     async def test_capability_grant_revoke_cycle(self, workflow_environment):
         """Test complete capability grant and revoke cycle."""
-        # TODO: This test is disabled because the capability management API endpoints
-        # exist but return None responses, indicating incomplete backend implementation
-        pytest.skip(
-            "Capability management API endpoints are incomplete - returning None responses"
-        )
-
         env = workflow_environment
 
         context_id = env.get_captured_value("context_id")
         granter_id = env.get_captured_value("member_public_key")
-        admin_url = env.endpoints["calimero-node-1"]
+        grantee_id = env.get_captured_value("public_key")  # Use identity from node 2
 
-        client = CalimeroClient(admin_url)
+        # Use node 1 for invitation and capability management
+        node1_url = env.endpoints["calimero-node-1"]
+        # Use node 2 for joining context
+        node2_url = env.endpoints["calimero-node-2"]
+
+        client_node1 = CalimeroClient(node1_url)
+        client_node2 = CalimeroClient(node2_url)
 
         print("🚀 Testing capability grant and revoke cycle")
+        print(f"🔑 Granter (node 1): {granter_id}")
+        print(f"👤 Grantee (node 2): {grantee_id}")
+        print(f"🏗️  Context: {context_id}")
 
-        new_identity = await client.identities.generate()
-        assert new_identity is not None
-
-        if isinstance(new_identity, dict):
-            if "data" in new_identity and "publicKey" in new_identity["data"]:
-                grantee_id = new_identity["data"]["publicKey"]
-            elif "publicKey" in new_identity:
-                grantee_id = new_identity["publicKey"]
-            else:
-                grantee_id = None
-        else:
-            grantee_id = new_identity
-
-        print(f"✅ Generated test identity: {grantee_id}")
-
-        # First, invite the identity to join the context
-        print("🔐 Inviting identity to join context before granting capabilities")
-        invitation = await client.contexts.invite_to_context(
+        # Step 1: Invite from node 1
+        print("🔐 Step 1: Inviting identity from node 1")
+        invitation = await client_node1.contexts.invite_to_context(
             context_id=context_id,
             inviter_id=granter_id,
             invitee_id=grantee_id,
         )
         assert invitation is not None
-        print("✅ Invitation created successfully")
+        print("✅ Invitation created successfully from node 1")
 
-        # Wait for invitation to be processed
-        print("⏳ Waiting for invitation to be processed...")
-        import asyncio
+        # Wait between steps
+        print("⏳ Waiting 2 seconds between invitation and join...")
+        await asyncio.sleep(2)
 
-        await asyncio.sleep(5)
+        # Step 2: Join from node 2
+        print("🔐 Step 2: Joining context from node 2")
+        print(f"🔍 Invitation type: {type(invitation)}")
+        print(f"🔍 Invitation content: {invitation}")
 
-        # Verify the identity is now a member
-        print("🔍 Verifying identity membership...")
-        identities = await client.identities.list_in_context(context_id)
-        assert identities is not None
-        print(f"✅ Current context members: {identities}")
+        # Handle invitation payload properly
+        if isinstance(invitation, dict):
+            # If invitation is a dict, extract the invitation data
+            invitation_payload = invitation.get("data", str(invitation))
+        else:
+            # If invitation is already a string, use it directly
+            invitation_payload = invitation
 
-        # Now the identity should be a member, so we can grant capabilities
+        join_result = await client_node2.contexts.join_context(
+            context_id=context_id,
+            invitee_id=grantee_id,
+            invitation_payload=invitation_payload,
+        )
+        assert join_result is not None
+        print("✅ Context joined successfully from node 2")
+
+        # Wait between steps
+        print("⏳ Waiting 2 seconds between join and capability grant...")
+        await asyncio.sleep(2)
+
+        # Step 3: Grant capability from node 1
+        print("🔐 Step 3: Granting capability from node 1")
         print(f"📤 Granting MANAGE_MEMBERS to {grantee_id} in context {context_id}")
-        grant_result = await client.contexts.grant_capability(
+        grant_result = await client_node1.contexts.grant_capability(
             context_id=context_id,
             granter_id=granter_id,
             grantee_id=grantee_id,
@@ -422,8 +440,14 @@ class TestContextWorkflows:
             assert grant_result.get("success", True)
             print("✅ Grant operation verified")
 
+        # Wait between grant and revoke
+        print("⏳ Waiting 2 seconds between grant and revoke...")
+        await asyncio.sleep(2)
+
+        # Step 4: Revoke capability from node 1
+        print("🔐 Step 4: Revoking capability from node 1")
         print(f"📤 Revoking MANAGE_MEMBERS from {grantee_id} in context {context_id}")
-        revoke_result = await client.contexts.revoke_capability(
+        revoke_result = await client_node1.contexts.revoke_capability(
             context_id=context_id,
             revoker_id=granter_id,
             revokee_id=grantee_id,
