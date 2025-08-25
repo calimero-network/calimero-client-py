@@ -3,9 +3,14 @@ import json
 from typing import Any, Callable, List, Optional
 import websockets
 from .types import (
-    WebSocketMessage, SubscribeRequest, UnsubscribeRequest, SubscriptionUpdate,
-    WebSocketApiResponse, ErrorResponse
+    WebSocketMessage,
+    SubscribeRequest,
+    UnsubscribeRequest,
+    SubscriptionUpdate,
+    WebSocketApiResponse,
+    ErrorResponse,
 )
+
 
 class WsSubscriptionsClient:
     def __init__(self, base_url: str, endpoint: str = "/ws"):
@@ -20,8 +25,10 @@ class WsSubscriptionsClient:
         # Don't create a new connection if already connected
         if self.ws and self._running:
             return
-            
-        ws_url = f"ws://{self.base_url.lstrip('http://').lstrip('https://')}{self.endpoint}"
+
+        ws_url = (
+            f"ws://{self.base_url.lstrip('http://').lstrip('https://')}{self.endpoint}"
+        )
         self.ws = await websockets.connect(ws_url)
         self._running = True
         asyncio.create_task(self._listen())
@@ -61,10 +68,7 @@ class WsSubscriptionsClient:
 
         self.subscribed_apps.extend(request.application_ids)
         message = WebSocketMessage(
-            type="subscribe",
-            data={
-                "applicationIds": request.application_ids
-            }
+            type="subscribe", data={"applicationIds": request.application_ids}
         )
         asyncio.create_task(self.ws.send(json.dumps(message.model_dump())))
 
@@ -72,12 +76,13 @@ class WsSubscriptionsClient:
         if not self.ws:
             raise RuntimeError("WebSocket connection not established")
 
-        self.subscribed_apps = [app_id for app_id in self.subscribed_apps if app_id not in request.application_ids]
+        self.subscribed_apps = [
+            app_id
+            for app_id in self.subscribed_apps
+            if app_id not in request.application_ids
+        ]
         message = WebSocketMessage(
-            type="unsubscribe",
-            data={
-                "applicationIds": request.application_ids
-            }
+            type="unsubscribe", data={"applicationIds": request.application_ids}
         )
         asyncio.create_task(self.ws.send(json.dumps(message.model_dump())))
 
@@ -85,4 +90,4 @@ class WsSubscriptionsClient:
         self.callbacks.append(callback)
 
     def remove_callback(self, callback: Callable[[Any], None]):
-        self.callbacks.remove(callback) 
+        self.callbacks.remove(callback)

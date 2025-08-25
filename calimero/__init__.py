@@ -13,7 +13,7 @@ from .client import CalimeroClient
 AdminClient = CalimeroClient
 
 __all__ = [
-    'WsSubscriptionsClient',
-    'CalimeroClient',
-    'AdminClient'  # Backward compatibility for merobox framework
-] 
+    "WsSubscriptionsClient",
+    "CalimeroClient",
+    "AdminClient",  # Backward compatibility for merobox framework
+]

@@ -1,4 +1,4 @@
-.PHONY: help test test-verbose test-quick test-admin test-jsonrpc test-websocket clean
+.PHONY: help test test-verbose test-quick test-admin test-jsonrpc test-websocket clean format format-check
 
 help:  ## Show this help message
 	@echo "Calimero Client Test Commands:"
@@ -25,6 +25,12 @@ test-websocket:  ## Run only WebSocket tests
 
 run-script:  ## Run the test script with full output
 	python3 scripts/run_tests.py
+
+format:  ## Format code with Black
+	venv/bin/black calimero/ tests/ setup.py
+
+format-check:  ## Check if code is formatted with Black
+	venv/bin/black --check calimero/ tests/ setup.py
 
 clean:  ## Clean up test artifacts
 	rm -rf .pytest_cache/
