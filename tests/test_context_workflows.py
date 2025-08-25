@@ -232,8 +232,10 @@ class TestContextWorkflows:
         """Test complete capability management workflow."""
         # TODO: This test is disabled because the capability management API endpoints
         # exist but return None responses, indicating incomplete backend implementation
-        pytest.skip("Capability management API endpoints are incomplete - returning None responses")
-        
+        pytest.skip(
+            "Capability management API endpoints are incomplete - returning None responses"
+        )
+
         env = workflow_environment
 
         context_id = env.get_captured_value("context_id")
@@ -272,6 +274,7 @@ class TestContextWorkflows:
         # Wait for invitation to be processed
         print("⏳ Waiting for invitation to be processed...")
         import asyncio
+
         await asyncio.sleep(5)
 
         # Verify the identity is now a member
@@ -289,8 +292,10 @@ class TestContextWorkflows:
 
         for capability in capabilities_to_test:
             print(f"🔧 Testing capability: {capability.value}")
-            
-            print(f"📤 Granting {capability.value} to {grantee_id} in context {context_id}")
+
+            print(
+                f"📤 Granting {capability.value} to {grantee_id} in context {context_id}"
+            )
             grant_result = await client.contexts.grant_capability(
                 context_id=context_id,
                 granter_id=granter_id,
@@ -298,7 +303,7 @@ class TestContextWorkflows:
                 capability=capability,
             )
             print(f"📥 Grant result: {grant_result}")
-            
+
             assert grant_result is not None
             print(f"✅ Granted {capability.value} capability")
 
@@ -349,8 +354,10 @@ class TestContextWorkflows:
         """Test complete capability grant and revoke cycle."""
         # TODO: This test is disabled because the capability management API endpoints
         # exist but return None responses, indicating incomplete backend implementation
-        pytest.skip("Capability management API endpoints are incomplete - returning None responses")
-        
+        pytest.skip(
+            "Capability management API endpoints are incomplete - returning None responses"
+        )
+
         env = workflow_environment
 
         context_id = env.get_captured_value("context_id")
@@ -389,6 +396,7 @@ class TestContextWorkflows:
         # Wait for invitation to be processed
         print("⏳ Waiting for invitation to be processed...")
         import asyncio
+
         await asyncio.sleep(5)
 
         # Verify the identity is now a member
@@ -406,7 +414,7 @@ class TestContextWorkflows:
             capability=Capability.MANAGE_MEMBERS,
         )
         print(f"📥 Grant result: {grant_result}")
-        
+
         assert grant_result is not None
         print("✅ Granted MANAGE_MEMBERS capability")
 
@@ -422,7 +430,7 @@ class TestContextWorkflows:
             capability=Capability.MANAGE_MEMBERS,
         )
         print(f"📥 Revoke result: {revoke_result}")
-        
+
         assert revoke_result is not None
         print("✅ Revoked MANAGE_MEMBERS capability")
 

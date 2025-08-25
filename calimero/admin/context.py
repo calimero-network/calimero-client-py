@@ -27,6 +27,7 @@ from ..types import (
 
 class Capability(str, Enum):
     """Enumeration of available capabilities for contexts."""
+
     MANAGE_APPLICATION = "ManageApplication"
     MANAGE_MEMBERS = "ManageMembers"
     PROXY = "Proxy"

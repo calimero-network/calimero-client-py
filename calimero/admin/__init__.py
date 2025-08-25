@@ -168,9 +168,7 @@ class AdminClient:
         capability: str = "member",
     ):
         """Invite an identity to a context (backward compatibility)."""
-        return await self.contexts.invite_to_context(
-            context_id, granter_id, grantee_id
-        )
+        return await self.contexts.invite_to_context(context_id, granter_id, grantee_id)
 
     async def grant_capability(
         self, context_id: str, granter_id: str, grantee_id: str, capability: str
@@ -180,7 +178,7 @@ class AdminClient:
             cap_enum = Capability(capability)
         except ValueError:
             cap_enum = capability
-        
+
         return await self.contexts.grant_capability(
             context_id, granter_id, grantee_id, cap_enum
         )
@@ -193,15 +191,11 @@ class AdminClient:
         capability: str = "member",
     ):
         """Invite an identity to a context (backward compatibility)."""
-        return await self.contexts.invite_to_context(
-            context_id, granter_id, grantee_id
-        )
+        return await self.contexts.invite_to_context(context_id, granter_id, grantee_id)
 
     async def join_context(self, context_id: str, invitee_id: str, invitation: str):
         """Join a context using an invitation (backward compatibility)."""
-        return await self.contexts.join_context(
-            context_id, invitee_id, invitation
-        )
+        return await self.contexts.join_context(context_id, invitee_id, invitation)
 
     async def generate_identity(self) -> GenerateIdentityResponse:
         """Generate a new identity (backward compatibility)."""
