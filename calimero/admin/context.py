@@ -241,5 +241,43 @@ class ContextManager:
         else:
             raise ValueError(f"Failed to revoke capability: {result}")
 
+    async def invite_to_context(
+        self, context_id: str, inviter_id: str, invitee_id: str
+    ):
+        """Invite an identity to join a context."""
+        payload = {
+            "contextId": context_id,
+            "inviterId": inviter_id,
+            "inviteeId": invitee_id,
+        }
+        result = await self.client._make_request(
+            "POST", "/admin-api/contexts/invite", payload
+        )
+        if isinstance(result, dict) and (result.get("success") or "data" in result):
+            if "success" not in result:
+                result["success"] = True
+            return result
+        else:
+            raise ValueError(f"Failed to create invitation: {result}")
+
+    async def join_context(
+        self, context_id: str, invitee_id: str, invitation_payload: str
+    ):
+        """Join a context using an invitation."""
+        payload = {
+            "contextId": context_id,
+            "inviteeId": invitee_id,
+            "invitationPayload": invitation_payload,
+        }
+        result = await self.client._make_request(
+            "POST", "/admin-api/contexts/join", payload
+        )
+        if isinstance(result, dict) and (result.get("success") or "data" in result):
+            if "success" not in result:
+                result["success"] = True
+            return result
+        else:
+            raise ValueError(f"Failed to join context: {result}")
+
 
 __all__ = ["ContextManager", "Capability"]
