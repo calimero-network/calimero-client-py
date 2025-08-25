@@ -45,17 +45,7 @@ class ContextManager:
         protocol: str = "near",
         initialization_params: List = None,
     ) -> CreateContextResponse:
-        """
-        Create a new context.
-
-        Args:
-            application_id: The ID of the application to run in the context.
-            protocol: The protocol to use for the context (default: "near").
-            initialization_params: Optional initialization parameters.
-
-        Returns:
-            The create context response containing the new context ID and member public key.
-        """
+        """Create a new context."""
         request = CreateContextRequest(
             application_id=application_id,
             protocol=protocol,
@@ -66,15 +56,7 @@ class ContextManager:
     async def _create_typed(
         self, request: CreateContextRequest
     ) -> CreateContextResponse:
-        """
-        Create a new context with strongly typed request.
-
-        Args:
-            request: The create context request containing application ID, protocol, and initialization parameters.
-
-        Returns:
-            The create context response containing the new context ID and member public key.
-        """
+        """Create a new context with strongly typed request."""
         payload = {
             "applicationId": request.application_id,
             "protocol": request.protocol,
@@ -82,7 +64,6 @@ class ContextManager:
         }
         result = await self.client._make_request("POST", "/admin-api/contexts", payload)
         if isinstance(result, dict) and (result.get("success") or "data" in result):
-            # Add success field if it doesn't exist, so the workflow engine can access it
             if "success" not in result:
                 result["success"] = True
             return result
@@ -90,18 +71,11 @@ class ContextManager:
             raise ValueError(f"Failed to create context: {result}")
 
     async def list_all(self) -> ListContextsResponse:
-        """
-        List all contexts.
-
-        Returns:
-            The list contexts response containing the list of contexts.
-        """
+        """List all contexts."""
         result = await self.client._make_request("GET", "/admin-api/contexts")
         if isinstance(result, dict):
-            # Handle both formats: {'success': true, 'data': [...]} and {'data': {'contexts': [...]}}
             if result.get("success") or "data" in result:
                 data = result.get("data", result)
-                # Handle nested contexts structure
                 contexts_data = (
                     data.get("contexts", data) if isinstance(data, dict) else data
                 )
@@ -126,20 +100,11 @@ class ContextManager:
         raise ValueError(f"Failed to list contexts: {result}")
 
     async def get(self, context_id: str) -> GetContextResponse:
-        """
-        Get information about a specific context.
-
-        Args:
-            context_id: The ID of the context to retrieve.
-
-        Returns:
-            The get context response containing the context information.
-        """
+        """Get information about a specific context."""
         result = await self.client._make_request(
             "GET", f"/admin-api/contexts/{context_id}"
         )
         if isinstance(result, dict) and (result.get("success") or "data" in result):
-            # Add success field if it doesn't exist, so the workflow engine can access it
             if "success" not in result:
                 result["success"] = True
             return result
@@ -147,20 +112,11 @@ class ContextManager:
             raise ValueError(f"Failed to get context: {result}")
 
     async def delete(self, context_id: str) -> DeleteContextResponse:
-        """
-        Delete a context.
-
-        Args:
-            context_id: The ID of the context to delete.
-
-        Returns:
-            The delete context response.
-        """
+        """Delete a context."""
         result = await self.client._make_request(
             "DELETE", f"/admin-api/contexts/{context_id}"
         )
         if isinstance(result, dict) and (result.get("success") or "data" in result):
-            # Add success field if it doesn't exist, so the workflow engine can access it
             if "success" not in result:
                 result["success"] = True
             return result
@@ -170,22 +126,12 @@ class ContextManager:
     async def update_application(
         self, context_id: str, application_id: str
     ) -> UpdateContextApplicationResponse:
-        """
-        Update the application running in a context.
-
-        Args:
-            context_id: The ID of the context.
-            application_id: The ID of the new application to run.
-
-        Returns:
-            The update context application response.
-        """
+        """Update the application running in a context."""
         payload = {"applicationId": application_id}
         result = await self.client._make_request(
             "PUT", f"/admin-api/contexts/{context_id}/application", payload
         )
         if isinstance(result, dict) and (result.get("success") or "data" in result):
-            # Add success field if it doesn't exist, so the workflow engine can access it
             if "success" not in result:
                 result["success"] = True
             return result
@@ -193,20 +139,11 @@ class ContextManager:
             raise ValueError(f"Failed to update context application: {result}")
 
     async def get_storage(self, context_id: str) -> GetContextStorageResponse:
-        """
-        Get the storage for a context.
-
-        Args:
-            context_id: The ID of the context.
-
-        Returns:
-            The get context storage response.
-        """
+        """Get the storage for a context."""
         result = await self.client._make_request(
             "GET", f"/admin-api/contexts/{context_id}/storage"
         )
         if isinstance(result, dict) and (result.get("success") or "data" in result):
-            # Add success field if it doesn't exist, so the workflow engine can access it
             if "success" not in result:
                 result["success"] = True
             return result
@@ -214,21 +151,11 @@ class ContextManager:
             raise ValueError(f"Failed to get context storage: {result}")
 
     async def get_value(self, context_id: str, key: str) -> GetContextValueResponse:
-        """
-        Get a value from context storage.
-
-        Args:
-            context_id: The ID of the context.
-            key: The storage key.
-
-        Returns:
-            The get context value response.
-        """
+        """Get a value from context storage."""
         result = await self.client._make_request(
             "GET", f"/admin-api/contexts/{context_id}/storage/{key}"
         )
         if isinstance(result, dict) and (result.get("success") or "data" in result):
-            # Add success field if it doesn't exist, so the workflow engine can access it
             if "success" not in result:
                 result["success"] = True
             return result
@@ -238,23 +165,12 @@ class ContextManager:
     async def get_storage_entries(
         self, context_id: str, prefix: str = "", limit: int = 100
     ) -> GetContextStorageEntriesResponse:
-        """
-        Get storage entries from a context.
-
-        Args:
-            context_id: The ID of the context.
-            prefix: Optional prefix to filter entries.
-            limit: Maximum number of entries to return.
-
-        Returns:
-            The get context storage entries response.
-        """
+        """Get storage entries from a context."""
         params = {"prefix": prefix, "limit": limit}
         result = await self.client._make_request(
             "GET", f"/admin-api/contexts/{context_id}/storage/entries", params
         )
         if isinstance(result, dict) and (result.get("success") or "data" in result):
-            # Add success field if it doesn't exist, so the workflow engine can access it
             if "success" not in result:
                 result["success"] = True
             return result
@@ -262,20 +178,11 @@ class ContextManager:
             raise ValueError(f"Failed to get context storage entries: {result}")
 
     async def get_proxy_contract(self, context_id: str) -> GetProxyContractResponse:
-        """
-        Get the proxy contract for a context.
-
-        Args:
-            context_id: The ID of the context.
-
-        Returns:
-            The get proxy contract response.
-        """
+        """Get the proxy contract for a context."""
         result = await self.client._make_request(
             "GET", f"/admin-api/contexts/{context_id}/proxy-contract"
         )
         if isinstance(result, dict) and (result.get("success") or "data" in result):
-            # Add success field if it doesn't exist, so the workflow engine can access it
             if "success" not in result:
                 result["success"] = True
             return result
@@ -283,15 +190,7 @@ class ContextManager:
             raise ValueError(f"Failed to get proxy contract: {result}")
 
     async def sync(self, context_id: str = None) -> SyncContextResponse:
-        """
-        Sync a context or all contexts.
-
-        Args:
-            context_id: Optional context ID to sync. If None, syncs all contexts.
-
-        Returns:
-            The sync context response.
-        """
+        """Sync a context or all contexts."""
         if context_id:
             result = await self.client._make_request(
                 "POST", f"/admin-api/contexts/{context_id}/sync"
@@ -300,7 +199,6 @@ class ContextManager:
             result = await self.client._make_request("POST", "/admin-api/contexts/sync")
 
         if isinstance(result, dict) and (result.get("success") or "data" in result):
-            # Add success field if it doesn't exist, so the workflow engine can access it
             if "success" not in result:
                 result["success"] = True
             return result
@@ -310,29 +208,15 @@ class ContextManager:
     async def grant_capability(
         self, context_id: str, granter_id: str, grantee_id: str, capability: Capability
     ) -> GrantCapabilitiesResponse:
-        """
-        Grant capabilities to a user in a context.
-
-        Args:
-            context_id: The ID of the context.
-            granter_id: The public key of the identity granting the capability.
-            grantee_id: The public key of the identity receiving the capability.
-            capability: The capability to grant (from Capability enum).
-
-        Returns:
-            The grant capabilities response.
-        """
+        """Grant capabilities to a user in a context."""
         payload = {
-            "contextId": context_id,
-            "granterId": granter_id,
-            "granteeId": grantee_id,
-            "capability": capability.value,
+            "signer_id": granter_id,
+            "capabilities": [(grantee_id, capability.value)],
         }
         result = await self.client._make_request(
             "POST", f"/admin-api/contexts/{context_id}/capabilities/grant", payload
         )
         if isinstance(result, dict) and (result.get("success") or "data" in result):
-            # Add success field if it doesn't exist, so the workflow engine can access it
             if "success" not in result:
                 result["success"] = True
             return result
@@ -342,29 +226,15 @@ class ContextManager:
     async def revoke_capability(
         self, context_id: str, revoker_id: str, revokee_id: str, capability: Capability
     ) -> RevokeCapabilitiesResponse:
-        """
-        Revoke capabilities from a user in a context.
-
-        Args:
-            context_id: The ID of the context.
-            revoker_id: The public key of the identity revoking the capability.
-            revokee_id: The public key of the identity losing the capability.
-            capability: The capability to revoke (from Capability enum).
-
-        Returns:
-            The revoke capabilities response.
-        """
+        """Revoke capabilities from a user in a context."""
         payload = {
-            "contextId": context_id,
-            "revokerId": revoker_id,
-            "revokeeId": revokee_id,
-            "capability": capability.value,
+            "signer_id": revoker_id,
+            "capabilities": [(revokee_id, capability.value)],
         }
         result = await self.client._make_request(
             "POST", f"/admin-api/contexts/{context_id}/capabilities/revoke", payload
         )
         if isinstance(result, dict) and (result.get("success") or "data" in result):
-            # Add success field if it doesn't exist, so the workflow engine can access it
             if "success" not in result:
                 result["success"] = True
             return result
@@ -372,5 +242,4 @@ class ContextManager:
             raise ValueError(f"Failed to revoke capability: {result}")
 
 
-# Export the classes
 __all__ = ["ContextManager", "Capability"]

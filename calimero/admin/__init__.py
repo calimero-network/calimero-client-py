@@ -63,24 +63,13 @@ from .system import SystemManager
 
 
 class AdminClient:
-    """
-    Calimero Admin API client for managing contexts, applications, and system operations.
-
-    This client provides a comprehensive interface to the Calimero Admin API,
-    with all methods returning strongly typed response objects.
-    """
+    """Calimero Admin API client for managing contexts, applications, and system operations."""
 
     def __init__(self, base_url: str):
-        """
-        Initialize the Admin API client.
-
-        Args:
-            base_url: The base URL of the Calimero node (e.g., "http://localhost:2428").
-        """
+        """Initialize the Admin API client."""
         self.base_url = base_url.rstrip("/")
         self.session = None
 
-        # Initialize specialized managers
         self.contexts = ContextManager(self)
         self.identities = IdentityManager(self)
         self.applications = ApplicationManager(self)
@@ -89,7 +78,6 @@ class AdminClient:
         self.aliases = AliasManager(self)
         self.system = SystemManager(self)
 
-        # Capability enum is available through contexts
         self.Capability = Capability
 
     async def __aenter__(self):
@@ -115,20 +103,7 @@ class AdminClient:
     async def _make_request(
         self, method: str, endpoint: str, data: Optional[Dict[str, Any]] = None
     ) -> AdminApiResponse:
-        """
-        Make an HTTP request to the Admin API.
-
-        Args:
-            method: HTTP method (GET, POST, PUT, DELETE).
-            endpoint: API endpoint path.
-            data: Optional request data.
-
-        Returns:
-            The admin API response.
-
-        Raises:
-            ValueError: If the request fails.
-        """
+        """Make an HTTP request to the Admin API."""
         await self._ensure_session()
 
         url = f"{self.base_url}{endpoint}"
@@ -162,7 +137,6 @@ class AdminClient:
         except Exception as e:
             return {"success": False, "error": str(e), "error_code": "REQUEST_ERROR"}
 
-    # Backward compatibility methods that delegate to specialized managers
     async def create_context(
         self,
         application_id: str,
@@ -193,28 +167,15 @@ class AdminClient:
         grantee_id: str,
         capability: str = "member",
     ):
-        """
-        Invite an identity to a context.
-
-        Args:
-            context_id: The ID of the context to invite to.
-            granter_id: The public key of the identity doing the inviting.
-            grantee_id: The public key of the identity being invited.
-            capability: The capability to grant (default: "member").
-
-        Returns:
-            The invitation response.
-        """
-        # Create an invitation using the dedicated invite endpoint
+        """Invite an identity to a context."""
         payload = {
             "contextId": context_id,
-            "inviterId": granter_id,  # The API expects 'inviterId' not 'granterId'
-            "inviteeId": grantee_id,  # The API expects 'inviteeId' not 'granteeId'
+            "inviterId": granter_id,
+            "inviteeId": grantee_id,
             "capability": capability,
         }
         result = await self._make_request("POST", "/admin-api/contexts/invite", payload)
         if isinstance(result, dict) and (result.get("success") or "data" in result):
-            # Add success field if it doesn't exist, so the workflow engine can access it
             if "success" not in result:
                 result["success"] = True
             return result
@@ -224,23 +185,10 @@ class AdminClient:
     async def grant_capability(
         self, context_id: str, granter_id: str, grantee_id: str, capability: str
     ):
-        """
-        Directly grant a capability to an identity in a context.
-
-        Args:
-            context_id: The ID of the context.
-            granter_id: The public key of the identity granting the capability.
-            grantee_id: The public key of the identity receiving the capability.
-            capability: The capability to grant.
-
-        Returns:
-            The capability grant response.
-        """
-        # Convert string capability to enum if possible
+        """Directly grant a capability to an identity in a context."""
         try:
             cap_enum = Capability(capability)
         except ValueError:
-            # If not a valid enum value, use as-is
             cap_enum = capability
         
         return await self.contexts.grant_capability(
@@ -254,41 +202,18 @@ class AdminClient:
         grantee_id: str,
         capability: str = "member",
     ):
-        """
-        Invite an identity to a context (alias for invite method for compatibility).
-
-        Args:
-            context_id: The ID of the context to invite to.
-            granter_id: The public key of the identity doing the inviting.
-            grantee_id: The public key of the identity being invited.
-            capability: The capability to grant (default: "member").
-
-        Returns:
-            The invitation response.
-        """
+        """Invite an identity to a context (alias for invite method for compatibility)."""
         return await self.invite(context_id, granter_id, grantee_id, capability)
 
     async def join_context(self, context_id: str, invitee_id: str, invitation: str):
-        """
-        Join a context using an invitation.
-
-        Args:
-            context_id: The ID of the context to join.
-            invitee_id: The public key of the identity joining the context.
-            invitation: The invitation data received from the inviter.
-
-        Returns:
-            The join context response.
-        """
-        # Join a context using the invitation received from the inviter
+        """Join a context using an invitation."""
         payload = {
             "contextId": context_id,
-            "inviterId": invitee_id,  # The API expects 'inviterId' for the join endpoint
-            "invitationPayload": invitation,  # The API expects 'invitationPayload' not 'invitation'
+            "inviterId": invitee_id,
+            "invitationPayload": invitation,
         }
         result = await self._make_request("POST", "/admin-api/contexts/join", payload)
         if isinstance(result, dict) and (result.get("success") or "data" in result):
-            # Add success field if it doesn't exist, so the workflow engine can access it
             if "success" not in result:
                 result["success"] = True
             return result
@@ -373,8 +298,6 @@ class AdminClient:
 
     async def sync_context(self) -> SyncContextResponse:
         """Synchronize contexts (placeholder implementation)."""
-        # This is a placeholder since the actual sync endpoint might not exist
-        # Return a success response for compatibility
         from datetime import datetime
 
         return {
@@ -384,5 +307,4 @@ class AdminClient:
         }
 
 
-# Export the main class
 __all__ = ["AdminClient"]
