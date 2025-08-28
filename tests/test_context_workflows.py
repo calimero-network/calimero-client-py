@@ -8,7 +8,7 @@ and lifecycle operations.
 import asyncio
 import pytest
 from calimero import CalimeroClient
-from calimero.admin import Capability
+from calimero.types import Capability
 
 
 class TestContextWorkflows:

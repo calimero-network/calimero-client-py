@@ -6,6 +6,75 @@ This module provides comprehensive type definitions for all API operations.
 from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
 from pydantic import BaseModel, Field, ConfigDict
+from enum import Enum
+
+
+class MeroboxCompatibleMixin:
+    """Mixin to make Pydantic responses compatible with Merobox framework."""
+    
+    def __getitem__(self, key):
+        # Map Merobox keys to Pydantic field names
+        key_mapping = {
+            'applicationId': 'application_id',
+            'contextId': 'context_id',
+            'memberPublicKey': 'member_public_key',
+            'inviterId': 'inviter_id',
+            'inviteeId': 'invitee_id',
+            'invitation': 'invitation',  # Map to invitation field, not invitation_payload
+            'granterId': 'granter_id',
+            'granteeId': 'grantee_id',
+            'revokerId': 'revoker_id',
+            'revokeeId': 'revokee_id',
+            'alias': 'alias',
+            'value': 'value',
+        }
+        mapped_key = key_mapping.get(key, key)
+        return getattr(self, mapped_key)
+    
+    def __setitem__(self, key, value):
+        # Map Merobox keys to Pydantic field names
+        key_mapping = {
+            'applicationId': 'application_id',
+            'contextId': 'context_id',
+            'memberPublicKey': 'member_public_key',
+            'inviterId': 'inviter_id',
+            'inviteeId': 'invitee_id',
+            'invitation': 'invitation',  # Map to invitation field, not invitation_payload
+            'granterId': 'granter_id',
+            'granteeId': 'grantee_id',
+            'revokerId': 'revoker_id',
+            'revokeeId': 'revokee_id',
+            'alias': 'alias',
+            'value': 'value',
+        }
+        mapped_key = key_mapping.get(key, key)
+        setattr(self, mapped_key, value)
+    
+    def get(self, key, default=None):
+        try:
+            return self[key]
+        except (KeyError, AttributeError):
+            return default
+    
+    def __contains__(self, key):
+        try:
+            _ = self[key]
+            return True
+        except (KeyError, AttributeError):
+            return False
+
+
+# Base class that combines Pydantic and Merobox compatibility
+class MeroboxCompatibleModel(BaseModel, MeroboxCompatibleMixin):
+    pass
+
+
+class Capability(str, Enum):
+    """Capability types for context operations."""
+    MANAGE_APPLICATION = "ManageApplication"
+    MANAGE_MEMBERS = "ManageMembers"
+    PROXY = "Proxy"
+    MEMBER = "member"
 
 
 # ============================================================================
@@ -22,7 +91,7 @@ class BaseRequest(BaseModel):
 class BaseResponse(BaseModel):
     """Base class for all response models."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", frozen=False)
 
 
 class ErrorResponse(BaseResponse):
@@ -64,15 +133,18 @@ class CreateContextRequest(BaseRequest):
     )
 
 
-class CreateContextResponse(SuccessResponse):
+class CreateContextResponse(SuccessResponse, MeroboxCompatibleMixin):
     """Response from creating a context."""
 
-    data: Dict[str, Any] = Field(description="Context creation data")
-    context_id: Optional[str] = Field(
-        default=None, description="The ID of the created context"
+    context_id: str = Field(description="The ID of the created context")
+    application_id: str = Field(description="The ID of the application running in the context")
+    protocol: str = Field(description="The protocol used by the context")
+    member_public_key: str = Field(description="The public key of the context member")
+    timestamp: Optional[datetime] = Field(
+        default=None, description="When the context was created"
     )
-    member_public_key: Optional[str] = Field(
-        default=None, description="The public key of the context member"
+    data: Optional[Dict[str, Any]] = Field(
+        default=None, description="Additional context data for Merobox compatibility"
     )
 
 
@@ -110,12 +182,21 @@ class DeleteContextResponse(SuccessResponse):
     deleted_context_id: str = Field(description="ID of the deleted context")
 
 
-class GenerateIdentityResponse(SuccessResponse):
+class GenerateIdentityResponse(SuccessResponse, MeroboxCompatibleMixin):
     """Response from generating a new identity."""
 
     public_key: str = Field(description="The new identity public key")
     context_id: Optional[str] = Field(
         default=None, description="Context ID if generated in a context"
+    )
+    endpoint: Optional[str] = Field(
+        default=None, description="Endpoint for the generated identity"
+    )
+    timestamp: Optional[datetime] = Field(
+        default=None, description="When the identity was generated"
+    )
+    data: Optional[Dict[str, Any]] = Field(
+        default=None, description="Additional identity data for Merobox compatibility"
     )
 
 
@@ -151,12 +232,24 @@ class InviteToContextRequest(BaseRequest):
     invitee_id: str = Field(description="The public key of the identity to invite")
 
 
-class InviteToContextResponse(SuccessResponse):
+class InviteToContextResponse(SuccessResponse, MeroboxCompatibleMixin):
     """Response from inviting to a context."""
 
     invitation_payload: str = Field(description="The invitation data/token")
+    invitation: Optional[str] = Field(
+        default=None, description="The invitation data for workflow compatibility"
+    )
     expires_at: Optional[datetime] = Field(
         default=None, description="When the invitation expires"
+    )
+    endpoint: Optional[str] = Field(
+        default=None, description="Endpoint for the invitation"
+    )
+    payload_format: Optional[str] = Field(
+        default=None, description="Format of the invitation payload"
+    )
+    data: Optional[Dict[str, Any]] = Field(
+        default=None, description="Additional invitation data for Merobox compatibility"
     )
 
 
@@ -172,11 +265,17 @@ class JoinContextRequest(BaseRequest):
     )
 
 
-class JoinContextResponse(SuccessResponse):
+class JoinContextResponse(SuccessResponse, MeroboxCompatibleMixin):
     """Response from joining a context."""
 
     joined_context_id: str = Field(description="ID of the context that was joined")
     member_public_key: str = Field(description="Public key of the new member")
+    timestamp: Optional[datetime] = Field(
+        default=None, description="When the context was joined"
+    )
+    data: Optional[Dict[str, Any]] = Field(
+        default=None, description="Additional join data for Merobox compatibility"
+    )
 
 
 class InstallDevApplicationRequest(BaseRequest):
@@ -203,13 +302,17 @@ class InstallApplicationRequest(BaseRequest):
     metadata: bytes = Field(default=b"", description="Application metadata as bytes")
 
 
-class InstallApplicationResponse(SuccessResponse):
+class InstallApplicationResponse(SuccessResponse, MeroboxCompatibleMixin):
     """Response from installing an application from URL."""
 
     application_id: str = Field(description="The ID of the installed application")
     url: str = Field(description="The URL the application was installed from")
-    hash: Optional[str] = Field(
-        default=None, description="Hash of the installed application"
+    hash: Optional[str] = Field(default=None, description="Optional hash of the application")
+    timestamp: Optional[datetime] = Field(
+        default=None, description="When the installation occurred"
+    )
+    data: Optional[Dict[str, Any]] = Field(
+        default=None, description="Additional installation data for Merobox compatibility"
     )
 
 
