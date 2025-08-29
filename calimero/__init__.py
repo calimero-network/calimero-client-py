@@ -2,7 +2,7 @@
 Calimero Network Python Client SDK
 """
 
-__version__ = "0.1.4"
+__version__ = "0.2.1"
 
 
 from .ws_subscriptions_client import WsSubscriptionsClient

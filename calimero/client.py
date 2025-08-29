@@ -7,7 +7,12 @@ via Python bindings, offering better performance and more features.
 
 import json
 from typing import Optional, Dict, Any, Union, List
-from calimero_client_py_bindings import create_connection, create_client, Client, ClientError
+from calimero_client_py_bindings import (
+    create_connection,
+    create_client,
+    Client,
+    ClientError,
+)
 
 from .types import (
     # Admin types
@@ -77,7 +82,7 @@ from .types import (
 class CalimeroClient:
     """
     Unified Calimero client that wraps the Rust implementation.
-    
+
     This client provides a comprehensive interface to the Calimero backend
     with better performance and more features than the previous implementation.
     """
@@ -96,7 +101,7 @@ class CalimeroClient:
         self.base_url = base_url.rstrip("/")
         self.context_id = context_id
         self.executor_public_key = executor_public_key
-        
+
         # Create connection and client
         self.connection = create_connection(self.base_url)
         self._client = create_client(self.connection)
@@ -114,9 +119,7 @@ class CalimeroClient:
     # JSON-RPC Methods
     # ============================================================================
 
-    async def execute(
-        self, method: str, args: Optional[Dict[str, Any]] = None
-    ):
+    async def execute(self, method: str, args: Optional[Dict[str, Any]] = None):
         """
         Execute a JSON-RPC method using the Rust client.
 
@@ -131,25 +134,23 @@ class CalimeroClient:
             ValueError: If the request fails or returns an error.
         """
         if not self.context_id or not self.executor_public_key:
-            raise ValueError("Context ID and executor public key must be set for JSON-RPC operations")
-        
+            raise ValueError(
+                "Context ID and executor public key must be set for JSON-RPC operations"
+            )
+
         try:
             # Convert args to JSON string if provided
             args_json = json.dumps(args) if args else "{}"
-            
+
             result = self._client.execute_jsonrpc(
                 context_id=self.context_id,
                 method=method,
                 args_json=args_json,
-                executor_public_key=self.executor_public_key
+                executor_public_key=self.executor_public_key,
             )
-            
+
             # Convert the result to match expected format
-            return {
-                "jsonrpc": "2.0",
-                "id": 1,
-                "result": result
-            }
+            return {"jsonrpc": "2.0", "id": 1, "result": result}
         except Exception as e:
             raise ValueError(f"JSON-RPC execution failed: {str(e)}")
 
@@ -158,25 +159,30 @@ class CalimeroClient:
     # ============================================================================
 
     async def create_context(
-        self, application_id: str, protocol: str = "near", initialization_params: List[Any] = None
+        self,
+        application_id: str,
+        protocol: str = "near",
+        initialization_params: List[Any] = None,
     ):
         """Create a new context."""
         try:
             # Convert initialization_params to JSON string if provided
-            params = json.dumps(initialization_params) if initialization_params else None
-            
+            params = (
+                json.dumps(initialization_params) if initialization_params else None
+            )
+
             # The new bindings expect: create_context(app_id, protocol, params)
             result = self._client.create_context(application_id, protocol, params)
-            
+
             # The new bindings return structured response
-            if isinstance(result, dict) and 'data' in result:
-                data = result['data']
-                context_id = data.get('contextId', '')
-                member_public_key = data.get('memberPublicKey', '')
+            if isinstance(result, dict) and "data" in result:
+                data = result["data"]
+                context_id = data.get("contextId", "")
+                member_public_key = data.get("memberPublicKey", "")
             else:
                 context_id = result if isinstance(result, str) else ""
                 member_public_key = ""
-            
+
             return CreateContextResponse(
                 success=True,
                 context_id=context_id,
@@ -184,7 +190,7 @@ class CalimeroClient:
                 protocol=protocol,
                 member_public_key=member_public_key,
                 timestamp=None,
-                data={"contextId": context_id, "memberPublicKey": member_public_key}
+                data={"contextId": context_id, "memberPublicKey": member_public_key},
             )
         except Exception as e:
             return CreateContextResponse(
@@ -194,72 +200,55 @@ class CalimeroClient:
                 protocol=protocol,
                 member_public_key="",
                 timestamp=None,
-                data={}
+                data={},
             )
 
     async def list_contexts(self):
         """List all contexts."""
         try:
             contexts = self._client.list_contexts()
-            
+
             # Convert to expected format
             context_list = []
             for ctx in contexts:
-                context_list.append({
-                    "id": ctx.get("id", ""),
-                    "application_id": ctx.get("application_id", ""),
-                    "protocol": ctx.get("protocol", ""),
-                    "status": ctx.get("status", ""),
-                    "created_at": ctx.get("created_at"),
-                    "member_count": ctx.get("member_count")
-                })
-            
+                context_list.append(
+                    {
+                        "id": ctx.get("id", ""),
+                        "application_id": ctx.get("application_id", ""),
+                        "protocol": ctx.get("protocol", ""),
+                        "status": ctx.get("status", ""),
+                        "created_at": ctx.get("created_at"),
+                        "member_count": ctx.get("member_count"),
+                    }
+                )
+
             return ListContextsResponse(
-                success=True,
-                contexts=context_list,
-                timestamp=None
+                success=True, contexts=context_list, timestamp=None
             )
         except Exception as e:
             return ListContextsResponse(
-                success=False,
-                contexts=[],
-                timestamp=None,
-                total_count=0
+                success=False, contexts=[], timestamp=None, total_count=0
             )
 
     async def get_context(self, context_id: str):
         """Get context information."""
         try:
             context = self._client.get_context(context_id)
-            
-            return GetContextResponse(
-                success=True,
-                data=context,
-                timestamp=None
-            )
+
+            return GetContextResponse(success=True, data=context, timestamp=None)
         except Exception as e:
-            return GetContextResponse(
-                success=False,
-                data={},
-                timestamp=None
-            )
+            return GetContextResponse(success=False, data={}, timestamp=None)
 
     async def delete_context(self, context_id):
         """Delete a context."""
         try:
             self._client.delete_context(context_id)
-            
+
             return DeleteContextResponse(
-                success=True,
-                data={"contextId": context_id},
-                timestamp=None
+                success=True, data={"contextId": context_id}, timestamp=None
             )
         except Exception as e:
-            return DeleteContextResponse(
-                success=False,
-                data={},
-                timestamp=None
-            )
+            return DeleteContextResponse(success=False, data={}, timestamp=None)
 
     # ============================================================================
     # Identity Management
@@ -270,19 +259,23 @@ class CalimeroClient:
         try:
             # The Rust client has generate_context_identity, not generate_identity
             result = self._client.generate_context_identity()
-            
+
             # The Rust client returns {'data': {'publicKey': '...'}}
-            if isinstance(result, dict) and 'data' in result and 'publicKey' in result['data']:
-                public_key = result['data']['publicKey']
+            if (
+                isinstance(result, dict)
+                and "data" in result
+                and "publicKey" in result["data"]
+            ):
+                public_key = result["data"]["publicKey"]
             else:
                 public_key = result if isinstance(result, str) else ""
-            
+
             return GenerateIdentityResponse(
                 success=True,
                 public_key=public_key,
                 context_id=None,
                 timestamp=None,
-                data={"publicKey": public_key}
+                data={"publicKey": public_key},
             )
         except Exception as e:
             return GenerateIdentityResponse(
@@ -291,49 +284,35 @@ class CalimeroClient:
                 context_id=None,
                 endpoint=None,
                 timestamp=None,
-                data={}
+                data={},
             )
 
     async def list_identities(self, context_id: str):
         """List identities in a context."""
         try:
             identities = self._client.get_context_identities(context_id)
-            
+
             return ListIdentitiesResponse(
-                success=True,
-                data={"identities": identities},
-                timestamp=None
+                success=True, data={"identities": identities}, timestamp=None
             )
         except Exception as e:
-            return ListIdentitiesResponse(
-                success=False,
-                data={},
-                timestamp=None
-            )
+            return ListIdentitiesResponse(success=False, data={}, timestamp=None)
 
     # ============================================================================
     # Application Management
     # ============================================================================
 
-    async def install_dev_application(
-        self, path: str, metadata: bytes = b""
-    ):
+    async def install_dev_application(self, path: str, metadata: bytes = b""):
         """Install a development application."""
         try:
             result = self._client.install_dev_application(path, metadata)
-            
+
             return InstallDevApplicationResponse(
-                success=True,
-                application_id=result,
-                path="",
-                timestamp=None
+                success=True, application_id=result, path="", timestamp=None
             )
         except Exception as e:
             return InstallDevApplicationResponse(
-                success=False,
-                application_id="",
-                path="",
-                timestamp=None
+                success=False, application_id="", path="", timestamp=None
             )
 
     async def install_application(
@@ -343,89 +322,80 @@ class CalimeroClient:
         try:
             # The Rust client expects individual parameters, not a dictionary
             result = self._client.install_application(url, hash, metadata)
-            
+
             # The Rust client returns {'data': {'applicationId': '...'}}
-            if isinstance(result, dict) and 'data' in result and 'applicationId' in result['data']:
-                application_id = result['data']['applicationId']
+            if (
+                isinstance(result, dict)
+                and "data" in result
+                and "applicationId" in result["data"]
+            ):
+                application_id = result["data"]["applicationId"]
             else:
                 application_id = result if isinstance(result, str) else ""
-            
+
             return InstallApplicationResponse(
                 success=True,
                 application_id=application_id,
                 url=url,
                 hash=hash,
                 timestamp=None,
-                data={"applicationId": application_id}
+                data={"applicationId": application_id},
             )
         except Exception as e:
             return InstallApplicationResponse(
-                success=False,
-                application_id="",
-                url="",
-                hash=None,
-                timestamp=None
+                success=False, application_id="", url="", hash=None, timestamp=None
             )
 
     async def list_applications(self):
         """List all applications."""
         try:
             result = self._client.list_applications()
-            
+
             # The Rust client returns {'data': {'apps': [...]}}
-            if isinstance(result, dict) and 'data' in result and 'apps' in result['data']:
-                applications = result['data']['apps']
+            if (
+                isinstance(result, dict)
+                and "data" in result
+                and "apps" in result["data"]
+            ):
+                applications = result["data"]["apps"]
             else:
                 applications = result if isinstance(result, list) else []
-            
+
             return ListApplicationsResponse(
                 success=True,
                 applications=applications,
                 timestamp=None,
-                total_count=len(applications)
+                total_count=len(applications),
             )
         except Exception as e:
             return ListApplicationsResponse(
-                success=False,
-                applications=[],
-                timestamp=None,
-                total_count=0
+                success=False, applications=[], timestamp=None, total_count=0
             )
 
     async def get_application(self, application_id: str):
         """Get application information."""
         try:
             application = self._client.get_application(application_id)
-            
+
             return GetApplicationResponse(
-                success=True,
-                application=application,
-                timestamp=None
+                success=True, application=application, timestamp=None
             )
         except Exception as e:
             return GetApplicationResponse(
-                success=False,
-                application=None,
-                timestamp=None
+                success=False, application=None, timestamp=None
             )
 
-    async def uninstall_application(
-        self, application_id: str
-    ):
+    async def uninstall_application(self, application_id: str):
         """Uninstall an application."""
         try:
             self._client.uninstall_application(application_id)
-            
+
             return UninstallApplicationResponse(
-                success=True,
-                uninstalled_application_id=application_id,
-                timestamp=None
+                success=True, uninstalled_application_id=application_id, timestamp=None
             )
         except Exception as e:
             return UninstallApplicationResponse(
-                success=False,
-                uninstalled_application_id="",
-                timestamp=None
+                success=False, uninstalled_application_id="", timestamp=None
             )
 
     # ============================================================================
@@ -444,17 +414,17 @@ class CalimeroClient:
             # The new bindings expect: invite_to_context(context_id, inviter_id, invitee_id)
             # Note: capability is not a parameter in the new API
             result = self._client.invite_to_context(context_id, granter_id, grantee_id)
-            
+
             # The new bindings return structured response
-            if isinstance(result, dict) and 'data' in result:
+            if isinstance(result, dict) and "data" in result:
                 # Check if the data contains an 'invitation' field
-                if 'invitation' in result['data']:
-                    invitation_payload = result['data']['invitation']
+                if "invitation" in result["data"]:
+                    invitation_payload = result["data"]["invitation"]
                 else:
-                    invitation_payload = result['data']
+                    invitation_payload = result["data"]
             else:
                 invitation_payload = result if isinstance(result, str) else ""
-            
+
             return InviteToContextResponse(
                 success=True,
                 invitation_payload=invitation_payload,
@@ -463,7 +433,7 @@ class CalimeroClient:
                 endpoint=None,
                 payload_format=None,
                 timestamp=None,
-                data={"invitation": invitation_payload}
+                data={"invitation": invitation_payload},
             )
         except Exception as e:
             return InviteToContextResponse(
@@ -474,7 +444,7 @@ class CalimeroClient:
                 endpoint=None,
                 payload_format=None,
                 timestamp=None,
-                data={}
+                data={},
             )
 
     async def join_context(self, context_id: str, invitee_id: str, invitation: str):
@@ -483,13 +453,13 @@ class CalimeroClient:
             # The new bindings expect: join_context(context_id, invitee_id, invitation_payload)
             # The invitation_payload contains all necessary information (protocol, network, contract_id)
             result = self._client.join_context(context_id, invitee_id, invitation)
-            
+
             return JoinContextResponse(
                 success=True,
                 joined_context_id=context_id,
                 member_public_key=result,
                 timestamp=None,
-                data={"joinedContextId": context_id, "memberPublicKey": result}
+                data={"joinedContextId": context_id, "memberPublicKey": result},
             )
         except Exception as e:
             return JoinContextResponse(
@@ -497,7 +467,7 @@ class CalimeroClient:
                 joined_context_id=context_id,
                 member_public_key="",
                 timestamp=None,
-                data={}
+                data={},
             )
 
     # ============================================================================
@@ -508,35 +478,21 @@ class CalimeroClient:
         """Get peer count."""
         try:
             count = self._client.get_peers_count()
-            
+
             return GetPeersCountResponse(
-                success=True,
-                peers_count=count,
-                timestamp=None
+                success=True, peers_count=count, timestamp=None
             )
         except Exception as e:
-            return GetPeersCountResponse(
-                success=False,
-                peers_count=0,
-                timestamp=None
-            )
+            return GetPeersCountResponse(success=False, peers_count=0, timestamp=None)
 
     async def sync_context(self):
         """Synchronize contexts."""
         try:
             result = self._client.sync_context()
-            
-            return SyncContextResponse(
-                success=True,
-                data=result,
-                timestamp=None
-            )
+
+            return SyncContextResponse(success=True, data=result, timestamp=None)
         except Exception as e:
-            return SyncContextResponse(
-                success=False,
-                data={},
-                timestamp=None
-            )
+            return SyncContextResponse(success=False, data={}, timestamp=None)
 
     # ============================================================================
     # New Methods from Rust Client
@@ -551,15 +507,11 @@ class CalimeroClient:
                 alias=alias_type,
                 value=alias_value,
                 target_id=target_id,
-                timestamp=None
+                timestamp=None,
             )
         except Exception as e:
             return CreateAliasResponse(
-                success=False,
-                alias="",
-                value="",
-                target_id="",
-                timestamp=None
+                success=False, alias="", value="", target_id="", timestamp=None
             )
 
     async def delete_alias(self, alias_type: str, alias_value: str):
@@ -570,14 +522,14 @@ class CalimeroClient:
                 success=True,
                 deleted_alias_type=alias_type,
                 deleted_alias_value=alias_value,
-                timestamp=None
+                timestamp=None,
             )
         except Exception as e:
             return DeleteAliasResponse(
                 success=False,
                 deleted_alias_type="",
                 deleted_alias_value="",
-                timestamp=None
+                timestamp=None,
             )
 
     async def lookup_alias(self, alias_type: str, alias_value: str):
@@ -589,15 +541,11 @@ class CalimeroClient:
                 alias=alias_type,
                 value=alias_value,
                 target_id=result,
-                timestamp=None
+                timestamp=None,
             )
         except Exception as e:
             return LookupAliasResponse(
-                success=False,
-                alias="",
-                value="",
-                target_id="",
-                timestamp=None
+                success=False, alias="", value="", target_id="", timestamp=None
             )
 
     async def resolve_alias(self, alias_type: str, alias_value: str):
@@ -609,15 +557,11 @@ class CalimeroClient:
                 alias=alias_type,
                 value=alias_value,
                 target_id=result,
-                timestamp=None
+                timestamp=None,
             )
         except Exception as e:
             return LookupAliasResponse(
-                success=False,
-                alias="",
-                value="",
-                target_id="",
-                timestamp=None
+                success=False, alias="", value="", target_id="", timestamp=None
             )
 
     async def list_aliases(self):
@@ -628,14 +572,11 @@ class CalimeroClient:
                 success=True,
                 aliases=result,
                 total_count=len(result) if result else 0,
-                timestamp=None
+                timestamp=None,
             )
         except Exception as e:
             return ListAliasesResponse(
-                success=False,
-                aliases=[],
-                total_count=0,
-                timestamp=None
+                success=False, aliases=[], total_count=0, timestamp=None
             )
 
     async def get_supported_alias_types(self):
@@ -643,29 +584,29 @@ class CalimeroClient:
         try:
             result = self._client.get_supported_alias_types()
             # Since there's no specific response type, we'll use a generic one
-            return SuccessResponse(
-                success=True,
-                timestamp=None
-            )
+            return SuccessResponse(success=True, timestamp=None)
         except Exception as e:
-            return SuccessResponse(
-                success=False,
-                timestamp=None
-            )
+            return SuccessResponse(success=False, timestamp=None)
 
-    async def grant_permissions(self, context_id: str, grantee_id: str, permissions: List[str]):
+    async def grant_permissions(
+        self, context_id: str, grantee_id: str, permissions: List[str]
+    ):
         """Grant permissions to an identity in a context."""
         try:
             # The new bindings expect capability as a JSON string
             # Convert permissions list to JSON string format: [["public_key", "capability"]]
-            capability_json = json.dumps([[grantee_id, permissions[0]] if permissions else [grantee_id, ""]])
-            result = self._client.grant_permissions(context_id, grantee_id, capability_json)
+            capability_json = json.dumps(
+                [[grantee_id, permissions[0]] if permissions else [grantee_id, ""]]
+            )
+            result = self._client.grant_permissions(
+                context_id, grantee_id, capability_json
+            )
             return GrantCapabilitiesResponse(
                 success=True,
                 context_id=context_id,
                 grantee_id=grantee_id,
                 capability=permissions[0] if permissions else "",
-                timestamp=None
+                timestamp=None,
             )
         except Exception as e:
             return GrantCapabilitiesResponse(
@@ -673,23 +614,29 @@ class CalimeroClient:
                 context_id="",
                 grantee_id="",
                 capability="",
-                timestamp=None
+                timestamp=None,
             )
 
-    async def revoke_permissions(self, context_id: str, grantee_id: str, permissions: List[str]):
+    async def revoke_permissions(
+        self, context_id: str, grantee_id: str, permissions: List[str]
+    ):
         """Revoke permissions from an identity in a context."""
         try:
             # The new bindings expect capability as a JSON string
             # Convert permissions list to JSON string format: [["public_key", "capability"]]
-            capability_json = json.dumps([[grantee_id, permissions[0]] if permissions else [grantee_id, ""]])
-            result = self._client.revoke_permissions(context_id, grantee_id, capability_json)
+            capability_json = json.dumps(
+                [[grantee_id, permissions[0]] if permissions else [grantee_id, ""]]
+            )
+            result = self._client.revoke_permissions(
+                context_id, grantee_id, capability_json
+            )
             return RevokeCapabilitiesResponse(
                 success=True,
                 context_id=context_id,
                 revoker_id=grantee_id,
                 revokee_id=grantee_id,
                 capability=permissions[0] if permissions else "",
-                timestamp=None
+                timestamp=None,
             )
         except Exception as e:
             return RevokeCapabilitiesResponse(
@@ -698,7 +645,7 @@ class CalimeroClient:
                 revoker_id="",
                 revokee_id="",
                 capability="",
-                timestamp=None
+                timestamp=None,
             )
 
     async def get_context_storage(self, context_id: str):
@@ -706,17 +653,11 @@ class CalimeroClient:
         try:
             result = self._client.get_context_storage(context_id)
             return GetContextStorageResponse(
-                success=True,
-                context_id=context_id,
-                storage_data=result,
-                timestamp=None
+                success=True, context_id=context_id, storage_data=result, timestamp=None
             )
         except Exception as e:
             return GetContextStorageResponse(
-                success=False,
-                context_id="",
-                storage_data={},
-                timestamp=None
+                success=False, context_id="", storage_data={}, timestamp=None
             )
 
     async def get_context_client_keys(self, context_id: str):
@@ -724,31 +665,17 @@ class CalimeroClient:
         try:
             result = self._client.get_context_client_keys(context_id)
             # Since there's no specific response type, we'll use a generic one
-            return SuccessResponse(
-                success=True,
-                timestamp=None
-            )
+            return SuccessResponse(success=True, timestamp=None)
         except Exception as e:
-            return SuccessResponse(
-                success=False,
-                timestamp=None
-            )
+            return SuccessResponse(success=False, timestamp=None)
 
     async def get_proposal(self, proposal_id: str):
         """Get proposal information."""
         try:
             result = self._client.get_proposal(proposal_id)
-            return GetProposalResponse(
-                success=True,
-                proposal=result,
-                timestamp=None
-            )
+            return GetProposalResponse(success=True, proposal=result, timestamp=None)
         except Exception as e:
-            return GetProposalResponse(
-                success=False,
-                proposal=None,
-                timestamp=None
-            )
+            return GetProposalResponse(success=False, proposal=None, timestamp=None)
 
     async def list_proposals(self):
         """List all proposals."""
@@ -758,14 +685,11 @@ class CalimeroClient:
                 success=True,
                 proposals=result,
                 total_count=len(result) if result else 0,
-                timestamp=None
+                timestamp=None,
             )
         except Exception as e:
             return GetProposalsResponse(
-                success=False,
-                proposals=[],
-                total_count=0,
-                timestamp=None
+                success=False, proposals=[], total_count=0, timestamp=None
             )
 
     async def get_proposal_approvers(self, proposal_id: str):
@@ -773,43 +697,40 @@ class CalimeroClient:
         try:
             result = self._client.get_proposal_approvers(proposal_id)
             return GetProposalApproversResponse(
-                success=True,
-                proposal_id=proposal_id,
-                approvers=result,
-                timestamp=None
+                success=True, proposal_id=proposal_id, approvers=result, timestamp=None
             )
         except Exception as e:
             return GetProposalApproversResponse(
-                success=False,
-                proposal_id="",
-                approvers=[],
-                timestamp=None
+                success=False, proposal_id="", approvers=[], timestamp=None
             )
 
-    async def update_context_application(self, context_id: str, application_id: str, executor_public_key: str = None):
+    async def update_context_application(
+        self, context_id: str, application_id: str, executor_public_key: str = None
+    ):
         """Update context application."""
         try:
             # The new bindings expect: update_context_application(context_id, app_id, executor_public_key)
             # For backward compatibility, use a default executor if not provided
             if executor_public_key is None:
                 # Try to get the executor from the client context
-                executor_public_key = getattr(self, 'executor_public_key', None)
+                executor_public_key = getattr(self, "executor_public_key", None)
                 if executor_public_key is None:
-                    raise ValueError("executor_public_key is required for update_context_application")
-            
-            result = self._client.update_context_application(context_id, application_id, executor_public_key)
+                    raise ValueError(
+                        "executor_public_key is required for update_context_application"
+                    )
+
+            result = self._client.update_context_application(
+                context_id, application_id, executor_public_key
+            )
             return UpdateContextApplicationResponse(
                 success=True,
                 context_id=context_id,
                 application_id=application_id,
-                timestamp=None
+                timestamp=None,
             )
         except Exception as e:
             return UpdateContextApplicationResponse(
-                success=False,
-                context_id="",
-                application_id="",
-                timestamp=None
+                success=False, context_id="", application_id="", timestamp=None
             )
 
     # ============================================================================
@@ -821,7 +742,7 @@ class CalimeroClient:
         return await self.create_context(
             application_id=request.application_id,
             protocol=request.protocol,
-            initialization_params=request.initialization_params
+            initialization_params=request.initialization_params,
         )
 
     async def invite_to_context_request(self, request: InviteToContextRequest):
@@ -830,7 +751,7 @@ class CalimeroClient:
             context_id=request.context_id,
             granter_id=request.inviter_id,
             grantee_id=request.invitee_id,
-            capability=request.capability
+            capability=request.capability,
         )
 
     async def join_context_request(self, request: JoinContextRequest):
@@ -838,22 +759,21 @@ class CalimeroClient:
         return await self.join_context(
             context_id=request.context_id,
             invitee_id=request.invitee_id,
-            invitation=request.invitation
+            invitation=request.invitation,
         )
 
-    async def install_dev_application_request(self, request: InstallDevApplicationRequest):
+    async def install_dev_application_request(
+        self, request: InstallDevApplicationRequest
+    ):
         """Install a development application using a request object."""
         return await self.install_dev_application(
-            path=request.path,
-            metadata=request.metadata
+            path=request.path, metadata=request.metadata
         )
 
     async def install_application_request(self, request: InstallApplicationRequest):
         """Install an application using a request object."""
         return await self.install_application(
-            url=request.url,
-            hash=request.hash,
-            metadata=request.metadata
+            url=request.url, hash=request.hash, metadata=request.metadata
         )
 
     async def upload_blob_request(self, request: UploadBlobRequest):
@@ -862,24 +782,29 @@ class CalimeroClient:
         # For now, we'll raise NotImplementedError
         raise NotImplementedError("Upload blob not yet implemented in Rust client")
 
-    async def update_context_application_request(self, request: UpdateContextApplicationRequest):
+    async def update_context_application_request(
+        self, request: UpdateContextApplicationRequest
+    ):
         """Update context application using a request object."""
         return await self.update_context_application(
-            context_id=request.context_id,
-            application_id=request.application_id
+            context_id=request.context_id, application_id=request.application_id
         )
 
-    async def get_context_storage_entries_request(self, request: GetContextStorageEntriesRequest):
+    async def get_context_storage_entries_request(
+        self, request: GetContextStorageEntriesRequest
+    ):
         """Get context storage entries using a request object."""
         # Note: This method doesn't exist in the Rust client yet
-        raise NotImplementedError("Get context storage entries not yet implemented in Rust client")
+        raise NotImplementedError(
+            "Get context storage entries not yet implemented in Rust client"
+        )
 
     async def grant_capabilities_request(self, request: GrantCapabilitiesRequest):
         """Grant capabilities using a request object."""
         return await self.grant_permissions(
             context_id=request.context_id,
             grantee_id=request.grantee_id,
-            permissions=request.capabilities
+            permissions=request.capabilities,
         )
 
     async def revoke_capabilities_request(self, request: RevokeCapabilitiesRequest):
@@ -887,28 +812,27 @@ class CalimeroClient:
         return await self.revoke_permissions(
             context_id=request.context_id,
             grantee_id=request.grantee_id,
-            permissions=request.capabilities
+            permissions=request.capabilities,
         )
 
     async def get_proposals_request(self, request: GetProposalsRequest):
         """Get proposals using a request object."""
         # Note: This method doesn't exist in the Rust client yet
-        raise NotImplementedError("Get proposals with filters not yet implemented in Rust client")
+        raise NotImplementedError(
+            "Get proposals with filters not yet implemented in Rust client"
+        )
 
     async def create_alias_request(self, request: CreateAliasRequest):
         """Create an alias using a request object."""
         return await self.create_alias(
             alias_type=request.alias_type,
             alias_value=request.alias_value,
-            target_id=request.target_id
+            target_id=request.target_id,
         )
 
     async def execute_jsonrpc_request(self, request: JsonRpcExecuteRequest):
         """Execute JSON-RPC using a request object."""
-        return await self.execute(
-            method=request.method,
-            args=request.args_json
-        )
+        return await self.execute(method=request.method, args=request.args_json)
 
     # ============================================================================
     # Convenience Methods
@@ -953,9 +877,17 @@ class CalimeroClient:
     # ============================================================================
 
     # For backward compatibility
-    async def invite(self, context_id: str, granter_id: str, grantee_id: str, capability: str = "member"):
+    async def invite(
+        self,
+        context_id: str,
+        granter_id: str,
+        grantee_id: str,
+        capability: str = "member",
+    ):
         """Alias for invite_to_context for backward compatibility."""
-        return await self.invite_to_context(context_id, granter_id, grantee_id, capability)
+        return await self.invite_to_context(
+            context_id, granter_id, grantee_id, capability
+        )
 
     # ============================================================================
     # Manager Access (for advanced usage)
@@ -1007,8 +939,15 @@ class ContextManager:
     def __init__(self, client: CalimeroClient):
         self.client = client
 
-    async def create_context(self, application_id: str, protocol: str = "near", initialization_params: list = None):
-        return await self.client.create_context(application_id, protocol, initialization_params)
+    async def create_context(
+        self,
+        application_id: str,
+        protocol: str = "near",
+        initialization_params: list = None,
+    ):
+        return await self.client.create_context(
+            application_id, protocol, initialization_params
+        )
 
     async def create_context_request(self, request: CreateContextRequest):
         """Create a new context using a request object."""
@@ -1023,8 +962,16 @@ class ContextManager:
     async def delete_context(self, context_id: str):
         return await self.client.delete_context(context_id)
 
-    async def invite_to_context(self, context_id: str, granter_id: str, grantee_id: str, capability: str = "member"):
-        return await self.client.invite_to_context(context_id, granter_id, grantee_id, capability)
+    async def invite_to_context(
+        self,
+        context_id: str,
+        granter_id: str,
+        grantee_id: str,
+        capability: str = "member",
+    ):
+        return await self.client.invite_to_context(
+            context_id, granter_id, grantee_id, capability
+        )
 
     async def invite_to_context_request(self, request: InviteToContextRequest):
         """Invite an identity to a context using a request object."""
@@ -1040,8 +987,12 @@ class ContextManager:
     async def grant_capability(self, context_id: str, grantee_id: str, capability: str):
         return await self.client.grant_permissions(context_id, grantee_id, [capability])
 
-    async def revoke_capability(self, context_id: str, grantee_id: str, capability: str):
-        return await self.client.revoke_permissions(context_id, grantee_id, [capability])
+    async def revoke_capability(
+        self, context_id: str, grantee_id: str, capability: str
+    ):
+        return await self.client.revoke_permissions(
+            context_id, grantee_id, [capability]
+        )
 
 
 class IdentityManager:
@@ -1062,11 +1013,15 @@ class ApplicationManager:
     async def install_dev_application(self, path: str, metadata: bytes = b""):
         return await self.client.install_dev_application(path, metadata)
 
-    async def install_dev_application_request(self, request: InstallDevApplicationRequest):
+    async def install_dev_application_request(
+        self, request: InstallDevApplicationRequest
+    ):
         """Install a development application using a request object."""
         return await self.client.install_dev_application_request(request)
 
-    async def install_application(self, url: str, hash: str = None, metadata: bytes = b""):
+    async def install_application(
+        self, url: str, hash: str = None, metadata: bytes = b""
+    ):
         return await self.client.install_application(url, hash, metadata)
 
     async def install_application_request(self, request: InstallApplicationRequest):
@@ -1108,8 +1063,12 @@ class CapabilityManager:
         """Grant capabilities using a request object."""
         return await self.client.grant_capabilities_request(request)
 
-    async def revoke_capability(self, context_id: str, grantee_id: str, capability: str):
-        return await self.client.revoke_permissions(context_id, grantee_id, [capability])
+    async def revoke_capability(
+        self, context_id: str, grantee_id: str, capability: str
+    ):
+        return await self.client.revoke_permissions(
+            context_id, grantee_id, [capability]
+        )
 
     async def revoke_capability_request(self, request: RevokeCapabilitiesRequest):
         """Revoke capabilities using a request object."""

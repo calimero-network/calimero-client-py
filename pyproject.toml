@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "calimero-client-py"
-version = "0.2.0"
+version = "0.2.1"
 description = "Python client SDK for Calimero Network"
 authors = [{name = "Calimero Network", email = "support@calimero.network"}]
 readme = "README.md"

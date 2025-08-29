@@ -11,51 +11,51 @@ from enum import Enum
 
 class MeroboxCompatibleMixin:
     """Mixin to make Pydantic responses compatible with Merobox framework."""
-    
+
     def __getitem__(self, key):
         # Map Merobox keys to Pydantic field names
         key_mapping = {
-            'applicationId': 'application_id',
-            'contextId': 'context_id',
-            'memberPublicKey': 'member_public_key',
-            'inviterId': 'inviter_id',
-            'inviteeId': 'invitee_id',
-            'invitation': 'invitation',  # Map to invitation field, not invitation_payload
-            'granterId': 'granter_id',
-            'granteeId': 'grantee_id',
-            'revokerId': 'revoker_id',
-            'revokeeId': 'revokee_id',
-            'alias': 'alias',
-            'value': 'value',
+            "applicationId": "application_id",
+            "contextId": "context_id",
+            "memberPublicKey": "member_public_key",
+            "inviterId": "inviter_id",
+            "inviteeId": "invitee_id",
+            "invitation": "invitation",  # Map to invitation field, not invitation_payload
+            "granterId": "granter_id",
+            "granteeId": "grantee_id",
+            "revokerId": "revoker_id",
+            "revokeeId": "revokee_id",
+            "alias": "alias",
+            "value": "value",
         }
         mapped_key = key_mapping.get(key, key)
         return getattr(self, mapped_key)
-    
+
     def __setitem__(self, key, value):
         # Map Merobox keys to Pydantic field names
         key_mapping = {
-            'applicationId': 'application_id',
-            'contextId': 'context_id',
-            'memberPublicKey': 'member_public_key',
-            'inviterId': 'inviter_id',
-            'inviteeId': 'invitee_id',
-            'invitation': 'invitation',  # Map to invitation field, not invitation_payload
-            'granterId': 'granter_id',
-            'granteeId': 'grantee_id',
-            'revokerId': 'revoker_id',
-            'revokeeId': 'revokee_id',
-            'alias': 'alias',
-            'value': 'value',
+            "applicationId": "application_id",
+            "contextId": "context_id",
+            "memberPublicKey": "member_public_key",
+            "inviterId": "inviter_id",
+            "inviteeId": "invitee_id",
+            "invitation": "invitation",  # Map to invitation field, not invitation_payload
+            "granterId": "granter_id",
+            "granteeId": "grantee_id",
+            "revokerId": "revoker_id",
+            "revokeeId": "revokee_id",
+            "alias": "alias",
+            "value": "value",
         }
         mapped_key = key_mapping.get(key, key)
         setattr(self, mapped_key, value)
-    
+
     def get(self, key, default=None):
         try:
             return self[key]
         except (KeyError, AttributeError):
             return default
-    
+
     def __contains__(self, key):
         try:
             _ = self[key]
@@ -71,6 +71,7 @@ class MeroboxCompatibleModel(BaseModel, MeroboxCompatibleMixin):
 
 class Capability(str, Enum):
     """Capability types for context operations."""
+
     MANAGE_APPLICATION = "ManageApplication"
     MANAGE_MEMBERS = "ManageMembers"
     PROXY = "Proxy"
@@ -137,7 +138,9 @@ class CreateContextResponse(SuccessResponse, MeroboxCompatibleMixin):
     """Response from creating a context."""
 
     context_id: str = Field(description="The ID of the created context")
-    application_id: str = Field(description="The ID of the application running in the context")
+    application_id: str = Field(
+        description="The ID of the application running in the context"
+    )
     protocol: str = Field(description="The protocol used by the context")
     member_public_key: str = Field(description="The public key of the context member")
     timestamp: Optional[datetime] = Field(
@@ -307,12 +310,15 @@ class InstallApplicationResponse(SuccessResponse, MeroboxCompatibleMixin):
 
     application_id: str = Field(description="The ID of the installed application")
     url: str = Field(description="The URL the application was installed from")
-    hash: Optional[str] = Field(default=None, description="Optional hash of the application")
+    hash: Optional[str] = Field(
+        default=None, description="Optional hash of the application"
+    )
     timestamp: Optional[datetime] = Field(
         default=None, description="When the installation occurred"
     )
     data: Optional[Dict[str, Any]] = Field(
-        default=None, description="Additional installation data for Merobox compatibility"
+        default=None,
+        description="Additional installation data for Merobox compatibility",
     )
 
 

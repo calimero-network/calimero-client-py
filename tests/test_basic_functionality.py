@@ -23,17 +23,16 @@ def test_capability_enum():
 
 def test_client_instantiation():
     """Test that client can be instantiated with basic parameters."""
-    client = CalimeroClient(
-        base_url="http://localhost:2528"
-    )
+    client = CalimeroClient(base_url="http://localhost:2528")
     assert client is not None
-    assert hasattr(client, 'base_url')
+    assert hasattr(client, "base_url")
     assert client.base_url == "http://localhost:2528"
 
 
 def test_types_import():
     """Test that types module can be imported and used."""
     from calimero.types import BaseRequest, BaseResponse
+
     assert BaseRequest is not None
     assert BaseResponse is not None
 
