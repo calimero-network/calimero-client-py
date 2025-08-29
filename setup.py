@@ -12,7 +12,7 @@ setup(
         "aiohttp>=3.9.0",
         "toml>=0.10.2",
         "pynacl>=1.5.0",
-        "calimero-client-py-bindings>=0.1.2",
+        "calimero-client-py-bindings>=0.1.1",
     ],
     extras_require={
         "test": [
