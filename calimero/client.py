@@ -162,16 +162,13 @@ class CalimeroClient:
     ):
         """Create a new context."""
         try:
-            # The Rust client expects a dictionary
-            request_data = {
-                'application_id': application_id,
-                'protocol': protocol,
-                'initialization_params': initialization_params or []
-            }
+            # Convert initialization_params to JSON string if provided
+            params = json.dumps(initialization_params) if initialization_params else None
             
-            result = self._client.create_context(request_data)
+            # The new bindings expect: create_context(app_id, protocol, params)
+            result = self._client.create_context(application_id, protocol, params)
             
-            # The Rust client returns {'data': {'contextId': '...', 'memberPublicKey': '...'}}
+            # The new bindings return structured response
             if isinstance(result, dict) and 'data' in result:
                 data = result['data']
                 context_id = data.get('contextId', '')
@@ -344,14 +341,8 @@ class CalimeroClient:
     ):
         """Install an application from URL."""
         try:
-            # The Rust client expects a dictionary
-            request_data = {
-                'url': url,
-                'hash': hash,
-                'metadata': metadata
-            }
-            
-            result = self._client.install_application(request_data)
+            # The Rust client expects individual parameters, not a dictionary
+            result = self._client.install_application(url, hash, metadata)
             
             # The Rust client returns {'data': {'applicationId': '...'}}
             if isinstance(result, dict) and 'data' in result and 'applicationId' in result['data']:
@@ -450,19 +441,17 @@ class CalimeroClient:
     ):
         """Invite an identity to a context."""
         try:
-            # The Rust client expects a dictionary with inviter_id and invitee_id
-            request_data = {
-                'context_id': context_id,
-                'inviter_id': granter_id,  # Map granter_id to inviter_id
-                'invitee_id': grantee_id,  # Map grantee_id to invitee_id
-                'capability': capability
-            }
+            # The new bindings expect: invite_to_context(context_id, inviter_id, invitee_id)
+            # Note: capability is not a parameter in the new API
+            result = self._client.invite_to_context(context_id, granter_id, grantee_id)
             
-            result = self._client.invite_to_context(request_data)
-            
-            # The Rust client returns {'data': 'invitation_string'}
+            # The new bindings return structured response
             if isinstance(result, dict) and 'data' in result:
-                invitation_payload = result['data']
+                # Check if the data contains an 'invitation' field
+                if 'invitation' in result['data']:
+                    invitation_payload = result['data']['invitation']
+                else:
+                    invitation_payload = result['data']
             else:
                 invitation_payload = result if isinstance(result, str) else ""
             
@@ -491,14 +480,9 @@ class CalimeroClient:
     async def join_context(self, context_id: str, invitee_id: str, invitation: str):
         """Join a context using an invitation."""
         try:
-            # The Rust client expects a dictionary
-            request_data = {
-                'context_id': context_id,
-                'invitee_id': invitee_id,
-                'invitation': invitation
-            }
-            
-            result = self._client.join_context(request_data)
+            # The new bindings expect: join_context(context_id, invitee_id, invitation_payload)
+            # The invitation_payload contains all necessary information (protocol, network, contract_id)
+            result = self._client.join_context(context_id, invitee_id, invitation)
             
             return JoinContextResponse(
                 success=True,
@@ -672,7 +656,10 @@ class CalimeroClient:
     async def grant_permissions(self, context_id: str, grantee_id: str, permissions: List[str]):
         """Grant permissions to an identity in a context."""
         try:
-            result = self._client.grant_permissions(context_id, grantee_id, permissions)
+            # The new bindings expect capability as a JSON string
+            # Convert permissions list to JSON string format: [["public_key", "capability"]]
+            capability_json = json.dumps([[grantee_id, permissions[0]] if permissions else [grantee_id, ""]])
+            result = self._client.grant_permissions(context_id, grantee_id, capability_json)
             return GrantCapabilitiesResponse(
                 success=True,
                 context_id=context_id,
@@ -692,7 +679,10 @@ class CalimeroClient:
     async def revoke_permissions(self, context_id: str, grantee_id: str, permissions: List[str]):
         """Revoke permissions from an identity in a context."""
         try:
-            result = self._client.revoke_permissions(context_id, grantee_id, permissions)
+            # The new bindings expect capability as a JSON string
+            # Convert permissions list to JSON string format: [["public_key", "capability"]]
+            capability_json = json.dumps([[grantee_id, permissions[0]] if permissions else [grantee_id, ""]])
+            result = self._client.revoke_permissions(context_id, grantee_id, capability_json)
             return RevokeCapabilitiesResponse(
                 success=True,
                 context_id=context_id,
@@ -796,10 +786,18 @@ class CalimeroClient:
                 timestamp=None
             )
 
-    async def update_context_application(self, context_id: str, application_id: str):
+    async def update_context_application(self, context_id: str, application_id: str, executor_public_key: str = None):
         """Update context application."""
         try:
-            result = self._client.update_context_application(context_id, application_id)
+            # The new bindings expect: update_context_application(context_id, app_id, executor_public_key)
+            # For backward compatibility, use a default executor if not provided
+            if executor_public_key is None:
+                # Try to get the executor from the client context
+                executor_public_key = getattr(self, 'executor_public_key', None)
+                if executor_public_key is None:
+                    raise ValueError("executor_public_key is required for update_context_application")
+            
+            result = self._client.update_context_application(context_id, application_id, executor_public_key)
             return UpdateContextApplicationResponse(
                 success=True,
                 context_id=context_id,
