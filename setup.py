@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="calimero-client-py",
-    version="0.2.1",
+    version="0.2.2",
     packages=find_packages(),
     install_requires=[
         "requests>=2.31.0",
@@ -12,6 +12,7 @@ setup(
         "aiohttp>=3.9.0",
         "toml>=0.10.2",
         "pynacl>=1.5.0",
+        "calimero-client-py-bindings>=0.1.2",
     ],
     extras_require={
         "test": [
