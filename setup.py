@@ -12,7 +12,7 @@ setup(
         "aiohttp>=3.9.0",
         "toml>=0.10.2",
         "pynacl>=1.5.0",
-        "calimero-client-py-bindings>=0.1.2",
+        "calimero-client-py-bindings>=0.1.5",
     ],
     extras_require={
         "test": [
@@ -33,11 +33,11 @@ setup(
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
     ],
-    python_requires=">=3.8",
+    python_requires=">=3.9",
 )

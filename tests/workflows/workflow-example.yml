@@ -53,7 +53,7 @@ steps:
     granter_id: '{{member_public_key}}'
     capability: member
     outputs:
-      invitation: invitation         # Export 'invitation' as 'invitation'
+      invitation: invitation         # Export 'invitation' field as 'invitation'
 
   # Step 6: Join the context from the second node
   # Uses captured values: context ID, invitee identity, and invitation data

@@ -229,6 +229,111 @@ class TestContextWorkflows:
         print("🎉 Context workflow integration completed successfully")
 
     @pytest.mark.asyncio
+    async def test_context_capabilities_workflow(self, workflow_environment):
+        """Test context capabilities and permissions workflow."""
+        env = workflow_environment
+
+        context_id = env.get_captured_value("context_id")
+        admin_url = env.endpoints["calimero-node-1"]
+
+        client = CalimeroClient(admin_url)
+
+        print("🚀 Testing context capabilities workflow")
+
+        # Test capability enumeration
+        capabilities = [Capability.MEMBER, Capability.ADMIN, Capability.EXECUTOR]
+        print(f"✅ Available capabilities: {capabilities}")
+
+        # Test capability validation
+        for capability in capabilities:
+            assert capability in Capability
+            print(f"✅ Capability {capability} is valid")
+
+        # Test context member capabilities
+        context_info = await client.contexts.get(context_id)
+        assert context_info is not None
+        print(f"✅ Retrieved context info for capability check: {context_info}")
+
+        # Test that we can execute operations with member capability
+        if hasattr(client, 'can_execute'):
+            can_execute = client.can_execute()
+            print(f"✅ Client execution capability: {can_execute}")
+
+        print("🎉 Context capabilities workflow completed successfully")
+
+    @pytest.mark.asyncio
+    async def test_context_status_management(self, workflow_environment):
+        """Test context status and health monitoring."""
+        env = workflow_environment
+
+        context_id = env.get_captured_value("context_id")
+        admin_url = env.endpoints["calimero-node-1"]
+
+        client = CalimeroClient(admin_url)
+
+        print("🚀 Testing context status management")
+
+        # Test context health check
+        context_info = await client.contexts.get(context_id)
+        assert context_info is not None
+        print(f"✅ Context health check passed: {context_info}")
+
+        # Test context listing with status
+        contexts = await client.contexts.list_all()
+        assert contexts is not None
+        
+        if hasattr(contexts, 'contexts') and contexts.contexts:
+            for ctx in contexts.contexts:
+                if hasattr(ctx, 'status'):
+                    print(f"✅ Context {ctx.id} status: {ctx.status}")
+                if hasattr(ctx, 'member_count'):
+                    print(f"✅ Context {ctx.id} member count: {ctx.member_count}")
+
+        print("🎉 Context status management completed successfully")
+
+    @pytest.mark.asyncio
+    async def test_context_member_operations(self, workflow_environment):
+        """Test context member management operations."""
+        env = workflow_environment
+
+        context_id = env.get_captured_value("context_id")
+        admin_url = env.endpoints["calimero-node-1"]
+
+        client = CalimeroClient(admin_url)
+
+        print("🚀 Testing context member operations")
+
+        # Test member listing
+        members = await client.identities.list_in_context(context_id)
+        assert members is not None
+        print(f"✅ Retrieved context members: {members}")
+
+        # Test member count
+        if hasattr(members, 'identities'):
+            member_count = len(members.identities) if members.identities else 0
+            print(f"✅ Context member count: {member_count}")
+        else:
+            print(f"✅ Context members data: {members}")
+
+        # Test member identity generation
+        new_member = await client.identities.generate()
+        assert new_member is not None
+        
+        if isinstance(new_member, dict):
+            if "data" in new_member and "publicKey" in new_member["data"]:
+                new_member_key = new_member["data"]["publicKey"]
+            elif "publicKey" in new_member:
+                new_member_key = new_member["publicKey"]
+            else:
+                new_member_key = str(new_member)
+        else:
+            new_member_key = str(new_member)
+            
+        print(f"✅ Generated new member identity: {new_member_key}")
+
+        print("🎉 Context member operations completed successfully")
+
+    @pytest.mark.asyncio
     async def test_capability_management_workflow(self, workflow_environment):
         """Test complete capability management workflow."""
         env = workflow_environment

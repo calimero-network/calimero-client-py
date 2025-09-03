@@ -415,15 +415,24 @@ class CalimeroClient:
             # Note: capability is not a parameter in the new API
             result = self._client.invite_to_context(context_id, granter_id, grantee_id)
 
-            # The new bindings return structured response
-            if isinstance(result, dict) and "data" in result:
-                # Check if the data contains an 'invitation' field
-                if "invitation" in result["data"]:
-                    invitation_payload = result["data"]["invitation"]
+            # Handle the actual API response structure
+            invitation_payload = ""
+            if isinstance(result, dict):
+                # Check if result has a 'data' field with 'invitation'
+                if "data" in result and isinstance(result["data"], dict):
+                    if "invitation" in result["data"]:
+                        invitation_payload = result["data"]["invitation"]
+                    else:
+                        invitation_payload = str(result["data"])
+                # Check if result directly has 'invitation' field
+                elif "invitation" in result:
+                    invitation_payload = result["invitation"]
                 else:
-                    invitation_payload = result["data"]
+                    invitation_payload = str(result)
+            elif isinstance(result, str):
+                invitation_payload = result
             else:
-                invitation_payload = result if isinstance(result, str) else ""
+                invitation_payload = str(result) if result else ""
 
             return InviteToContextResponse(
                 success=True,
@@ -454,12 +463,35 @@ class CalimeroClient:
             # The invitation_payload contains all necessary information (protocol, network, contract_id)
             result = self._client.join_context(context_id, invitee_id, invitation)
 
+            # Handle the actual API response structure
+            member_public_key = ""
+            if isinstance(result, dict):
+                # Check if result has a 'data' field with member info
+                if "data" in result and isinstance(result["data"], dict):
+                    if "memberPublicKey" in result["data"]:
+                        member_public_key = result["data"]["memberPublicKey"]
+                    elif "publicKey" in result["data"]:
+                        member_public_key = result["data"]["publicKey"]
+                    else:
+                        member_public_key = str(result["data"])
+                # Check if result directly has member info
+                elif "memberPublicKey" in result:
+                    member_public_key = result["memberPublicKey"]
+                elif "publicKey" in result:
+                    member_public_key = result["publicKey"]
+                else:
+                    member_public_key = str(result)
+            elif isinstance(result, str):
+                member_public_key = result
+            else:
+                member_public_key = str(result) if result else ""
+
             return JoinContextResponse(
                 success=True,
                 joined_context_id=context_id,
-                member_public_key=result,
+                member_public_key=member_public_key,
                 timestamp=None,
-                data={"joinedContextId": context_id, "memberPublicKey": result},
+                data={"joinedContextId": context_id, "memberPublicKey": member_public_key},
             )
         except Exception as e:
             return JoinContextResponse(
