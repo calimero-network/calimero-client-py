@@ -1,19 +1,32 @@
 """
-Calimero Network Python Client SDK
+Calimero Client Python Library
+
+A comprehensive Python client library for Calimero Network APIs,
+built with PyO3 for high performance and native integration.
 """
 
-__version__ = "0.2.2"
+__version__ = "0.2.3"
+__author__ = "Calimero Network"
+__email__ = "team@calimero.network"
 
+# Import main functions and classes from the Rust bindings
+from calimero_client_py import (
+    create_connection,
+    create_client,
+    ConnectionInfo,
+    Client,
+    JwtToken,
+    ClientError,
+    AuthMode,
+)
 
-from .ws_subscriptions_client import WsSubscriptionsClient
-from .client import CalimeroClient
-
-# Backward compatibility: AdminClient is now an alias for CalimeroClient
-# This is needed for the merobox framework that expects AdminClient
-AdminClient = CalimeroClient
-
+# Re-export main types
 __all__ = [
-    "WsSubscriptionsClient",
-    "CalimeroClient",
-    "AdminClient",  # Backward compatibility for merobox framework
+    "create_connection",
+    "create_client",
+    "ConnectionInfo",
+    "Client",
+    "JwtToken",
+    "ClientError",
+    "AuthMode",
 ]

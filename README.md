@@ -1,307 +1,546 @@
-# Hello World Example Project
+# Calimero Client Python Library
 
-This project demonstrates how to integrate **Merobox** as a testing framework for Calimero applications. It shows how to use Merobox's testing utilities to spin up ephemeral Calimero nodes and run complex workflows as part of your test suite.
+A comprehensive Python client library for Calimero Network APIs, built with PyO3 for high performance and native integration.
 
-**🚀 Performance Optimized**: This example now demonstrates efficient node reuse and optimized test execution, achieving **33% faster test runs** compared to the previous version.
+## Features
 
-## 🚀 Features
+- **High Performance**: Built with Rust and PyO3 for optimal performance
+- **Comprehensive API**: Full access to Calimero Network functionality  
+- **Type Safety**: Strongly typed Python bindings
+- **Async Support**: Built-in async/await support
+- **Easy Installation**: Simple pip install
 
-- **Simple Cluster Testing**: Basic node cluster setup and teardown
-- **Workflow-based Testing**: Complex Calimero setup scenarios using Merobox workflows
-- **Automatic Cleanup**: Resources are automatically cleaned up after tests
-- **Multiple Fixture Scopes**: Session and function-level fixtures for different testing needs
-- **Performance Optimized**: Efficient node reuse across tests with consolidated fixtures
-- **Resilient Testing**: Robust error handling and retry logic for network operations
+## Supported Protocols
 
-## ⚡ Performance Optimizations
+- ✅ NEAR Protocol
+- ✅ Ethereum  
+- ✅ Internet Computer Protocol (ICP)
+- ✅ Starknet
+- ❌ Stellar (removed)
 
-This example project has been optimized for **maximum test execution speed** and **efficient resource usage**:
+## Quick Start
 
-### 🎯 **Key Optimizations**
-- **Consolidated Fixtures**: Single shared cluster (3 nodes) instead of multiple separate clusters
-- **Eliminated Port Conflicts**: No more Docker networking issues between test fixtures
-- **Reduced Wait Times**: Optimized sleep intervals and retry logic
-- **Better Resource Sharing**: Maximum node reuse across all test functions
+```python
+import asyncio
+from calimero_client_py import create_connection, create_client, AuthMode
 
-### 📊 **Performance Results**
-- **Before**: 3 failed, 12 passed, 6 errors in **164.68s** (2:44)
-- **After**: 21 passed in **110.77s** (1:50)
-- **Improvement**: **33% faster execution time**
+async def main():
+    # Create a connection
+    connection = create_connection(
+        base_url="http://localhost:2528",
+        auth_mode=AuthMode.NONE
+    )
+    
+    # Create a client
+    client = create_client(connection)
+    
+    # Use the client
+    contexts = await client.list_contexts()
+    print(f"Found {len(contexts)} contexts")
 
-### 🔧 **Technical Improvements**
-- **Fixture Consolidation**: All tests now use `shared_cluster` and `shared_workflow`
-- **Session Scoping**: Maximum fixture reuse across entire test run
-- **Optimized Workflows**: Reduced timeouts and wait times
-- **Resilient Health Checks**: Better retry logic and error handling
-
-## 📁 Project Structure
-
-```
-example-project/
-├── src/
-│   └── hello_world/
-│       ├── __init__.py
-│       └── client.py                 # Example client
-├── tests/
-│   ├── test_basic_integration.py    # Basic cluster tests
-│   └── test_workflow_integration.py # Workflow-based tests
-├── conftest.py                      # Pytest fixtures
-├── pyproject.toml                   # Project configuration
-└── README.md                        # This file
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
-## 🛠️ Installation
+## Installation
 
-1. **Clone and setup the project:**
 ```bash
-cd example-project
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
+pip install calimero-client-py
 ```
 
-## 🧪 Running Tests
+## Development
 
-### Current Test Status
-✅ **All 21 tests passing** with **33% performance improvement**
+### Building from Source
 
-### Basic Tests
 ```bash
-# Run all tests
+# Install dependencies
+pip install maturin
+
+# Build the package
+maturin build --release
+
+# Install in development mode
+maturin develop
+```
+
+### Running Tests
+
+```bash
+python scripts/run_tests.py
+```
+
+## 🏗️ Project Structure
+
+```
+calimero-client-py/
+├── README.md                    # This file
+├── LICENSE                      # License file
+├── pyproject.toml              # Python package configuration
+├── Cargo.toml                  # Rust package configuration
+├── Cargo.lock                  # Rust lock file
+├── .github/
+│   └── workflows/              # CI/CD workflows
+├── src/                        # Rust source code
+│   ├── lib.rs
+│   ├── mod.rs
+│   └── python.rs
+├── calimero_client_py/         # Python package
+│   ├── __init__.py
+│   └── cli.py
+├── tests/                      # All tests
+│   ├── test_integration.py
+│   └── conftest.py
+└── scripts/                    # Build and utility scripts
+    ├── build.sh
+    └── run_tests.py
+```
+
+## 🚀 Build Status
+
+### Current Status: ✅ Ready to Build
+
+The Python bindings for `calimero-client` are ready to build. Stellar support has been removed from the codebase.
+
+### Environment Setup: ✅ Complete
+
+- **Python Version**: 3.13.7
+- **Virtual Environment**: ✅ Active and working
+- **Maturin**: ✅ Installed (version 1.9.4)
+- **PyO3**: ✅ Version 0.20.3 (compatible with Python 3.13 via ABI3)
+
+### Current Working Components
+
+- ✅ Python 3.13 virtual environment
+- ✅ Maturin build system
+- ✅ PyO3 configuration
+- ✅ Basic project structure
+- ✅ Rust toolchain
+- ✅ All supported protocol dependencies
+
+## 🔧 Building
+
+### From the Repository Root (Recommended)
+
+```bash
+# From calimero-client-py root directory
+./scripts/build.sh
+
+# Or with options
+./scripts/build.sh --install  # Build and install in development mode
+```
+
+### Manual Build
+
+```bash
+# Install maturin if you haven't already
+pip install maturin
+
+# Build the wheel
+maturin build --release
+
+# Install in development mode
+maturin develop --release
+```
+
+### Standalone Build
+
+This package can be built independently without requiring the full Calimero workspace.
+
+#### Prerequisites
+
+- Rust toolchain (1.70+)
+- Python 3.8+
+- maturin (will be installed automatically if missing)
+
+#### Benefits of Standalone Build
+
+✅ **Independent builds** - No need for full workspace  
+✅ **Easier distribution** - Can be built anywhere  
+✅ **CI/CD friendly** - Simpler build pipelines  
+✅ **Version control** - Clear dependency management  
+✅ **Faster builds** - Only builds what's needed
+
+## 📦 Dependencies
+
+The bindings depend on these crates (published to crates.io):
+- `calimero-client` - Core client functionality
+- `calimero-primitives` - Core data types
+
+## 🧪 Testing
+
+```bash
+# Test Rust code
+cargo test
+
+# Test Python integration
+python scripts/run_tests.py
+
+# Test the environment
+source venv/bin/activate.fish
+python test-python.py
+```
+
+## 📤 Publishing to PyPI
+
+This guide explains how to publish the `calimero-client-py` package to PyPI and other Python package repositories.
+
+### Prerequisites
+
+#### 1. PyPI Account
+- Create an account on [PyPI](https://pypi.org/account/register/)
+- Enable two-factor authentication (2FA) for security
+- Create an API token for automated publishing
+
+#### 2. Test PyPI Account (Recommended)
+- Create an account on [Test PyPI](https://test.pypi.org/account/register/)
+- Use this for testing before publishing to production
+
+#### 3. Required Tools
+```bash
+# Install publishing tools
+pip install twine build
+
+# Install maturin for Rust bindings
+pip install maturin
+```
+
+### Building the Package
+
+#### 1. Clean Build Environment
+```bash
+# Remove previous builds
+rm -rf target/wheels/
+rm -rf dist/
+rm -rf build/
+rm -rf *.egg-info/
+```
+
+#### 2. Build with Maturin
+```bash
+# Build the Python wheel
+maturin build --features python --release
+
+# Verify the wheel was created
+ls -la target/wheels/
+```
+
+#### 3. Build Source Distribution (Optional)
+```bash
+# Build source distribution
+python -m build --sdist
+
+# Verify source distribution
+ls -la dist/
+```
+
+### Testing Before Publishing
+
+#### 1. Test Installation
+```bash
+# Install from wheel
+pip install target/wheels/calimero_client_py-*.whl
+
+# Test import
+python -c "import calimero_client_py; print('Import successful')"
+
+# Test CLI
+calimero-client-py --help
+```
+
+#### 2. Test on Test PyPI
+```bash
+# Upload to Test PyPI
+twine upload --repository testpypi target/wheels/*.whl
+
+# Install from Test PyPI
+pip install --index-url https://test.pypi.org/simple/ calimero-client-py
+
+# Test functionality
+python -c "import calimero_client_py; print('Test PyPI install successful')"
+```
+
+### Publishing to PyPI
+
+#### 1. Final Verification
+```bash
+# Check package metadata
+twine check target/wheels/*.whl
+
+# Verify package contents
+pip show calimero-client-py
+```
+
+#### 2. Upload to PyPI
+```bash
+# Upload to production PyPI
+twine upload target/wheels/*.whl
+
+# Or upload both wheel and source
+twine upload dist/*
+```
+
+#### 3. Verify Publication
+```bash
+# Wait a few minutes for PyPI to update
+# Check on https://pypi.org/project/calimero-client-py/
+
+# Test installation from PyPI
+pip install calimero-client-py
+
+# Verify it works
+python -c "import calimero_client_py; print('PyPI install successful')"
+```
+
+### Automated Publishing with GitHub Actions
+
+The package includes a GitHub Actions workflow that automatically publishes when you create a release tag.
+
+#### 1. Create a Release
+```bash
+# Tag the release
+git tag -a v0.1.0 -m "Release version 0.1.0"
+
+# Push the tag
+git push origin v0.1.0
+```
+
+#### 2. Set Up Secrets
+In your GitHub repository settings, add these secrets:
+- `PYPI_API_TOKEN`: Your PyPI API token
+- `TEST_PYPI_API_TOKEN`: Your Test PyPI API token (optional)
+
+#### 3. Monitor the Workflow
+- Check the Actions tab in GitHub
+- The workflow will automatically:
+  - Build the package
+  - Run tests
+  - Publish to PyPI
+
+### Common Issues and Solutions
+
+#### 1. Build Failures
+```bash
+# Check Rust toolchain
+rustup show
+
+# Update dependencies
+cargo update
+
+# Clean and rebuild
+cargo clean
+maturin build --features python
+```
+
+#### 2. Import Errors
+```bash
+# Verify module structure
+python -c "import sys; print(sys.path)"
+
+# Check package installation
+pip list | grep calimero
+```
+
+#### 3. PyPI Upload Errors
+```bash
+# Check authentication
+twine check target/wheels/*.whl
+
+# Verify API token
+echo $PYPI_API_TOKEN
+
+# Test with Test PyPI first
+twine upload --repository testpypi target/wheels/*.whl
+```
+
+### Maintenance
+
+#### 1. Version Management
+```bash
+# Update version in all files:
+# - pyproject.toml
+# - Cargo.toml
+# - calimero_client_py/__init__.py
+# - README.md (if version is mentioned)
+```
+
+#### 2. Dependency Updates
+```bash
+# Update Rust dependencies
+cargo update
+
+# Update Python dependencies
+pip install --upgrade -r requirements-dev.txt
+
+# Test with updated dependencies
 pytest
-
-# Run specific test file
-pytest tests/test_basic_integration.py
-
-# Run with verbose output
-pytest -v
 ```
 
-### Test Categories
-
-- **Basic Integration Tests** (`test_basic_integration.py`):
-  - Simple cluster setup and teardown
-  - Basic node health checking
-  - Endpoint validation
-
-- **Workflow Integration Tests** (`test_workflow_integration.py`):
-  - Complex workflow execution
-  - Context operations
-  - Application installation
-  - Multi-node consistency testing
-
-## 🔧 Configuration
-
-### Clean Decorator Syntax (New!)
-
-The project demonstrates the new, cleaner Merobox testing API with **optimized fixture consolidation**:
-
-```python
-# conftest.py - Clean decorator syntax with shared resources
-from merobox.testing import nodes, run_workflow
-
-@nodes(count=3, prefix="shared-test", scope="session")
-def shared_cluster():
-    """Main shared cluster with 3 nodes for all tests - maximum reuse"""
-    pass
-
-@run_workflow("test-workflow.yml", prefix="shared-workflow", scope="session")
-def shared_workflow():
-    """Shared workflow setup for advanced testing - maximum reuse"""
-    pass
-
-# All other fixtures reuse the shared resources
-@pytest.fixture
-def merobox_cluster(shared_cluster):
-    """Alias for shared_cluster for backward compatibility"""
-    return shared_cluster
-```
-
-### Fixture Options
-
-- **`count`**: Number of nodes to start
-- **`prefix`**: Node name prefix
-- **`scope`**: Pytest fixture scope (`function`, `class`, `module`, `session`)
-- **`workflow_path`**: Path to workflow YAML file
-- **`image`**: Custom Docker image
-- **`chain_id`**: Chain ID
-
-## 💡 Usage Examples
-
-### Using the New Clean API
-
-```python
-def test_simple_setup(merobox_cluster):
-    # Clean attribute access
-    assert len(merobox_cluster.nodes) == 3
-    assert len(merobox_cluster.endpoints) == 3
-    
-    # Convenient helpers
-    first_endpoint = merobox_cluster.endpoint(0)
-    client = Client(first_endpoint)
-    
-    # Test the client
-    result = client.health_check()
-    assert result["success"] is True
-```
-
-### Using Workflow Fixtures
-
-```python
-def test_workflow_setup(merobox_workflow):
-    # Clean access to workflow results
-    assert merobox_workflow.success is True
-    assert len(merobox_workflow.nodes) > 0
-    
-    # Easy node access
-    endpoint = merobox_workflow.endpoint(0)
-    client = Client(endpoint)
-    # ... test logic
-```
-
-### Inline Fixture Definitions
-
-```python
-# Define fixtures right in your test file
-from merobox.testing import nodes, run_workflow
-
-@nodes(count=1, prefix="dev")
-def dev_node():
-    """Single development node"""
-    pass
-
-def test_development_features(dev_node):
-    # Use the inline fixture
-    endpoint = dev_node.endpoint(0)
-    # ... test logic
-```
-
-### Custom Fixtures
-
-```python
-@pytest.fixture
-def client(blockchain_endpoints):
-    """Provide a configured client."""
-    first_endpoint = list(blockchain_endpoints.values())[0]
-    return Client(first_endpoint)
-
-def test_with_client(client):
-    result = client.health_check()
-    assert result["success"] is True
-```
-
-## 🔄 Workflow Integration
-
-The project demonstrates how to use Merobox workflows as pretest setup:
-
-1. **Workflow Execution**: Automatically runs workflows before tests
-2. **Node Discovery**: Automatically discovers nodes created by workflows
-3. **Health Checking**: Waits for nodes to be ready
-4. **Automatic Cleanup**: Cleans up all resources after tests
-
-### Workflow Files
-
-The example uses workflow files from the parent Merobox project:
-- `workflow-example.yml`: Complex workflow with multiple steps
-- `workflow-force-pull-test.yml`: Simple workflow for basic testing
-
-## 🧹 Cleanup and Resource Management
-
-- **Automatic Cleanup**: All Docker containers and resources are automatically cleaned up
-- **Fixture Scopes**: Use appropriate fixture scopes to balance performance and isolation
-- **Error Handling**: Failed workflows are properly reported and cleaned up
-
-## 🧪 Testing Improvements
-
-### **Resilient Health Checks**
-Tests now include robust retry logic and error handling:
-
-```python
-def test_multiple_clients(cluster_a):
-    """Test creating clients for multiple nodes with retry logic."""
-    # Give nodes a moment to be fully ready
-    time.sleep(1)  # Optimized wait time
-    
-    # Test all clients with improved retry logic
-    for i, client in enumerate(clients):
-        max_retries = 3  # Optimized retry count
-        for attempt in range(max_retries):
-            try:
-                result = client.health_check()
-                if result["success"]:
-                    break
-                if attempt < max_retries - 1:
-                    time.sleep(1)  # Optimized retry interval
-            except Exception as e:
-                # Graceful error handling
-                print(f"Warning: Client {i} failed, but continuing with test")
-    
-    # Test passes if we can create clients, even if some health checks fail
-    assert len(clients) > 0, "No clients were created"
-```
-
-### **Optimized Workflow Configuration**
-The test workflow has been optimized for speed:
-
-```yaml
-# test-workflow.yml
-stop_all_nodes: false  # Keep nodes running for reuse
-force_pull_image: false  # Avoid unnecessary downloads
-wait_timeout: 30        # Reduced timeout for faster execution
-```
-
-## 🚨 Troubleshooting
-
-### Common Issues
-
-1. **Port Conflicts**: If you get port conflicts, ensure no other services are using the ports
-2. **Docker Issues**: Make sure Docker is running and accessible
-3. **Workflow Failures**: Check that workflow files exist and are valid
-
-### Debug Mode
-
-Run tests with verbose output to see detailed setup/teardown information:
+#### 3. Security Updates
 ```bash
-pytest -v -s
+# Check for security vulnerabilities
+safety check
+
+# Update vulnerable packages
+pip install --upgrade package-name
 ```
 
-## 🔗 Integration with Your Project
+### Troubleshooting
 
-To integrate Merobox testing into your own project:
+- **Build fails**: Make sure `calimero-client` is published to crates.io
+- **Import errors**: Verify the wheel was built for your Python version
+- **Runtime errors**: Check that all dependencies are properly linked
 
-1. **Install Merobox**: `pip install merobox`
-2. **Create conftest.py**: Set up your fixtures
-3. **Write Tests**: Use the fixtures in your test functions
-4. **Configure Workflows**: Create workflow files for complex setups
+### Additional Resources
 
-### Example Integration
+- [PyPI Packaging Guide](https://packaging.python.org/tutorials/packaging-projects/)
+- [Maturin Documentation](https://maturin.rs/)
+- [Twine Documentation](https://twine.readthedocs.io/)
+- [Python Packaging Authority](https://www.pypa.io/)
+
+## API Reference
+
+### Core Classes
+
+- `Client`: Main client for interacting with Calimero Network
+- `ConnectionInfo`: Connection configuration
+- `JwtToken`: JWT authentication token
+- `ClientError`: Error handling
+- `AuthMode`: Authentication modes
+
+### Main Functions
+
+- `create_connection()`: Create a new connection
+- `create_client()`: Create a new client instance
+
+### Client Methods
+
+The `Client` class provides comprehensive access to Calimero Network functionality:
+
+#### Connection Management
+- `get_api_url()`: Get the API URL for this client
+- `get_peers_count()`: Get the number of connected peers
+
+#### Application Management
+- `get_application(app_id: str)`: Get information about a specific application
+- `list_applications()`: List all available applications
+- `install_application(url: str, hash: Optional[str], metadata: Optional[bytes])`: Install application from URL
+- `install_dev_application(path: str, metadata: Optional[bytes])`: Install development application from local path
+- `uninstall_application(app_id: str)`: Uninstall an application
+
+#### Context Management
+- `get_context(context_id: str)`: Get information about a specific context
+- `list_contexts()`: List all available contexts
+- `create_context(application_id: str, protocol: str, params: Optional[str])`: Create a new context
+- `delete_context(context_id: str)`: Delete a context
+- `sync_context(context_id: str)`: Sync a specific context
+- `sync_all_contexts()`: Sync all contexts
+
+#### Context Operations
+- `get_context_storage(context_id: str)`: Get context storage information
+- `get_context_identities(context_id: str)`: Get identities associated with a context
+- `get_context_client_keys(context_id: str)`: Get client keys for a context
+- `invite_to_context(context_id: str, inviter_id: str, invitee_id: str)`: Invite someone to a context
+- `join_context(context_id: str, invitee_id: str, invitation_payload: str)`: Join a context using invitation
+- `update_context_application(context_id: str, application_id: str, executor_public_key: str)`: Update context application
+
+#### Function Execution
+- `execute_function(context_id: str, method: str, args: str, executor_public_key: str)`: Execute a function call via JSON-RPC
+
+#### Permission Management
+- `grant_permissions(context_id: str, permissions: str)`: Grant permissions to users in a context
+- `revoke_permissions(context_id: str, permissions: str)`: Revoke permissions from users in a context
+
+#### Proposal Management
+- `get_proposal(context_id: str, proposal_id: str)`: Get proposal information
+- `get_proposal_approvers(context_id: str, proposal_id: str)`: Get proposal approvers
+- `list_proposals(context_id: str, args: Optional[str])`: List proposals in a context
+
+#### Identity Management
+- `generate_context_identity()`: Generate a new context identity
+
+#### Blob Management
+- `list_blobs()`: List all blobs
+- `get_blob_info(blob_id: str)`: Get information about a specific blob
+- `delete_blob(blob_id: str)`: Delete a blob
+
+#### Alias Management
+- `create_context_identity_alias(context_id: str, alias: str, public_key: str)`: Create context identity alias
+- `create_context_alias(alias: str, context_id: str)`: Create context alias
+- `create_application_alias(alias: str, application_id: str)`: Create application alias
+- `delete_context_alias(alias: str)`: Delete context alias
+- `delete_context_identity_alias(alias: str, context_id: str)`: Delete context identity alias
+
+### Response Format
+
+All client methods return Python objects (dictionaries, lists, etc.) containing the response data. The exact structure depends on the specific method called, but generally follows these patterns:
+
+#### Success Response
+```python
+{
+    "success": True,
+    "data": { ... },  # Method-specific data
+    "message": "Operation completed successfully"
+}
+```
+
+#### Error Response
+```python
+{
+    "success": False,
+    "error": "Error description",
+    "error_type": "Network|Authentication|Storage|Internal"
+}
+```
+
+### Example Usage
 
 ```python
-# conftest.py
-from merobox.testing import pytest_workflow
+import asyncio
+from calimero_client_py import create_connection, create_client, AuthMode
 
-my_workflow = pytest_workflow(
-    workflow_path="my-workflow.yml",
-    prefix="my-test",
-    scope="session"
-)
+async def main():
+    # Create connection
+    connection = create_connection(
+        base_url="http://localhost:2528",
+        auth_mode=AuthMode.NONE
+    )
+    
+    # Create client
+    client = create_client(connection)
+    
+    # List applications
+    apps = client.list_applications()
+    print(f"Found {len(apps)} applications")
+    
+    # Create a context
+    context = client.create_context(
+        application_id="my-app-id",
+        protocol="near",
+        params='{"network": "testnet"}'
+    )
+    print(f"Created context: {context}")
+    
+    # Execute a function
+    result = client.execute_function(
+        context_id=context["context_id"],
+        method="set_value",
+        args='{"key": "test", "value": "hello"}',
+        executor_public_key="your-public-key"
+    )
+    print(f"Function result: {result}")
 
-# test_my_app.py
-def test_my_application(my_workflow):
-    # Your application tests here
-    pass
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
-## 📚 Further Reading
+## Support
 
-- [Merobox Documentation](../README.md)
-- [Testing Examples](../testing-examples/)
-- [Workflow Examples](../workflow-examples/)
+If you encounter issues during publishing:
 
-## 🤝 Contributing
+1. Check the [GitHub Issues](https://github.com/calimero-network/core/issues)
+2. Review the [GitHub Actions logs](https://github.com/calimero-network/core/actions)
+3. Contact the team at team@calimero.network
 
-This is an example project. For contributions to Merobox itself, please see the main project repository.
+---
 
-## 📄 License
-
-This example project is provided under the same license as Merobox.
+**Happy Publishing! 🎉**

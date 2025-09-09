@@ -1,41 +1,31 @@
 """
-Pytest configuration and fixtures for Calimero client testing.
-
-This file demonstrates the new, cleaner Merobox testing API.
+Pytest configuration and fixtures for Calimero Client Python tests.
 """
 
 import pytest
-from pathlib import Path
-from merobox.testing import run_workflow
-
-
-# ============================================================================
-# Main session-scoped fixtures for reuse across all tests
-# ============================================================================
-
-
-@run_workflow("tests/workflows/workflow-example.yml", scope="session")
-def shared_workflow():
-    """Main shared workflow for all tests - session scoped for maximum reuse"""
-    pass
-
-
-
-
-
-# ============================================================================
-# Test fixtures that are actually used
-# ============================================================================
+import asyncio
+from calimero_client_py import create_connection, create_client, AuthMode
 
 
 @pytest.fixture
-def workflow_environment(shared_workflow):
-    """Provides the workflow environment with captured outputs."""
-    # The shared_workflow IS the workflow environment
-    return shared_workflow
+def event_loop():
+    """Create an instance of the default event loop for the test session."""
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    yield loop
+    loop.close()
 
 
 @pytest.fixture
-def workflow_result():
-    """Provides the workflow execution result."""
-    return True
+async def test_connection():
+    """Create a test connection for integration tests."""
+    connection = create_connection(
+        base_url="http://localhost:2528", auth_mode=AuthMode.NONE
+    )
+    return connection
+
+
+@pytest.fixture
+async def test_client(test_connection):
+    """Create a test client for integration tests."""
+    client = create_client(test_connection)
+    return client
