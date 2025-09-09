@@ -1,23 +1,32 @@
 """
-Calimero Network Python Client SDK
+Calimero Client Python Library
+
+A comprehensive Python client library for Calimero Network APIs,
+built with PyO3 for high performance and native integration.
 """
 
-__version__ = "0.1.4"
+__version__ = "0.2.3"
+__author__ = "Calimero Network"
+__email__ = "team@calimero.network"
 
-from .config import Config, ConfigError
-from .keypair import Ed25519Keypair, KeypairError
-from .json_rpc_client import JsonRpcClient, JsonRpcError
-from .ws_subscriptions_client import WsSubscriptionsClient
-from .admin_client import AdminClient, AdminApiResponse
+# Import main functions and classes from the Rust bindings
+from calimero_client_py import (
+    create_connection,
+    create_client,
+    ConnectionInfo,
+    Client,
+    JwtToken,
+    ClientError,
+    AuthMode,
+)
 
+# Re-export main types
 __all__ = [
-    'Config',
-    'ConfigError',
-    'Ed25519Keypair',
-    'KeypairError',
-    'JsonRpcClient',
-    'JsonRpcError',
-    'WsSubscriptionsClient',
-    'AdminClient',
-    'AdminApiResponse'
-] 
+    "create_connection",
+    "create_client",
+    "ConnectionInfo",
+    "Client",
+    "JwtToken",
+    "ClientError",
+    "AuthMode",
+]
