@@ -33,7 +33,7 @@ calimero-server-primitives = "0.2.5"
 calimero-context-config = "0.2.5"
 
 # Python bindings
-pyo3 = { version = "0.22", features = ["auto-initialize"] }
+pyo3 = { version = "0.24", features = ["auto-initialize"] }
 
 # Additional dependencies that might be needed
 serde = { version = "1.0", features = ["derive"] }
