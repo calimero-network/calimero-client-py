@@ -26,11 +26,11 @@ name = "calimero_client_py"
 crate-type = ["cdylib"]
 
 [dependencies]
-# Core Calimero crates (published to crates.io)
-calimero-client = "0.2.5"
-calimero-primitives = "0.2.5"
-calimero-server-primitives = "0.2.5"
-calimero-context-config = "0.2.5"
+# Core Calimero crates (using master branch from GitHub)
+calimero-client = { git = "https://github.com/calimero-network/core", branch = "master" }
+calimero-primitives = { git = "https://github.com/calimero-network/core", branch = "master" }
+calimero-server-primitives = { git = "https://github.com/calimero-network/core", branch = "master" }
+calimero-context-config = { git = "https://github.com/calimero-network/core", branch = "master" }
 
 # Python bindings
 pyo3 = { version = "0.22", features = ["auto-initialize"] }
