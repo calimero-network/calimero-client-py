@@ -480,7 +480,7 @@ impl PyClient {
                 };
 
                 let request = admin::InstallApplicationRequest::new(
-                    url, hash, metadata,
+                    url, hash, metadata, None, None,
                 );
 
                 inner.install_application(request).await
@@ -517,7 +517,7 @@ impl PyClient {
                 let metadata = metadata;
 
                 let request = admin::InstallDevApplicationRequest::new(
-                    path, metadata,
+                    path, metadata, None, None,
                 );
 
                 inner.install_dev_application(request).await
@@ -566,6 +566,88 @@ impl PyClient {
                         ))
                     })?;
                     Ok(json_to_python(py, &json_data))
+                }
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
+        })
+    }
+
+    /// Upload blob
+    #[pyo3(signature = (data, context_id=None))]
+    fn upload_blob(&self, data: &[u8], context_id: Option<&str>) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let data_vec = data.to_vec();
+        let context_id_opt = context_id.map(|s| s.to_string());
+
+        Python::with_gil(|py| {
+            let result = self.runtime.block_on(async move {
+                let context_id_parsed = if let Some(ctx_id) = context_id_opt {
+                    Some(
+                        ctx_id
+                            .parse::<ContextId>()
+                            .map_err(|e| eyre::eyre!("Invalid context ID '{}': {}", ctx_id, e))?,
+                    )
+                } else {
+                    None
+                };
+
+                inner.upload_blob(data_vec, context_id_parsed.as_ref()).await
+            });
+
+            match result {
+                Ok(data) => {
+                    let json_data = serde_json::to_value(data).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Failed to serialize response: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(json_to_python(py, &json_data))
+                }
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
+        })
+    }
+
+    /// Download blob
+    #[pyo3(signature = (blob_id, context_id=None))]
+    fn download_blob(&self, blob_id: &str, context_id: Option<&str>) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let blob_id = blob_id
+            .parse::<blobs::BlobId>()
+            .map_err(|e| {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "Invalid blob ID '{}': {}",
+                    blob_id, e
+                ))
+            })?;
+        let context_id_opt = context_id.map(|s| s.to_string());
+
+        Python::with_gil(|py| {
+            let result = self.runtime.block_on(async move {
+                let context_id_parsed = if let Some(ctx_id) = context_id_opt {
+                    Some(
+                        ctx_id
+                            .parse::<ContextId>()
+                            .map_err(|e| eyre::eyre!("Invalid context ID '{}': {}", ctx_id, e))?,
+                    )
+                } else {
+                    None
+                };
+
+                inner.download_blob(&blob_id, context_id_parsed.as_ref()).await
+            });
+
+            match result {
+                Ok(data) => {
+                    // Return bytes directly as Python bytes object
+                    Ok(pyo3::types::PyBytes::new_bound(py, &data).into_py(py))
                 }
                 Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
                     "Client error: {}",
