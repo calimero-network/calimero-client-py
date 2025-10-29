@@ -1375,7 +1375,7 @@ dependencies = [
 
 [[package]]
 name = "calimero-client-py"
-version = "0.2.4"
+version = "0.2.6"
 dependencies = [
  "async-trait",
  "calimero-client",
