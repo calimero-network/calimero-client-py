@@ -1,6 +1,6 @@
 [package]
 name = "calimero-client-py"
-version = "0.2.5"
+version = "0.2.6"
 edition = "2021"
 authors = ["Calimero Limited <info@calimero.network>"]
 description = "Python client library for Calimero Network"
