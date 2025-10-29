@@ -16,7 +16,7 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 use tokio::runtime::Runtime;
 use url::Url;
-
+use calimero_context_config::types as context_types;
 use calimero_client::client::Client;
 use calimero_client::connection::{ConnectionInfo, AuthMode};
 use calimero_client::traits::ClientStorage;
@@ -1111,6 +1111,105 @@ impl PyClient {
                     .map_err(|e| eyre::eyre!("Failed to parse invitation payload: {}", e))?,
                 );
                 inner.join_context(request).await
+            });
+
+            match result {
+                Ok(data) => {
+                    let json_data = serde_json::to_value(data).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Failed to serialize response: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(json_to_python(py, &json_data))
+                }
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
+        })
+    }
+
+    /// Invite to context by open invitation
+    fn invite_to_context_by_open_invitation(
+        &self,
+        context_id: &str,
+        inviter_id: &str,
+        valid_for_blocks: u64,
+    ) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let context_id = context_id.parse::<ContextId>().map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Invalid context ID '{}': {}",
+                context_id, e
+            ))
+        })?;
+        let inviter_id = inviter_id.parse::<identity::PublicKey>().map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Invalid inviter ID '{}': {}",
+                inviter_id, e
+            ))
+        })?;
+
+        Python::with_gil(|py| {
+            let result = self.runtime.block_on(async move {
+                let request = admin::InviteToContextOpenInvitationRequest::new(
+                    context_id,
+                    inviter_id,
+                    valid_for_blocks,
+                );
+
+                inner.invite_to_context_by_open_invitation(request).await
+            });
+
+            match result {
+                Ok(data) => {
+                    let json_data = serde_json::to_value(data).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Failed to serialize response: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(json_to_python(py, &json_data))
+                }
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
+        })
+    }
+
+    /// Join context by open invitation
+    fn join_context_by_open_invitation(
+        &self,
+        invitation_json: &str,
+        new_member_public_key: &str,
+    ) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let new_member_public_key = new_member_public_key
+            .parse::<identity::PublicKey>()
+            .map_err(|e| {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "Invalid new member public key '{}': {}",
+                    new_member_public_key, e
+                ))
+            })?;
+
+        Python::with_gil(|py| {
+            let result = self.runtime.block_on(async move {
+                // Parse the SignedOpenInvitation from JSON
+                let invitation: context_types::SignedOpenInvitation =
+                    serde_json::from_str(invitation_json)
+                        .map_err(|e| eyre::eyre!("Invalid invitation JSON: {}", e))?;
+
+                let request = admin::JoinContextByOpenInvitationRequest::new(
+                    invitation,
+                    new_member_public_key,
+                );
+
+                inner.join_context_by_open_invitation(request).await
             });
 
             match result {
