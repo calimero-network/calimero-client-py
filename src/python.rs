@@ -1196,13 +1196,24 @@ impl PyClient {
                     new_member_public_key, e
                 ))
             })?;
-
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
-                // Parse the SignedOpenInvitation from JSON
+                let invitation_value: serde_json::Value = serde_json::from_str(invitation_json)
+                    .map_err(|e| eyre::eyre!("Invalid invitation JSON: {}", e))?;
+
+                let invitation_data = if invitation_value.get("data").is_some() {
+                    invitation_value.get("data").unwrap()
+                } else {
+                    &invitation_value
+                };
                 let invitation: context_types::SignedOpenInvitation =
-                    serde_json::from_str(invitation_json)
-                        .map_err(|e| eyre::eyre!("Invalid invitation JSON: {}", e))?;
+                    serde_json::from_value(invitation_data.clone()).map_err(|e| {
+                        eyre::eyre!(
+                            "Failed to parse SignedOpenInvitation: {}. Data: {:?}",
+                            e,
+                            invitation_data
+                        )
+                    })?;
 
                 let request = admin::JoinContextByOpenInvitationRequest::new(
                     invitation,
@@ -1558,7 +1569,6 @@ impl PyClient {
             }
         })
     }
-
     
     fn create_and_approve_proposal(
         &self,
@@ -1575,7 +1585,6 @@ impl PyClient {
 
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
-
                 let request: admin::CreateAndApproveProposalRequest =
                     serde_json::from_str(request_json)
                         .map_err(|e| eyre::eyre!("Invalid request JSON: {}", e))?;
