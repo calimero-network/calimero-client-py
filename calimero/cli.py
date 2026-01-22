@@ -19,18 +19,18 @@ def main():
 Examples:
   calimero-client-py --help
   calimero-client-py --version
-  calimero-client-py --base-url http://localhost:2528 list-contexts
+  calimero-client-py --base-url https://test.merod.dev.p2p.aws.calimero.network list-contexts
         """,
     )
 
     parser.add_argument(
-        "--version", action="version", version="calimero-client-py 0.2.2"
+        "--version", action="version", version="calimero-client-py 0.3.0"
     )
 
     parser.add_argument(
         "--base-url",
-        default="http://localhost:2528",
-        help="Base URL for the Calimero server (default: http://localhost:2528)",
+        default="https://test.merod.dev.p2p.aws.calimero.network",
+        help="Base URL for the Calimero server (default: https://test.merod.dev.p2p.aws.calimero.network)",
     )
 
     parser.add_argument(

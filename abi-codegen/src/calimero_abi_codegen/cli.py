@@ -87,7 +87,7 @@ def main(input: Path, output: Path, class_name: str, verbose: bool):
         console.print(f"")
         console.print(f"# Create Calimero connection and client")
         console.print(
-            f"connection = create_connection(api_url='http://localhost:2528', node_name='my-node')"
+            f"connection = create_connection(api_url='https://test.merod.dev.p2p.aws.calimero.network', node_name='test-dev-node')"
         )
         console.print(f"client = create_client(connection)")
         console.print(f"")

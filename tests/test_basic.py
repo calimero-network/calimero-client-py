@@ -28,7 +28,8 @@ def test_imports():
 def test_connection_creation():
     """Test basic connection creation."""
     connection = create_connection(
-        api_url="http://localhost:2528", node_name="test-node"
+        api_url="https://test.merod.dev.p2p.aws.calimero.network",
+        node_name="test-dev-node",
     )
     assert connection is not None
     assert hasattr(connection, "api_url")
@@ -37,7 +38,8 @@ def test_connection_creation():
 def test_client_creation():
     """Test basic client creation."""
     connection = create_connection(
-        api_url="http://localhost:2528", node_name="test-node"
+        api_url="https://test.merod.dev.p2p.aws.calimero.network",
+        node_name="test-dev-node",
     )
     client = create_client(connection)
     assert client is not None
@@ -56,7 +58,8 @@ def test_auth_mode():
 def test_client_methods_exist():
     """Test that client has expected methods."""
     connection = create_connection(
-        api_url="http://localhost:2528", node_name="test-node"
+        api_url="https://test.merod.dev.p2p.aws.calimero.network",
+        node_name="test-dev-node",
     )
     client = create_client(connection)
 

@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "calimero-client-py"
-version = "0.2.7"
+version = "0.3.0"
 description = "Python client SDK for Calimero Network"
 authors = [{name = "Calimero Network", email = "support@calimero.network"}]
 readme = "README.md"
