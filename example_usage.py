@@ -36,11 +36,12 @@ For local development without authentication, node_name can be any string or Non
 # import calimero
 
 # For development/testing, we'll use the local module
-import calimero
 import sys
 import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "calimero"))
+
+import calimero
 
 
 def main():
