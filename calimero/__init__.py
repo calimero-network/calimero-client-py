@@ -5,7 +5,7 @@ A comprehensive Python client library for Calimero Network APIs,
 built with PyO3 for high performance and native integration.
 """
 
-__version__ = "0.2.7"
+__version__ = "0.3.0"
 __author__ = "Calimero Network"
 __email__ = "team@calimero.network"
 
@@ -18,6 +18,8 @@ from calimero_client_py import (
     JwtToken,
     ClientError,
     AuthMode,
+    get_token_cache_path,
+    get_token_cache_dir,
 )
 
 # Re-export main types
@@ -29,4 +31,6 @@ __all__ = [
     "JwtToken",
     "ClientError",
     "AuthMode",
+    "get_token_cache_path",
+    "get_token_cache_dir",
 ]

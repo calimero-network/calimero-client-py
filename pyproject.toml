@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "calimero-client-py"
-version = "0.2.7"
+version = "0.3.0"
 description = "Python client SDK for Calimero Network"
 authors = [{name = "Calimero Network", email = "support@calimero.network"}]
 readme = "README.md"
@@ -19,7 +19,7 @@ dev = [
     "pytest",
     "pytest-asyncio>=0.26.0",
     "merobox>=0.1.0",
-    "black",
+    "black==25.12.0",
     "pre-commit",
 ]
 

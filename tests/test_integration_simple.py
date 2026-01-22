@@ -14,7 +14,8 @@ class TestCalimeroClient:
     def setup_method(self):
         """Set up test fixtures."""
         self.connection = create_connection(
-            api_url="http://localhost:2528", node_name="test-node"
+            api_url="https://test.merod.dev.p2p.aws.calimero.network",
+            node_name="test-dev-node",
         )
         self.client = create_client(self.connection)
 
@@ -24,8 +25,8 @@ class TestCalimeroClient:
         assert hasattr(self.connection, "api_url")
         # The URL might have a trailing slash, so check both cases
         assert self.connection.api_url in [
-            "http://localhost:2528",
-            "http://localhost:2528/",
+            "https://test.merod.dev.p2p.aws.calimero.network",
+            "https://test.merod.dev.p2p.aws.calimero.network/",
         ]
 
     def test_client_properties(self):
@@ -34,7 +35,10 @@ class TestCalimeroClient:
         assert hasattr(self.client, "get_api_url")
         # get_api_url is a method, so we need to call it
         api_url = self.client.get_api_url()
-        assert api_url in ["http://localhost:2528", "http://localhost:2528/"]
+        assert api_url in [
+            "https://test.merod.dev.p2p.aws.calimero.network",
+            "https://test.merod.dev.p2p.aws.calimero.network/",
+        ]
 
     def test_client_methods_are_callable(self):
         """Test that client methods are callable."""
@@ -75,7 +79,8 @@ class TestCalimeroClient:
 def test_integration_with_server():
     """Integration test that requires a running Calimero server."""
     connection = create_connection(
-        api_url="http://localhost:2528", node_name="integration-test"
+        api_url="https://test.merod.dev.p2p.aws.calimero.network",
+        node_name="test-dev-node",
     )
     client = create_client(connection)
 

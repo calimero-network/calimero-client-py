@@ -19,7 +19,8 @@ def event_loop():
 async def test_connection():
     """Create a test connection for integration tests."""
     connection = create_connection(
-        base_url="http://localhost:2528", auth_mode=AuthMode.NONE
+        api_url="https://test.merod.dev.p2p.aws.calimero.network",
+        node_name="test-dev-node",
     )
     return connection
 

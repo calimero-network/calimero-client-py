@@ -27,8 +27,8 @@ from calimero_client_py import create_connection, create_client, AuthMode
 async def main():
     # Create a connection
     connection = create_connection(
-        base_url="http://localhost:2528",
-        auth_mode=AuthMode.NONE
+        api_url="https://test.merod.dev.p2p.aws.calimero.network",
+        node_name="test-dev-node"
     )
     
     # Create a client
@@ -81,10 +81,16 @@ calimero-client-py/
 ├── .github/
 │   └── workflows/              # CI/CD workflows
 ├── src/                        # Rust source code
-│   ├── lib.rs
-│   ├── mod.rs
-│   └── python.rs
-├── calimero_client_py/         # Python package
+│   ├── lib.rs                  # PyO3 module registration
+│   ├── error.rs                # PyClientError wrapper
+│   ├── auth.rs                 # PyAuthMode wrapper
+│   ├── token.rs                # PyJwtToken wrapper
+│   ├── cache.rs                # Token cache path utilities
+│   ├── storage.rs              # MeroboxFileStorage implementation
+│   ├── connection.rs           # PyConnectionInfo + create_connection()
+│   ├── client.rs               # PyClient + create_client()
+│   └── utils.rs                # JSON to Python conversion helpers
+├── calimero/                   # Python package
 │   ├── __init__.py
 │   └── cli.py
 ├── tests/                      # All tests
@@ -397,6 +403,118 @@ pip install --upgrade package-name
 - [Twine Documentation](https://twine.readthedocs.io/)
 - [Python Packaging Authority](https://www.pypa.io/)
 
+## Token Persistence and Authentication
+
+The client library includes automatic JWT token persistence for authenticated sessions. This feature enables:
+
+- **Automatic token loading**: Tokens are loaded from disk when creating a connection
+- **Automatic token refresh**: On 401 errors, the client automatically calls `/auth/refresh` and persists new tokens
+- **Secure storage**: Tokens are stored with restrictive file permissions (0600 on Unix)
+
+### Token Cache Location
+
+Tokens are stored in `~/.merobox/auth_cache/` with filenames derived from the `node_name`:
+
+```
+~/.merobox/auth_cache/{sanitized_node_name}-{hash}.json
+```
+
+### The `node_name` Parameter
+
+The `node_name` parameter is **critical for authenticated connections**:
+
+```python
+from calimero_client_py import create_connection, create_client
+
+# For authenticated connections, node_name MUST be:
+# 1. Provided (not None)
+# 2. Stable across sessions (same value each time)
+# 3. Unique per remote node you connect to
+
+connection = create_connection(
+    api_url="https://my-node.example.com:2428",
+    node_name="my-production-node"  # Use a stable, descriptive name
+)
+```
+
+**Important considerations:**
+
+| Requirement | Why |
+|------------|-----|
+| **Stable** | The same `node_name` must be used across sessions to find cached tokens |
+| **Unique** | Different nodes should have different names to avoid token collisions |
+| **Descriptive** | Use meaningful names like `"prod-node-1"` or `"dev-local"` for clarity |
+
+### Token Cache Utilities
+
+Two helper functions are exposed for managing the token cache:
+
+```python
+from calimero_client_py import get_token_cache_path, get_token_cache_dir
+
+# Get the full path to a node's token file
+path = get_token_cache_path("my-node")
+# Returns: ~/.merobox/auth_cache/my-node-<hash>.json
+
+# Get the base cache directory
+cache_dir = get_token_cache_dir()
+# Returns: ~/.merobox/auth_cache/
+```
+
+### Authentication Flow
+
+1. **Initial authentication** (handled by your application, e.g., merobox):
+   - Call the auth endpoint to obtain JWT tokens
+   - Write tokens to the path returned by `get_token_cache_path(node_name)`
+
+2. **Subsequent connections**:
+   - Create connection with the same `node_name`
+   - Client automatically loads tokens from cache
+   - Client attaches `Authorization: Bearer ...` header to requests
+
+3. **Token refresh** (automatic):
+   - On 401 response, client calls `/auth/refresh`
+   - New tokens are automatically persisted to the same cache file
+
+### Example: Complete Authentication Flow
+
+```python
+import json
+from calimero_client_py import (
+    create_connection,
+    create_client,
+    get_token_cache_path,
+)
+
+NODE_NAME = "my-remote-node"  # Keep this stable!
+
+# Step 1: Write initial tokens (done once after authentication)
+def save_initial_tokens(access_token, refresh_token, expires_at):
+    token_data = {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "expires_at": expires_at
+    }
+    cache_path = get_token_cache_path(NODE_NAME)
+    
+    # Ensure directory exists
+    import os
+    os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+    
+    with open(cache_path, 'w') as f:
+        json.dump(token_data, f)
+
+# Step 2: Create authenticated client (tokens loaded automatically)
+connection = create_connection(
+    api_url="https://my-node.example.com:2428",
+    node_name=NODE_NAME
+)
+client = create_client(connection)
+
+# Step 3: Use the client - Authorization header is set automatically
+contexts = client.list_contexts()
+```
+
 ## API Reference
 
 ### Core Classes
@@ -501,8 +619,8 @@ from calimero_client_py import create_connection, create_client, AuthMode
 async def main():
     # Create connection
     connection = create_connection(
-        base_url="http://localhost:2528",
-        auth_mode=AuthMode.NONE
+        api_url="https://test.merod.dev.p2p.aws.calimero.network",
+        node_name="test-dev-node"
     )
     
     # Create client
