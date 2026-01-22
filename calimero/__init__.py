@@ -18,6 +18,8 @@ from calimero_client_py import (
     JwtToken,
     ClientError,
     AuthMode,
+    get_token_cache_path,
+    get_token_cache_dir,
 )
 
 # Re-export main types
@@ -29,4 +31,6 @@ __all__ = [
     "JwtToken",
     "ClientError",
     "AuthMode",
+    "get_token_cache_path",
+    "get_token_cache_dir",
 ]
