@@ -33,7 +33,7 @@ calimero-server-primitives = { git = "https://github.com/calimero-network/core",
 calimero-context-config = { git = "https://github.com/calimero-network/core", branch = "master" }
 
 # Python bindings
-pyo3 = { version = "0.22", features = ["auto-initialize"] }
+pyo3 = { version = "0.22", features = ["extension-module"] }
 
 # Additional dependencies that might be needed
 serde = { version = "1.0", features = ["derive"] }
@@ -53,7 +53,7 @@ tokio-test = "0.4"
 
 [features]
 default = []
-python = ["pyo3/auto-initialize"]
+python = []
 
 [profile.release]
 strip = "symbols"
