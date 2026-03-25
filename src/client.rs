@@ -2115,16 +2115,25 @@ impl PyClient {
         })
     }
 
-    /// Join a group using an invitation JSON string
+    /// Join a group using an invitation JSON string.
+    ///
+    /// The JSON should be the raw `SignedGroupOpenInvitation` object
+    /// returned by `create_group_invitation`. This matches how meroctl
+    /// handles it: deserialize into `SignedGroupOpenInvitation` first,
+    /// then wrap in `JoinGroupApiRequest`.
     pub fn join_group(&self, invitation_json: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
-        let request: admin::JoinGroupApiRequest =
+        let invitation: context_types::SignedGroupOpenInvitation =
             serde_json::from_str(invitation_json).map_err(|e| {
                 PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
                     "Invalid invitation JSON: {}",
                     e
                 ))
             })?;
+        let request = admin::JoinGroupApiRequest {
+            invitation,
+            group_alias: None,
+        };
         Python::with_gil(|py| {
             let result = self
                 .runtime
