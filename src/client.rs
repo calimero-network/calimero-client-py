@@ -2123,13 +2123,28 @@ impl PyClient {
     /// then wrap in `JoinGroupApiRequest`.
     pub fn join_group(&self, invitation_json: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
-        let invitation: context_types::SignedGroupOpenInvitation =
+        let invitation_value: serde_json::Value =
             serde_json::from_str(invitation_json).map_err(|e| {
                 PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
                     "Invalid invitation JSON: {}",
                     e
                 ))
             })?;
+
+        let invitation_data = if invitation_value.get("data").is_some() {
+            invitation_value.get("data").unwrap()
+        } else {
+            &invitation_value
+        };
+
+        let invitation: context_types::SignedGroupOpenInvitation =
+            serde_json::from_value(invitation_data.clone()).map_err(|e| {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "Failed to parse SignedGroupOpenInvitation: {}. Data: {:?}",
+                    e, invitation_data
+                ))
+            })?;
+
         let request = admin::JoinGroupApiRequest {
             invitation,
             group_alias: None,
