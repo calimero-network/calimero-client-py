@@ -182,6 +182,7 @@ impl PyClient {
     }
 
     /// Install application from URL
+    #[pyo3(signature = (url, hash=None, metadata=None))]
     pub fn install_application(
         &self,
         url: &str,
@@ -234,6 +235,7 @@ impl PyClient {
     }
 
     /// Install development application from local path
+    #[pyo3(signature = (path, metadata=None))]
     pub fn install_dev_application(
         &self,
         path: &str,
@@ -537,6 +539,7 @@ impl PyClient {
     }
 
     /// Create context
+    #[pyo3(signature = (application_id, protocol, params=None, group_id=None))]
     pub fn create_context(
         &self,
         application_id: &str,
@@ -599,7 +602,7 @@ impl PyClient {
         Python::with_gil(|py| {
             let result = self
                 .runtime
-                .block_on(async move { inner.delete_context(&context_id).await });
+                .block_on(async move { inner.delete_context(&context_id, None).await });
 
             match result {
                 Ok(data) => {
@@ -1255,6 +1258,7 @@ impl PyClient {
     }
 
     /// List proposals in a context
+    #[pyo3(signature = (context_id, args=None))]
     pub fn list_proposals(&self, context_id: &str, args: Option<&str>) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let context_id = context_id.parse::<ContextId>().map_err(|e| {
@@ -1918,6 +1922,7 @@ impl PyClient {
     }
 
     /// Create alias generic (Python wrapper for backward compatibility)
+    #[pyo3(signature = (alias, value, scope=None))]
     pub fn create_alias_generic(
         &self,
         alias: &str,

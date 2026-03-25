@@ -15,6 +15,7 @@ pub struct PyJwtToken {
 #[pymethods]
 impl PyJwtToken {
     #[new]
+    #[pyo3(signature = (access_token, refresh_token=None, expires_at=None))]
     pub fn new(access_token: &str, refresh_token: Option<&str>, expires_at: Option<i64>) -> Self {
         Self {
             access_token: access_token.to_string(),
