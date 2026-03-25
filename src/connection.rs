@@ -22,6 +22,7 @@ pub struct PyConnectionInfo {
 #[pymethods]
 impl PyConnectionInfo {
     #[new]
+    #[pyo3(signature = (api_url, node_name=None))]
     pub fn new(api_url: &str, node_name: Option<&str>) -> PyResult<Self> {
         let runtime = Arc::new(
             Runtime::new()

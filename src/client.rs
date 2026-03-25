@@ -9,7 +9,7 @@ use calimero_context_config::types as context_types;
 use calimero_primitives::alias::Alias;
 use calimero_primitives::application::ApplicationId;
 use calimero_primitives::blobs;
-use calimero_primitives::context::{ContextId, ContextInvitationPayload};
+use calimero_primitives::context::{ContextId, ContextInvitationPayload, UpgradePolicy};
 use calimero_primitives::hash::Hash;
 use calimero_primitives::identity;
 use calimero_server_primitives::admin;
@@ -182,6 +182,7 @@ impl PyClient {
     }
 
     /// Install application from URL
+    #[pyo3(signature = (url, hash=None, metadata=None))]
     pub fn install_application(
         &self,
         url: &str,
@@ -234,6 +235,7 @@ impl PyClient {
     }
 
     /// Install development application from local path
+    #[pyo3(signature = (path, metadata=None))]
     pub fn install_dev_application(
         &self,
         path: &str,
@@ -537,11 +539,13 @@ impl PyClient {
     }
 
     /// Create context
+    #[pyo3(signature = (application_id, protocol, params=None, group_id=None))]
     pub fn create_context(
         &self,
         application_id: &str,
         protocol: &str,
         params: Option<&str>,
+        group_id: Option<&str>,
     ) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let application_id = application_id.parse::<ApplicationId>().map_err(|e| {
@@ -552,6 +556,7 @@ impl PyClient {
         })?;
 
         let params = params.map(|p| p.as_bytes().to_vec()).unwrap_or_default();
+        let group_id = group_id.map(|g| g.to_string());
 
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
@@ -560,6 +565,8 @@ impl PyClient {
                     application_id,
                     None, // context_seed
                     params,
+                    group_id,
+                    None, // identity_secret
                 );
                 inner.create_context(request).await
             });
@@ -595,7 +602,7 @@ impl PyClient {
         Python::with_gil(|py| {
             let result = self
                 .runtime
-                .block_on(async move { inner.delete_context(&context_id).await });
+                .block_on(async move { inner.delete_context(&context_id, None).await });
 
             match result {
                 Ok(data) => {
@@ -1251,6 +1258,7 @@ impl PyClient {
     }
 
     /// List proposals in a context
+    #[pyo3(signature = (context_id, args=None))]
     pub fn list_proposals(&self, context_id: &str, args: Option<&str>) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let context_id = context_id.parse::<ContextId>().map_err(|e| {
@@ -1914,6 +1922,7 @@ impl PyClient {
     }
 
     /// Create alias generic (Python wrapper for backward compatibility)
+    #[pyo3(signature = (alias, value, scope=None))]
     pub fn create_alias_generic(
         &self,
         alias: &str,
@@ -1941,6 +1950,270 @@ impl PyClient {
                 inner.create_alias(alias_obj, value_obj, None).await
             });
 
+            match result {
+                Ok(data) => {
+                    let json_data = serde_json::to_value(data).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Failed to serialize response: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(json_to_python(py, &json_data))
+                }
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
+        })
+    }
+    // ---- Group Management ----
+
+    /// List all groups
+    pub fn list_groups(&self) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        Python::with_gil(|py| {
+            let result = self
+                .runtime
+                .block_on(async move { inner.list_groups().await });
+            match result {
+                Ok(data) => {
+                    let json_data = serde_json::to_value(data).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Failed to serialize response: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(json_to_python(py, &json_data))
+                }
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
+        })
+    }
+
+    /// Create a group
+    pub fn create_group(&self, application_id: &str) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let application_id = application_id.parse::<ApplicationId>().map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Invalid application ID '{}': {}",
+                application_id, e
+            ))
+        })?;
+        Python::with_gil(|py| {
+            let result = self.runtime.block_on(async move {
+                let request = admin::CreateGroupApiRequest {
+                    group_id: None,
+                    app_key: None,
+                    application_id,
+                    upgrade_policy: UpgradePolicy::Automatic,
+                    alias: None,
+                };
+                inner.create_group(request).await
+            });
+            match result {
+                Ok(data) => {
+                    let json_data = serde_json::to_value(data).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Failed to serialize response: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(json_to_python(py, &json_data))
+                }
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
+        })
+    }
+
+    /// Get group information
+    pub fn get_group_info(&self, group_id: &str) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let group_id = group_id.to_string();
+        Python::with_gil(|py| {
+            let result = self
+                .runtime
+                .block_on(async move { inner.get_group_info(&group_id).await });
+            match result {
+                Ok(data) => {
+                    let json_data = serde_json::to_value(data).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Failed to serialize response: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(json_to_python(py, &json_data))
+                }
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
+        })
+    }
+
+    /// Delete a group
+    pub fn delete_group(&self, group_id: &str) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let group_id = group_id.to_string();
+        Python::with_gil(|py| {
+            let result = self.runtime.block_on(async move {
+                let request = admin::DeleteGroupApiRequest { requester: None };
+                inner.delete_group(&group_id, request).await
+            });
+            match result {
+                Ok(data) => {
+                    let json_data = serde_json::to_value(data).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Failed to serialize response: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(json_to_python(py, &json_data))
+                }
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
+        })
+    }
+
+    /// Create a group invitation
+    pub fn create_group_invitation(&self, group_id: &str) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let group_id = group_id.to_string();
+        Python::with_gil(|py| {
+            let result = self.runtime.block_on(async move {
+                let request = admin::CreateGroupInvitationApiRequest {
+                    requester: None,
+                    expiration_block_height: None,
+                };
+                inner.create_group_invitation(&group_id, request).await
+            });
+            match result {
+                Ok(data) => {
+                    let json_data = serde_json::to_value(data).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Failed to serialize response: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(json_to_python(py, &json_data))
+                }
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
+        })
+    }
+
+    /// Join a group using an invitation JSON string
+    pub fn join_group(&self, invitation_json: &str) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let request: admin::JoinGroupApiRequest =
+            serde_json::from_str(invitation_json).map_err(|e| {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "Invalid invitation JSON: {}",
+                    e
+                ))
+            })?;
+        Python::with_gil(|py| {
+            let result = self
+                .runtime
+                .block_on(async move { inner.join_group(request).await });
+            match result {
+                Ok(data) => {
+                    let json_data = serde_json::to_value(data).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Failed to serialize response: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(json_to_python(py, &json_data))
+                }
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
+        })
+    }
+
+    /// Join a context via group membership
+    pub fn join_group_context(&self, group_id: &str, context_id: &str) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let group_id = group_id.to_string();
+        let context_id = context_id.parse::<ContextId>().map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Invalid context ID '{}': {}",
+                context_id, e
+            ))
+        })?;
+        Python::with_gil(|py| {
+            let result = self.runtime.block_on(async move {
+                let request = admin::JoinGroupContextApiRequest { context_id };
+                inner.join_group_context(&group_id, request).await
+            });
+            match result {
+                Ok(data) => {
+                    let json_data = serde_json::to_value(data).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Failed to serialize response: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(json_to_python(py, &json_data))
+                }
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
+        })
+    }
+
+    /// List members of a group
+    pub fn list_group_members(&self, group_id: &str) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let group_id = group_id.to_string();
+        Python::with_gil(|py| {
+            let result = self
+                .runtime
+                .block_on(async move { inner.list_group_members(&group_id).await });
+            match result {
+                Ok(data) => {
+                    let json_data = serde_json::to_value(data).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Failed to serialize response: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(json_to_python(py, &json_data))
+                }
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
+        })
+    }
+
+    /// List contexts in a group
+    pub fn list_group_contexts(&self, group_id: &str) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let group_id = group_id.to_string();
+        Python::with_gil(|py| {
+            let result = self
+                .runtime
+                .block_on(async move { inner.list_group_contexts(&group_id).await });
             match result {
                 Ok(data) => {
                     let json_data = serde_json::to_value(data).map_err(|e| {
