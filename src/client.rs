@@ -1967,10 +1967,10 @@ impl PyClient {
     /// List all groups
     pub fn list_groups(&self) -> PyResult<PyObject> {
         let inner = self.inner.clone();
-
         Python::with_gil(|py| {
-            let result = self.runtime.block_on(async move { inner.list_groups().await });
-
+            let result = self
+                .runtime
+                .block_on(async move { inner.list_groups().await });
             match result {
                 Ok(data) => {
                     let json_data = serde_json::to_value(data).map_err(|e| {
@@ -1998,7 +1998,6 @@ impl PyClient {
                 application_id, e
             ))
         })?;
-
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
                 let request = admin::CreateGroupApiRequest {
@@ -2010,7 +2009,6 @@ impl PyClient {
                 };
                 inner.create_group(request).await
             });
-
             match result {
                 Ok(data) => {
                     let json_data = serde_json::to_value(data).map_err(|e| {
@@ -2033,12 +2031,10 @@ impl PyClient {
     pub fn get_group_info(&self, group_id: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let group_id = group_id.to_string();
-
         Python::with_gil(|py| {
             let result = self
                 .runtime
                 .block_on(async move { inner.get_group_info(&group_id).await });
-
             match result {
                 Ok(data) => {
                     let json_data = serde_json::to_value(data).map_err(|e| {
@@ -2061,13 +2057,11 @@ impl PyClient {
     pub fn delete_group(&self, group_id: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let group_id = group_id.to_string();
-
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
                 let request = admin::DeleteGroupApiRequest { requester: None };
                 inner.delete_group(&group_id, request).await
             });
-
             match result {
                 Ok(data) => {
                     let json_data = serde_json::to_value(data).map_err(|e| {
@@ -2090,7 +2084,6 @@ impl PyClient {
     pub fn create_group_invitation(&self, group_id: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let group_id = group_id.to_string();
-
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
                 let request = admin::CreateGroupInvitationApiRequest {
@@ -2099,7 +2092,6 @@ impl PyClient {
                 };
                 inner.create_group_invitation(&group_id, request).await
             });
-
             match result {
                 Ok(data) => {
                     let json_data = serde_json::to_value(data).map_err(|e| {
@@ -2128,12 +2120,10 @@ impl PyClient {
                     e
                 ))
             })?;
-
         Python::with_gil(|py| {
             let result = self
                 .runtime
                 .block_on(async move { inner.join_group(request).await });
-
             match result {
                 Ok(data) => {
                     let json_data = serde_json::to_value(data).map_err(|e| {
@@ -2162,13 +2152,11 @@ impl PyClient {
                 context_id, e
             ))
         })?;
-
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
                 let request = admin::JoinGroupContextApiRequest { context_id };
                 inner.join_group_context(&group_id, request).await
             });
-
             match result {
                 Ok(data) => {
                     let json_data = serde_json::to_value(data).map_err(|e| {
@@ -2191,12 +2179,10 @@ impl PyClient {
     pub fn list_group_members(&self, group_id: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let group_id = group_id.to_string();
-
         Python::with_gil(|py| {
             let result = self
                 .runtime
                 .block_on(async move { inner.list_group_members(&group_id).await });
-
             match result {
                 Ok(data) => {
                     let json_data = serde_json::to_value(data).map_err(|e| {
@@ -2219,12 +2205,10 @@ impl PyClient {
     pub fn list_group_contexts(&self, group_id: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let group_id = group_id.to_string();
-
         Python::with_gil(|py| {
             let result = self
                 .runtime
                 .block_on(async move { inner.list_group_contexts(&group_id).await });
-
             match result {
                 Ok(data) => {
                     let json_data = serde_json::to_value(data).map_err(|e| {
