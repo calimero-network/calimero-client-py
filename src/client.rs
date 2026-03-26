@@ -9,7 +9,7 @@ use calimero_context_config::types as context_types;
 use calimero_primitives::alias::Alias;
 use calimero_primitives::application::ApplicationId;
 use calimero_primitives::blobs;
-use calimero_primitives::context::{ContextId, ContextInvitationPayload, UpgradePolicy};
+use calimero_primitives::context::{ContextId, UpgradePolicy};
 use calimero_primitives::hash::Hash;
 use calimero_primitives::identity;
 use calimero_server_primitives::admin;
@@ -539,11 +539,10 @@ impl PyClient {
     }
 
     /// Create context
-    #[pyo3(signature = (application_id, protocol, params=None, group_id=None))]
+    #[pyo3(signature = (application_id, params=None, group_id=None))]
     pub fn create_context(
         &self,
         application_id: &str,
-        protocol: &str,
         params: Option<&str>,
         group_id: Option<&str>,
     ) -> PyResult<PyObject> {
@@ -561,7 +560,6 @@ impl PyClient {
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
                 let request = admin::CreateContextRequest::new(
-                    protocol.to_string(),
                     application_id,
                     None, // context_seed
                     params,
@@ -754,13 +752,19 @@ impl PyClient {
         })
     }
 
-    /// Invite to context
+    /// Invite to context (creates a signed open invitation).
+    ///
+    /// `invitee_id` is accepted for backward compat but unused. Pass any
+    /// string or the inviter_id.  `valid_for_blocks` is treated as seconds.
+    #[pyo3(signature = (context_id, inviter_id, invitee_id=None, valid_for_blocks=3600))]
     pub fn invite_to_context(
         &self,
         context_id: &str,
         inviter_id: &str,
-        invitee_id: &str,
+        invitee_id: Option<&str>,
+        valid_for_blocks: u64,
     ) -> PyResult<PyObject> {
+        let _ = invitee_id;
         let inner = self.inner.clone();
         let context_id = context_id.parse::<ContextId>().map_err(|e| {
             PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
@@ -774,18 +778,17 @@ impl PyClient {
                 inviter_id, e
             ))
         })?;
-        let invitee_id = invitee_id.parse::<identity::PublicKey>().map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid invitee ID '{}': {}",
-                invitee_id, e
-            ))
-        })?;
 
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
-                let request =
-                    admin::InviteToContextRequest::new(context_id, inviter_id, invitee_id);
-                inner.invite_to_context(request).await
+                let request = admin::InviteToContextOpenInvitationRequest::new(
+                    context_id,
+                    inviter_id,
+                    valid_for_blocks,
+                );
+                inner
+                    .invite_to_context(request)
+                    .await
             });
 
             match result {
@@ -806,55 +809,22 @@ impl PyClient {
         })
     }
 
-    /// Join context
+    /// Join context (deprecated — use join_context_by_open_invitation).
+    ///
+    /// Kept for backward compatibility. Returns an error directing callers
+    /// to use `join_context_by_open_invitation` instead.
+    #[pyo3(signature = (context_id=None, invitee_id=None, invitation_payload=None))]
     pub fn join_context(
         &self,
-        context_id: &str,
-        invitee_id: &str,
-        invitation_payload: &str,
+        context_id: Option<&str>,
+        invitee_id: Option<&str>,
+        invitation_payload: Option<&str>,
     ) -> PyResult<PyObject> {
-        let inner = self.inner.clone();
-        let _context_id = context_id.parse::<ContextId>().map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid context ID '{}': {}",
-                context_id, e
-            ))
-        })?;
-        let _invitee_id = invitee_id.parse::<identity::PublicKey>().map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid invitee ID '{}': {}",
-                invitee_id, e
-            ))
-        })?;
+        let _ = (context_id, invitee_id, invitation_payload);
 
-        Python::with_gil(|py| {
-            let result = self.runtime.block_on(async move {
-                // For now, let's just try to join using the context_id and invitee_id
-                // The invitation payload contains the necessary protocol/network/contract info
-                // but we'll use the existing context for now
-                let request = admin::JoinContextRequest::new(
-                    ContextInvitationPayload::try_from(invitation_payload)
-                        .map_err(|e| eyre::eyre!("Failed to parse invitation payload: {}", e))?,
-                );
-                inner.join_context(request).await
-            });
-
-            match result {
-                Ok(data) => {
-                    let json_data = serde_json::to_value(data).map_err(|e| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                            "Failed to serialize response: {}",
-                            e
-                        ))
-                    })?;
-                    Ok(json_to_python(py, &json_data))
-                }
-                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Client error: {}",
-                    e
-                ))),
-            }
-        })
+        Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+            "join_context is deprecated; use join_context_by_open_invitation",
+        ))
     }
 
     /// Invite to context by open invitation
@@ -886,7 +856,7 @@ impl PyClient {
                     valid_for_blocks,
                 );
 
-                inner.invite_to_context_by_open_invitation(request).await
+                inner.invite_to_context(request).await
             });
 
             match result {
@@ -946,7 +916,7 @@ impl PyClient {
                     new_member_public_key,
                 );
 
-                inner.join_context_by_open_invitation(request).await
+                inner.join_context(request).await
             });
 
             match result {
@@ -1153,208 +1123,6 @@ impl PyClient {
                     executor_public_key,
                 );
                 inner.update_context_application(&context_id, request).await
-            });
-
-            match result {
-                Ok(data) => {
-                    let json_data = serde_json::to_value(data).map_err(|e| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                            "Failed to serialize response: {}",
-                            e
-                        ))
-                    })?;
-                    Ok(json_to_python(py, &json_data))
-                }
-                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Client error: {}",
-                    e
-                ))),
-            }
-        })
-    }
-
-    /// Get proposal information
-    pub fn get_proposal(&self, context_id: &str, proposal_id: &str) -> PyResult<PyObject> {
-        let inner = self.inner.clone();
-        let context_id = context_id.parse::<ContextId>().map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid context ID '{}': {}",
-                context_id, e
-            ))
-        })?;
-        let proposal_id = proposal_id.parse::<Hash>().map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid proposal ID '{}': {}",
-                proposal_id, e
-            ))
-        })?;
-
-        Python::with_gil(|py| {
-            let result = self
-                .runtime
-                .block_on(async move { inner.get_proposal(&context_id, &proposal_id).await });
-
-            match result {
-                Ok(data) => {
-                    let json_data = serde_json::to_value(data).map_err(|e| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                            "Failed to serialize response: {}",
-                            e
-                        ))
-                    })?;
-                    Ok(json_to_python(py, &json_data))
-                }
-                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Client error: {}",
-                    e
-                ))),
-            }
-        })
-    }
-
-    /// Get proposal approvers
-    pub fn get_proposal_approvers(
-        &self,
-        context_id: &str,
-        proposal_id: &str,
-    ) -> PyResult<PyObject> {
-        let inner = self.inner.clone();
-        let context_id = context_id.parse::<ContextId>().map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid context ID '{}': {}",
-                context_id, e
-            ))
-        })?;
-        let proposal_id = proposal_id.parse::<Hash>().map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid proposal ID '{}': {}",
-                proposal_id, e
-            ))
-        })?;
-
-        Python::with_gil(|py| {
-            let result = self.runtime.block_on(async move {
-                inner
-                    .get_proposal_approvers(&context_id, &proposal_id)
-                    .await
-            });
-
-            match result {
-                Ok(data) => {
-                    let json_data = serde_json::to_value(data).map_err(|e| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                            "Failed to serialize response: {}",
-                            e
-                        ))
-                    })?;
-                    Ok(json_to_python(py, &json_data))
-                }
-                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Client error: {}",
-                    e
-                ))),
-            }
-        })
-    }
-
-    /// List proposals in a context
-    #[pyo3(signature = (context_id, args=None))]
-    pub fn list_proposals(&self, context_id: &str, args: Option<&str>) -> PyResult<PyObject> {
-        let inner = self.inner.clone();
-        let context_id = context_id.parse::<ContextId>().map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid context ID '{}': {}",
-                context_id, e
-            ))
-        })?;
-
-        Python::with_gil(|py| {
-            let result = self.runtime.block_on(async move {
-                let args_value = if let Some(args_str) = args {
-                    serde_json::from_str(args_str)
-                        .map_err(|e| eyre::eyre!("Invalid JSON args: {}", e))?
-                } else {
-                    serde_json::Value::Null
-                };
-
-                inner.list_proposals(&context_id, args_value).await
-            });
-
-            match result {
-                Ok(data) => {
-                    let json_data = serde_json::to_value(data).map_err(|e| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                            "Failed to serialize response: {}",
-                            e
-                        ))
-                    })?;
-                    Ok(json_to_python(py, &json_data))
-                }
-                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Client error: {}",
-                    e
-                ))),
-            }
-        })
-    }
-
-    pub fn create_and_approve_proposal(
-        &self,
-        context_id: &str,
-        request_json: &str,
-    ) -> PyResult<PyObject> {
-        let inner = self.inner.clone();
-        let context_id = context_id.parse::<ContextId>().map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid context ID '{}': {}",
-                context_id, e
-            ))
-        })?;
-
-        Python::with_gil(|py| {
-            let result = self.runtime.block_on(async move {
-                let request: admin::CreateAndApproveProposalRequest =
-                    serde_json::from_str(request_json)
-                        .map_err(|e| eyre::eyre!("Invalid request JSON: {}", e))?;
-
-                inner
-                    .create_and_approve_proposal(&context_id, request)
-                    .await
-            });
-
-            match result {
-                Ok(data) => {
-                    let json_data = serde_json::to_value(data).map_err(|e| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                            "Failed to serialize response: {}",
-                            e
-                        ))
-                    })?;
-                    Ok(json_to_python(py, &json_data))
-                }
-                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Client error: {}",
-                    e
-                ))),
-            }
-        })
-    }
-
-    pub fn approve_proposal(&self, context_id: &str, request_json: &str) -> PyResult<PyObject> {
-        let inner = self.inner.clone();
-        let context_id = context_id.parse::<ContextId>().map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid context ID '{}': {}",
-                context_id, e
-            ))
-        })?;
-
-        Python::with_gil(|py| {
-            let result = self.runtime.block_on(async move {
-                let request: admin::ApproveProposalRequest = serde_json::from_str(request_json)
-                    .map_err(|e| eyre::eyre!("Invalid request JSON: {}", e))?;
-
-                inner.approve_proposal(&context_id, request).await
             });
 
             match result {
@@ -2093,7 +1861,7 @@ impl PyClient {
             let result = self.runtime.block_on(async move {
                 let request = admin::CreateGroupInvitationApiRequest {
                     requester: None,
-                    expiration_block_height: None,
+                    expiration_timestamp: None,
                 };
                 inner.create_group_invitation(&group_id, request).await
             });
