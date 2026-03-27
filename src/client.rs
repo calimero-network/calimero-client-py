@@ -751,8 +751,7 @@ impl PyClient {
         })
     }
 
-    /// Invite to context. Uses raw JSON pass-through for the response
-    /// so new SignedOpenInvitation fields are preserved without recompilation.
+    /// Invite to context using the typed Client API.
     #[pyo3(signature = (context_id, inviter_id, valid_for_seconds=3600))]
     pub fn invite_to_context(
         &self,
@@ -760,38 +759,37 @@ impl PyClient {
         inviter_id: &str,
         valid_for_seconds: u64,
     ) -> PyResult<PyObject> {
-        // Validate inputs early (clear client-side errors vs confusing server errors).
-        let _ctx = context_id.parse::<ContextId>().map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid context ID '{}': {}", context_id, e
-            ))
-        })?;
-        let _inv = inviter_id.parse::<identity::PublicKey>().map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid inviter ID '{}': {}", inviter_id, e
-            ))
-        })?;
-
         let inner = self.inner.clone();
-        let context_id = context_id.to_string();
-        let inviter_id = inviter_id.to_string();
+        let context_id = context_id.parse::<ContextId>().map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Invalid context ID '{}': {}",
+                context_id, e
+            ))
+        })?;
+        let inviter_id = inviter_id.parse::<identity::PublicKey>().map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Invalid inviter ID '{}': {}",
+                inviter_id, e
+            ))
+        })?;
 
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
-                let request_body = serde_json::json!({
-                    "contextId": context_id,
-                    "inviterId": inviter_id,
-                    "validForSeconds": valid_for_seconds,
-                });
-
-                inner.connection.post::<_, serde_json::Value>(
-                    "admin-api/contexts/invite",
-                    request_body,
-                ).await
+                let request =
+                    admin::InviteToContextRequest::new(context_id, inviter_id, valid_for_seconds);
+                inner.invite_to_context(request).await
             });
 
             match result {
-                Ok(json_data) => Ok(json_to_python(py, &json_data)),
+                Ok(data) => {
+                    let json_data = serde_json::to_value(data).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Failed to serialize response: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(json_to_python(py, &json_data))
+                }
                 Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
                     "Client error: {}",
                     e
@@ -800,14 +798,14 @@ impl PyClient {
         })
     }
 
-    /// Join context. Uses raw JSON pass-through for the request so new
-    /// SignedOpenInvitation fields are preserved without recompilation.
+    /// Join context using the typed Client API.
     pub fn join_context(
         &self,
         invitation_json: &str,
         new_member_public_key: &str,
     ) -> PyResult<PyObject> {
-        let _pk = new_member_public_key
+        let inner = self.inner.clone();
+        let new_member_public_key = new_member_public_key
             .parse::<identity::PublicKey>()
             .map_err(|e| {
                 PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
@@ -815,9 +813,6 @@ impl PyClient {
                     new_member_public_key, e
                 ))
             })?;
-
-        let inner = self.inner.clone();
-        let pk_string = new_member_public_key.to_string();
 
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
@@ -830,19 +825,26 @@ impl PyClient {
                     invitation_value
                 };
 
-                let request_body = serde_json::json!({
-                    "invitation": invitation_data,
-                    "newMemberPublicKey": pk_string,
-                });
+                let invitation: calimero_context_config::types::SignedOpenInvitation =
+                    serde_json::from_value(invitation_data.clone()).map_err(|e| {
+                        eyre::eyre!("Failed to parse SignedOpenInvitation: {}", e)
+                    })?;
 
-                inner.connection.post::<_, serde_json::Value>(
-                    "admin-api/contexts/join",
-                    request_body,
-                ).await
+                let request =
+                    admin::JoinContextRequest::new(invitation, new_member_public_key);
+                inner.join_context(request).await
             });
 
             match result {
-                Ok(json_data) => Ok(json_to_python(py, &json_data)),
+                Ok(data) => {
+                    let json_data = serde_json::to_value(data).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Failed to serialize response: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(json_to_python(py, &json_data))
+                }
                 Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
                     "Client error: {}",
                     e
