@@ -5,7 +5,6 @@ use std::sync::Arc;
 
 use calimero_client::client::Client;
 use calimero_client::CliAuthenticator;
-use calimero_context_config::types as context_types;
 use calimero_primitives::alias::Alias;
 use calimero_primitives::application::ApplicationId;
 use calimero_primitives::blobs;
@@ -752,55 +751,34 @@ impl PyClient {
         })
     }
 
-    /// Invite to context (creates a signed open invitation).
-    ///
-    /// `invitee_id` is accepted for backward compat but unused. Pass any
-    /// string or the inviter_id.  `valid_for_blocks` is treated as seconds.
-    #[pyo3(signature = (context_id, inviter_id, invitee_id=None, valid_for_blocks=3600))]
+    /// Invite to context via raw JSON pass-through.
+    #[pyo3(signature = (context_id, inviter_id, valid_for_seconds=3600))]
     pub fn invite_to_context(
         &self,
         context_id: &str,
         inviter_id: &str,
-        invitee_id: Option<&str>,
-        valid_for_blocks: u64,
+        valid_for_seconds: u64,
     ) -> PyResult<PyObject> {
-        let _ = invitee_id;
         let inner = self.inner.clone();
-        let context_id = context_id.parse::<ContextId>().map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid context ID '{}': {}",
-                context_id, e
-            ))
-        })?;
-        let inviter_id = inviter_id.parse::<identity::PublicKey>().map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid inviter ID '{}': {}",
-                inviter_id, e
-            ))
-        })?;
+        let context_id = context_id.to_string();
+        let inviter_id = inviter_id.to_string();
 
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
-                let request = admin::InviteToContextOpenInvitationRequest::new(
-                    context_id,
-                    inviter_id,
-                    valid_for_blocks,
-                );
-                inner
-                    .invite_to_context(request)
-                    .await
+                let request_body = serde_json::json!({
+                    "contextId": context_id,
+                    "inviterId": inviter_id,
+                    "validForSeconds": valid_for_seconds,
+                });
+
+                inner.connection.post::<_, serde_json::Value>(
+                    "admin-api/contexts/invite",
+                    request_body,
+                ).await
             });
 
             match result {
-                Ok(data) => {
-                    let json_data = serde_json::to_value(data).map_err(|e| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                            "Failed to serialize response: {}",
-                            e
-                        ))
-                    })?;
-                    Ok(json_to_python(py, &json_data))
-                }
+                Ok(json_data) => Ok(json_to_python(py, &json_data)),
                 Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
                     "Client error: {}",
                     e
@@ -809,126 +787,39 @@ impl PyClient {
         })
     }
 
-    /// Join context (deprecated — use join_context_by_open_invitation).
-    ///
-    /// Kept for backward compatibility. Returns an error directing callers
-    /// to use `join_context_by_open_invitation` instead.
-    #[pyo3(signature = (context_id=None, invitee_id=None, invitation_payload=None))]
+    /// Join context via raw JSON pass-through.
     pub fn join_context(
-        &self,
-        context_id: Option<&str>,
-        invitee_id: Option<&str>,
-        invitation_payload: Option<&str>,
-    ) -> PyResult<PyObject> {
-        let _ = (context_id, invitee_id, invitation_payload);
-
-        Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-            "join_context is deprecated; use join_context_by_open_invitation",
-        ))
-    }
-
-    /// Invite to context by open invitation
-    pub fn invite_to_context_by_open_invitation(
-        &self,
-        context_id: &str,
-        inviter_id: &str,
-        valid_for_blocks: u64,
-    ) -> PyResult<PyObject> {
-        let inner = self.inner.clone();
-        let context_id = context_id.parse::<ContextId>().map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid context ID '{}': {}",
-                context_id, e
-            ))
-        })?;
-        let inviter_id = inviter_id.parse::<identity::PublicKey>().map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid inviter ID '{}': {}",
-                inviter_id, e
-            ))
-        })?;
-
-        Python::with_gil(|py| {
-            let result = self.runtime.block_on(async move {
-                let request = admin::InviteToContextOpenInvitationRequest::new(
-                    context_id,
-                    inviter_id,
-                    valid_for_blocks,
-                );
-
-                inner.invite_to_context(request).await
-            });
-
-            match result {
-                Ok(data) => {
-                    let json_data = serde_json::to_value(data).map_err(|e| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                            "Failed to serialize response: {}",
-                            e
-                        ))
-                    })?;
-                    Ok(json_to_python(py, &json_data))
-                }
-                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Client error: {}",
-                    e
-                ))),
-            }
-        })
-    }
-
-    /// Join context by open invitation
-    pub fn join_context_by_open_invitation(
         &self,
         invitation_json: &str,
         new_member_public_key: &str,
     ) -> PyResult<PyObject> {
         let inner = self.inner.clone();
-        let new_member_public_key = new_member_public_key
-            .parse::<identity::PublicKey>()
-            .map_err(|e| {
-                PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                    "Invalid new member public key '{}': {}",
-                    new_member_public_key, e
-                ))
-            })?;
+        let pk_string = new_member_public_key.to_string();
+
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
                 let invitation_value: serde_json::Value = serde_json::from_str(invitation_json)
                     .map_err(|e| eyre::eyre!("Invalid invitation JSON: {}", e))?;
 
                 let invitation_data = if invitation_value.get("data").is_some() {
-                    invitation_value.get("data").unwrap()
+                    invitation_value.get("data").unwrap().clone()
                 } else {
-                    &invitation_value
+                    invitation_value
                 };
-                let invitation: context_types::SignedOpenInvitation =
-                    serde_json::from_value(invitation_data.clone()).map_err(|e| {
-                        eyre::eyre!(
-                            "Failed to parse SignedOpenInvitation: {}. Data: {:?}",
-                            e,
-                            invitation_data
-                        )
-                    })?;
 
-                let request = admin::JoinContextByOpenInvitationRequest::new(
-                    invitation,
-                    new_member_public_key,
-                );
+                let request_body = serde_json::json!({
+                    "invitation": invitation_data,
+                    "newMemberPublicKey": pk_string,
+                });
 
-                inner.join_context(request).await
+                inner.connection.post::<_, serde_json::Value>(
+                    "admin-api/contexts/join",
+                    request_body,
+                ).await
             });
 
             match result {
-                Ok(data) => {
-                    let json_data = serde_json::to_value(data).map_err(|e| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                            "Failed to serialize response: {}",
-                            e
-                        ))
-                    })?;
-                    Ok(json_to_python(py, &json_data))
-                }
+                Ok(json_data) => Ok(json_to_python(py, &json_data)),
                 Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
                     "Client error: {}",
                     e
