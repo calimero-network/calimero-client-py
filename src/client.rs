@@ -751,7 +751,8 @@ impl PyClient {
         })
     }
 
-    /// Invite to context via raw JSON pass-through.
+    /// Invite to context. Uses raw JSON pass-through for the response
+    /// so new SignedOpenInvitation fields are preserved without recompilation.
     #[pyo3(signature = (context_id, inviter_id, valid_for_seconds=3600))]
     pub fn invite_to_context(
         &self,
@@ -759,6 +760,18 @@ impl PyClient {
         inviter_id: &str,
         valid_for_seconds: u64,
     ) -> PyResult<PyObject> {
+        // Validate inputs early (clear client-side errors vs confusing server errors).
+        let _ctx = context_id.parse::<ContextId>().map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Invalid context ID '{}': {}", context_id, e
+            ))
+        })?;
+        let _inv = inviter_id.parse::<identity::PublicKey>().map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Invalid inviter ID '{}': {}", inviter_id, e
+            ))
+        })?;
+
         let inner = self.inner.clone();
         let context_id = context_id.to_string();
         let inviter_id = inviter_id.to_string();
@@ -787,12 +800,22 @@ impl PyClient {
         })
     }
 
-    /// Join context via raw JSON pass-through.
+    /// Join context. Uses raw JSON pass-through for the request so new
+    /// SignedOpenInvitation fields are preserved without recompilation.
     pub fn join_context(
         &self,
         invitation_json: &str,
         new_member_public_key: &str,
     ) -> PyResult<PyObject> {
+        let _pk = new_member_public_key
+            .parse::<identity::PublicKey>()
+            .map_err(|e| {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "Invalid public key '{}': {}",
+                    new_member_public_key, e
+                ))
+            })?;
+
         let inner = self.inner.clone();
         let pk_string = new_member_public_key.to_string();
 
