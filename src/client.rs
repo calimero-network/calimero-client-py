@@ -8,7 +8,7 @@ use calimero_client::CliAuthenticator;
 use calimero_primitives::alias::Alias;
 use calimero_primitives::application::ApplicationId;
 use calimero_primitives::blobs;
-use calimero_primitives::context::{ContextId, UpgradePolicy};
+use calimero_primitives::context::{ContextId, GroupMemberRole, UpgradePolicy};
 use calimero_primitives::hash::Hash;
 use calimero_primitives::identity;
 use calimero_server_primitives::admin;
@@ -1679,7 +1679,12 @@ impl PyClient {
     }
 
     /// Create a group
-    pub fn create_group(&self, application_id: &str) -> PyResult<PyObject> {
+    #[pyo3(signature = (application_id, parent_group_id=None))]
+    pub fn create_group(
+        &self,
+        application_id: &str,
+        parent_group_id: Option<&str>,
+    ) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let application_id = application_id.parse::<ApplicationId>().map_err(|e| {
             PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
@@ -1687,6 +1692,7 @@ impl PyClient {
                 application_id, e
             ))
         })?;
+        let parent_group_id = parent_group_id.map(|s| s.to_string());
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
                 let request = admin::CreateGroupApiRequest {
@@ -1695,7 +1701,7 @@ impl PyClient {
                     application_id,
                     upgrade_policy: UpgradePolicy::Automatic,
                     alias: None,
-                    parent_group_id: None,
+                    parent_group_id,
                 };
                 inner.create_group(request).await
             });
@@ -1899,6 +1905,165 @@ impl PyClient {
             let result = self
                 .runtime
                 .block_on(async move { inner.list_group_contexts(&group_id).await });
+            match result {
+                Ok(data) => {
+                    let json_data = serde_json::to_value(data).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Failed to serialize response: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(json_to_python(py, &json_data))
+                }
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
+        })
+    }
+
+    /// Add members to a group
+    pub fn add_group_members(&self, group_id: &str, members_json: &str) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let group_id = group_id.to_string();
+        let members: Vec<serde_json::Value> = serde_json::from_str(members_json).map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Invalid members JSON: {}",
+                e
+            ))
+        })?;
+        let api_members: Vec<admin::GroupMemberApiInput> = members
+            .iter()
+            .map(|m| {
+                let identity_str = m.get("identity").and_then(|v| v.as_str()).unwrap_or("");
+                let role_str = m.get("role").and_then(|v| v.as_str()).unwrap_or("Member");
+                let identity = identity_str
+                    .parse::<identity::PublicKey>()
+                    .expect("invalid identity");
+                let role = match role_str {
+                    "Admin" => GroupMemberRole::Admin,
+                    "ReadOnly" => GroupMemberRole::ReadOnly,
+                    _ => GroupMemberRole::Member,
+                };
+                admin::GroupMemberApiInput { identity, role }
+            })
+            .collect();
+        Python::with_gil(|py| {
+            let result = self.runtime.block_on(async move {
+                let request = admin::AddGroupMembersApiRequest {
+                    members: api_members,
+                    requester: None,
+                };
+                inner.add_group_members(&group_id, request).await
+            });
+            match result {
+                Ok(data) => {
+                    let json_data = serde_json::to_value(data).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Failed to serialize response: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(json_to_python(py, &json_data))
+                }
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
+        })
+    }
+
+    /// Remove members from a group
+    pub fn remove_group_members(&self, group_id: &str, members_json: &str) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let group_id = group_id.to_string();
+        let member_strs: Vec<String> = serde_json::from_str(members_json).map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Invalid members JSON: {}",
+                e
+            ))
+        })?;
+        let members: Vec<identity::PublicKey> = member_strs
+            .iter()
+            .map(|s| s.parse::<identity::PublicKey>().expect("invalid public key"))
+            .collect();
+        Python::with_gil(|py| {
+            let result = self.runtime.block_on(async move {
+                let request = admin::RemoveGroupMembersApiRequest {
+                    members,
+                    requester: None,
+                };
+                inner.remove_group_members(&group_id, request).await
+            });
+            match result {
+                Ok(data) => {
+                    let json_data = serde_json::to_value(data).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Failed to serialize response: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(json_to_python(py, &json_data))
+                }
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
+        })
+    }
+
+    /// Set member capabilities in a group
+    pub fn set_member_capabilities(
+        &self,
+        group_id: &str,
+        member_id: &str,
+        capabilities: u32,
+    ) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let group_id = group_id.to_string();
+        let member_id = member_id.to_string();
+        Python::with_gil(|py| {
+            let result = self.runtime.block_on(async move {
+                let request = admin::SetMemberCapabilitiesApiRequest {
+                    capabilities,
+                    requester: None,
+                };
+                inner
+                    .set_member_capabilities(&group_id, &member_id, request)
+                    .await
+            });
+            match result {
+                Ok(data) => {
+                    let json_data = serde_json::to_value(data).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Failed to serialize response: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(json_to_python(py, &json_data))
+                }
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
+        })
+    }
+
+    /// Get member capabilities in a group
+    pub fn get_member_capabilities(&self, group_id: &str, member_id: &str) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let group_id = group_id.to_string();
+        let member_id = member_id.to_string();
+        Python::with_gil(|py| {
+            let result = self.runtime.block_on(async move {
+                inner
+                    .get_member_capabilities(&group_id, &member_id)
+                    .await
+            });
             match result {
                 Ok(data) => {
                     let json_data = serde_json::to_value(data).map_err(|e| {

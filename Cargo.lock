@@ -334,7 +334,7 @@ checksum = "1e748733b7cbc798e1434b6ac524f0c1ff2ab456fe201501e6497c8417a4fc33"
 [[package]]
 name = "calimero-blobstore"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=feat%2Flocal-group-governance-ops#3b482163ed9659bcb46409bcad003806587d6e52"
+source = "git+https://github.com/calimero-network/core?branch=master#35da12806ba7e74a3d8c06ff1690eb8c9a2c539a"
 dependencies = [
  "async-stream",
  "calimero-primitives",
@@ -352,7 +352,7 @@ dependencies = [
 [[package]]
 name = "calimero-client"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=feat%2Flocal-group-governance-ops#3b482163ed9659bcb46409bcad003806587d6e52"
+source = "git+https://github.com/calimero-network/core?branch=master#35da12806ba7e74a3d8c06ff1690eb8c9a2c539a"
 dependencies = [
  "async-trait",
  "calimero-context-config",
@@ -397,7 +397,7 @@ dependencies = [
 [[package]]
 name = "calimero-context-config"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=feat%2Flocal-group-governance-ops#3b482163ed9659bcb46409bcad003806587d6e52"
+source = "git+https://github.com/calimero-network/core?branch=master#35da12806ba7e74a3d8c06ff1690eb8c9a2c539a"
 dependencies = [
  "borsh",
  "bs58",
@@ -410,7 +410,7 @@ dependencies = [
 [[package]]
 name = "calimero-context-primitives"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=feat%2Flocal-group-governance-ops#3b482163ed9659bcb46409bcad003806587d6e52"
+source = "git+https://github.com/calimero-network/core?branch=master#35da12806ba7e74a3d8c06ff1690eb8c9a2c539a"
 dependencies = [
  "actix",
  "async-stream",
@@ -436,7 +436,7 @@ dependencies = [
 [[package]]
 name = "calimero-crypto"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=feat%2Flocal-group-governance-ops#3b482163ed9659bcb46409bcad003806587d6e52"
+source = "git+https://github.com/calimero-network/core?branch=master#35da12806ba7e74a3d8c06ff1690eb8c9a2c539a"
 dependencies = [
  "calimero-primitives",
  "curve25519-dalek",
@@ -448,7 +448,7 @@ dependencies = [
 [[package]]
 name = "calimero-network-primitives"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=feat%2Flocal-group-governance-ops#3b482163ed9659bcb46409bcad003806587d6e52"
+source = "git+https://github.com/calimero-network/core?branch=master#35da12806ba7e74a3d8c06ff1690eb8c9a2c539a"
 dependencies = [
  "actix",
  "async-trait",
@@ -472,7 +472,7 @@ dependencies = [
 [[package]]
 name = "calimero-node-primitives"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=feat%2Flocal-group-governance-ops#3b482163ed9659bcb46409bcad003806587d6e52"
+source = "git+https://github.com/calimero-network/core?branch=master#35da12806ba7e74a3d8c06ff1690eb8c9a2c539a"
 dependencies = [
  "actix",
  "async-stream",
@@ -514,7 +514,7 @@ dependencies = [
 [[package]]
 name = "calimero-prelude"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=feat%2Flocal-group-governance-ops#3b482163ed9659bcb46409bcad003806587d6e52"
+source = "git+https://github.com/calimero-network/core?branch=master#35da12806ba7e74a3d8c06ff1690eb8c9a2c539a"
 dependencies = [
  "borsh",
  "calimero-primitives",
@@ -525,7 +525,7 @@ dependencies = [
 [[package]]
 name = "calimero-primitives"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=feat%2Flocal-group-governance-ops#3b482163ed9659bcb46409bcad003806587d6e52"
+source = "git+https://github.com/calimero-network/core?branch=master#35da12806ba7e74a3d8c06ff1690eb8c9a2c539a"
 dependencies = [
  "borsh",
  "bs58",
@@ -544,7 +544,7 @@ dependencies = [
 [[package]]
 name = "calimero-sdk"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=feat%2Flocal-group-governance-ops#3b482163ed9659bcb46409bcad003806587d6e52"
+source = "git+https://github.com/calimero-network/core?branch=master#35da12806ba7e74a3d8c06ff1690eb8c9a2c539a"
 dependencies = [
  "borsh",
  "calimero-prelude",
@@ -560,7 +560,7 @@ dependencies = [
 [[package]]
 name = "calimero-sdk-macros"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=feat%2Flocal-group-governance-ops#3b482163ed9659bcb46409bcad003806587d6e52"
+source = "git+https://github.com/calimero-network/core?branch=master#35da12806ba7e74a3d8c06ff1690eb8c9a2c539a"
 dependencies = [
  "prettyplease",
  "proc-macro2",
@@ -573,7 +573,7 @@ dependencies = [
 [[package]]
 name = "calimero-server-primitives"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=feat%2Flocal-group-governance-ops#3b482163ed9659bcb46409bcad003806587d6e52"
+source = "git+https://github.com/calimero-network/core?branch=master#35da12806ba7e74a3d8c06ff1690eb8c9a2c539a"
 dependencies = [
  "calimero-context-config",
  "calimero-context-primitives",
@@ -591,7 +591,7 @@ dependencies = [
 [[package]]
 name = "calimero-storage"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=feat%2Flocal-group-governance-ops#3b482163ed9659bcb46409bcad003806587d6e52"
+source = "git+https://github.com/calimero-network/core?branch=master#35da12806ba7e74a3d8c06ff1690eb8c9a2c539a"
 dependencies = [
  "borsh",
  "calimero-prelude",
@@ -613,7 +613,7 @@ dependencies = [
 [[package]]
 name = "calimero-storage-macros"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=feat%2Flocal-group-governance-ops#3b482163ed9659bcb46409bcad003806587d6e52"
+source = "git+https://github.com/calimero-network/core?branch=master#35da12806ba7e74a3d8c06ff1690eb8c9a2c539a"
 dependencies = [
  "quote",
  "syn 2.0.108",
@@ -622,7 +622,7 @@ dependencies = [
 [[package]]
 name = "calimero-store"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=feat%2Flocal-group-governance-ops#3b482163ed9659bcb46409bcad003806587d6e52"
+source = "git+https://github.com/calimero-network/core?branch=master#35da12806ba7e74a3d8c06ff1690eb8c9a2c539a"
 dependencies = [
  "borsh",
  "calimero-primitives",
@@ -638,7 +638,7 @@ dependencies = [
 [[package]]
 name = "calimero-sys"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=feat%2Flocal-group-governance-ops#3b482163ed9659bcb46409bcad003806587d6e52"
+source = "git+https://github.com/calimero-network/core?branch=master#35da12806ba7e74a3d8c06ff1690eb8c9a2c539a"
 dependencies = [
  "cfg-if",
 ]
@@ -646,7 +646,7 @@ dependencies = [
 [[package]]
 name = "calimero-utils-actix"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=feat%2Flocal-group-governance-ops#3b482163ed9659bcb46409bcad003806587d6e52"
+source = "git+https://github.com/calimero-network/core?branch=master#35da12806ba7e74a3d8c06ff1690eb8c9a2c539a"
 dependencies = [
  "actix",
  "async-stream",
@@ -661,7 +661,7 @@ dependencies = [
 [[package]]
 name = "calimero-wasm-abi"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=feat%2Flocal-group-governance-ops#3b482163ed9659bcb46409bcad003806587d6e52"
+source = "git+https://github.com/calimero-network/core?branch=master#35da12806ba7e74a3d8c06ff1690eb8c9a2c539a"
 dependencies = [
  "proc-macro2",
  "serde",
