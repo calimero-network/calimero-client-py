@@ -1695,6 +1695,7 @@ impl PyClient {
                     application_id,
                     upgrade_policy: UpgradePolicy::Automatic,
                     alias: None,
+                    parent_group_id: None,
                 };
                 inner.create_group(request).await
             });
