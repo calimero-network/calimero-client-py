@@ -70,9 +70,8 @@ class TestCalimeroClient:
             import inspect
 
             sig = inspect.signature(self.client.create_context)
-            # Should have application_id and protocol parameters
+            # Should have application_id parameter (protocol was removed)
             assert "application_id" in sig.parameters
-            assert "protocol" in sig.parameters
 
 
 @pytest.mark.skip(reason="Requires running Calimero server")
