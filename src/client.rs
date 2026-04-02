@@ -1656,14 +1656,7 @@ impl PyClient {
     /// governance rewrite. The join_group flow now publishes the membership
     /// claim directly on the namespace gossip topic — no relay needed.
     pub fn claim_group_invitation(&self, _governance_op_hex: &str) -> PyResult<PyObject> {
-        Python::with_gil(|py| {
-            let msg = "claim_group_invitation is deprecated: the namespace governance \
-                       model no longer requires relaying governance ops. \
-                       join_group now handles membership directly.";
-            let warnings = py.import("warnings")?;
-            warnings.call_method1("warn", (msg, py.import("builtins")?.getattr("DeprecationWarning")?))?;
-            Ok(py.None())
-        })
+        Python::with_gil(|py| Ok(py.None()))
     }
 
     /// Join a context (via group membership, context_id in path)
