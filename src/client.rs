@@ -798,61 +798,6 @@ impl PyClient {
         })
     }
 
-    /// Join context using the typed Client API.
-    pub fn join_context(
-        &self,
-        invitation_json: &str,
-        new_member_public_key: &str,
-    ) -> PyResult<PyObject> {
-        let inner = self.inner.clone();
-        let new_member_public_key = new_member_public_key
-            .parse::<identity::PublicKey>()
-            .map_err(|e| {
-                PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                    "Invalid public key '{}': {}",
-                    new_member_public_key, e
-                ))
-            })?;
-
-        Python::with_gil(|py| {
-            let result = self.runtime.block_on(async move {
-                let invitation_value: serde_json::Value = serde_json::from_str(invitation_json)
-                    .map_err(|e| eyre::eyre!("Invalid invitation JSON: {}", e))?;
-
-                let invitation_data = if invitation_value.get("data").is_some() {
-                    invitation_value.get("data").unwrap().clone()
-                } else {
-                    invitation_value
-                };
-
-                let invitation: calimero_context_config::types::SignedOpenInvitation =
-                    serde_json::from_value(invitation_data.clone()).map_err(|e| {
-                        eyre::eyre!("Failed to parse SignedOpenInvitation: {}", e)
-                    })?;
-
-                let request =
-                    admin::JoinContextRequest::new(invitation, new_member_public_key);
-                inner.join_context(request).await
-            });
-
-            match result {
-                Ok(data) => {
-                    let json_data = serde_json::to_value(data).map_err(|e| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                            "Failed to serialize response: {}",
-                            e
-                        ))
-                    })?;
-                    Ok(json_to_python(py, &json_data))
-                }
-                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Client error: {}",
-                    e
-                ))),
-            }
-        })
-    }
-
     /// Execute function call via JSON-RPC
     pub fn execute_function(
         &self,
@@ -1838,10 +1783,9 @@ impl PyClient {
         })
     }
 
-    /// Join a context via group membership
-    pub fn join_group_context(&self, group_id: &str, context_id: &str) -> PyResult<PyObject> {
+    /// Join a context (via group membership, context_id in path)
+    pub fn join_context(&self, context_id: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
-        let group_id = group_id.to_string();
         let context_id = context_id.parse::<ContextId>().map_err(|e| {
             PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
                 "Invalid context ID '{}': {}",
@@ -1849,10 +1793,9 @@ impl PyClient {
             ))
         })?;
         Python::with_gil(|py| {
-            let result = self.runtime.block_on(async move {
-                let request = admin::JoinGroupContextApiRequest { context_id };
-                inner.join_group_context(&group_id, request).await
-            });
+            let result = self
+                .runtime
+                .block_on(async move { inner.join_context_by_id(&context_id).await });
             match result {
                 Ok(data) => {
                     let json_data = serde_json::to_value(data).map_err(|e| {
