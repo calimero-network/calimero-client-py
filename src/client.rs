@@ -1652,34 +1652,6 @@ impl PyClient {
         })
     }
 
-    /// Relay a governance op to a node to claim a group invitation.
-    pub fn claim_group_invitation(&self, governance_op_hex: &str) -> PyResult<PyObject> {
-        let inner = self.inner.clone();
-        let request = admin::ClaimGroupInvitationApiRequest {
-            governance_op: governance_op_hex.to_string(),
-        };
-        Python::with_gil(|py| {
-            let result = self
-                .runtime
-                .block_on(async move { inner.claim_group_invitation(request).await });
-            match result {
-                Ok(data) => {
-                    let json_data = serde_json::to_value(data).map_err(|e| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                            "Failed to serialize response: {}",
-                            e
-                        ))
-                    })?;
-                    Ok(json_to_python(py, &json_data))
-                }
-                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Client error: {}",
-                    e
-                ))),
-            }
-        })
-    }
-
     /// Join a context (via group membership, context_id in path)
     pub fn join_context(&self, context_id: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
