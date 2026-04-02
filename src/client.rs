@@ -751,53 +751,6 @@ impl PyClient {
         })
     }
 
-    /// Invite to context using the typed Client API.
-    #[pyo3(signature = (context_id, inviter_id, valid_for_seconds=3600))]
-    pub fn invite_to_context(
-        &self,
-        context_id: &str,
-        inviter_id: &str,
-        valid_for_seconds: u64,
-    ) -> PyResult<PyObject> {
-        let inner = self.inner.clone();
-        let context_id = context_id.parse::<ContextId>().map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid context ID '{}': {}",
-                context_id, e
-            ))
-        })?;
-        let inviter_id = inviter_id.parse::<identity::PublicKey>().map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid inviter ID '{}': {}",
-                inviter_id, e
-            ))
-        })?;
-
-        Python::with_gil(|py| {
-            let result = self.runtime.block_on(async move {
-                let request =
-                    admin::InviteToContextRequest::new(context_id, inviter_id, valid_for_seconds);
-                inner.invite_to_context(request).await
-            });
-
-            match result {
-                Ok(data) => {
-                    let json_data = serde_json::to_value(data).map_err(|e| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                            "Failed to serialize response: {}",
-                            e
-                        ))
-                    })?;
-                    Ok(json_to_python(py, &json_data))
-                }
-                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Client error: {}",
-                    e
-                ))),
-            }
-        })
-    }
-
     /// Execute function call via JSON-RPC
     pub fn execute_function(
         &self,
@@ -843,90 +796,6 @@ impl PyClient {
                     jsonrpc::RequestPayload::Execute(execution_request),
                 );
                 inner.execute_jsonrpc(request).await
-            });
-
-            match result {
-                Ok(data) => {
-                    let json_data = serde_json::to_value(data).map_err(|e| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                            "Failed to serialize response: {}",
-                            e
-                        ))
-                    })?;
-                    Ok(json_to_python(py, &json_data))
-                }
-                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Client error: {}",
-                    e
-                ))),
-            }
-        })
-    }
-
-    /// Grant permissions to users in a context
-    pub fn grant_permissions(&self, context_id: &str, permissions: &str) -> PyResult<PyObject> {
-        let inner = self.inner.clone();
-        let context_id = context_id.parse::<ContextId>().map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid context ID '{}': {}",
-                context_id, e
-            ))
-        })?;
-
-        Python::with_gil(|py| {
-            let result = self.runtime.block_on(async move {
-                // Parse permissions as JSON array of [public_key, capability] pairs
-                let permissions_value: Vec<(
-                    identity::PublicKey,
-                    calimero_context_config::types::Capability,
-                )> = serde_json::from_str(permissions)
-                    .map_err(|e| eyre::eyre!("Invalid JSON permissions: {}", e))?;
-
-                inner
-                    .grant_permissions(&context_id, permissions_value)
-                    .await
-            });
-
-            match result {
-                Ok(data) => {
-                    let json_data = serde_json::to_value(data).map_err(|e| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                            "Failed to serialize response: {}",
-                            e
-                        ))
-                    })?;
-                    Ok(json_to_python(py, &json_data))
-                }
-                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Client error: {}",
-                    e
-                ))),
-            }
-        })
-    }
-
-    /// Revoke permissions from users in a context
-    pub fn revoke_permissions(&self, context_id: &str, permissions: &str) -> PyResult<PyObject> {
-        let inner = self.inner.clone();
-        let context_id = context_id.parse::<ContextId>().map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid context ID '{}': {}",
-                context_id, e
-            ))
-        })?;
-
-        Python::with_gil(|py| {
-            let result = self.runtime.block_on(async move {
-                // Parse permissions as JSON array of [public_key, capability] pairs
-                let permissions_value: Vec<(
-                    identity::PublicKey,
-                    calimero_context_config::types::Capability,
-                )> = serde_json::from_str(permissions)
-                    .map_err(|e| eyre::eyre!("Invalid JSON permissions: {}", e))?;
-
-                inner
-                    .revoke_permissions(&context_id, permissions_value)
-                    .await
             });
 
             match result {
@@ -1795,7 +1664,10 @@ impl PyClient {
         Python::with_gil(|py| {
             let result = self
                 .runtime
-                .block_on(async move { inner.join_context_by_id(&context_id).await });
+                .block_on(async move {
+                    let cid_str = context_id.to_string();
+                    inner.join_context(&cid_str).await
+                });
             match result {
                 Ok(data) => {
                     let json_data = serde_json::to_value(data).map_err(|e| {
