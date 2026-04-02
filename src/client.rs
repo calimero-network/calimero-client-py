@@ -1652,13 +1652,6 @@ impl PyClient {
         })
     }
 
-    /// Deprecated: claim-invitation endpoint was removed in the namespace
-    /// governance rewrite. The join_group flow now publishes the membership
-    /// claim directly on the namespace gossip topic — no relay needed.
-    pub fn claim_group_invitation(&self, _governance_op_hex: &str) -> PyResult<PyObject> {
-        Python::with_gil(|py| Ok(py.None()))
-    }
-
     /// Join a context (via group membership, context_id in path)
     pub fn join_context(&self, context_id: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
