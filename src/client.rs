@@ -1652,31 +1652,17 @@ impl PyClient {
         })
     }
 
-    /// Relay a governance op to a node to claim a group invitation.
-    pub fn claim_group_invitation(&self, governance_op_hex: &str) -> PyResult<PyObject> {
-        let inner = self.inner.clone();
-        let request = admin::ClaimGroupInvitationApiRequest {
-            governance_op: governance_op_hex.to_string(),
-        };
+    /// Deprecated: claim-invitation endpoint was removed in the namespace
+    /// governance rewrite. The join_group flow now publishes the membership
+    /// claim directly on the namespace gossip topic — no relay needed.
+    pub fn claim_group_invitation(&self, _governance_op_hex: &str) -> PyResult<PyObject> {
         Python::with_gil(|py| {
-            let result = self
-                .runtime
-                .block_on(async move { inner.claim_group_invitation(request).await });
-            match result {
-                Ok(data) => {
-                    let json_data = serde_json::to_value(data).map_err(|e| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                            "Failed to serialize response: {}",
-                            e
-                        ))
-                    })?;
-                    Ok(json_to_python(py, &json_data))
-                }
-                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Client error: {}",
-                    e
-                ))),
-            }
+            let msg = "claim_group_invitation is deprecated: the namespace governance \
+                       model no longer requires relaying governance ops. \
+                       join_group now handles membership directly.";
+            let warnings = py.import("warnings")?;
+            warnings.call_method1("warn", (msg, py.import("builtins")?.getattr("DeprecationWarning")?))?;
+            Ok(py.None())
         })
     }
 
