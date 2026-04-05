@@ -594,7 +594,7 @@ impl PyClient {
                     service_name,
                     context_seed: None,
                     initialization_params: params,
-                    group_id: Some(group_id),
+                    group_id,
                     identity_secret: None,
                     alias: None,
                 };
@@ -1523,13 +1523,10 @@ impl PyClient {
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
                 inner
-                    .create_group(admin::CreateGroupApiRequest {
-                        group_id: None,
-                        app_key: None,
+                    .create_namespace(admin::CreateNamespaceApiRequest {
                         application_id,
                         upgrade_policy,
                         alias,
-                        parent_group_id: None,
                     })
                     .await
             });
