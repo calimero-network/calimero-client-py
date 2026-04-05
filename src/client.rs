@@ -1523,13 +1523,10 @@ impl PyClient {
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
                 inner
-                    .create_group(admin::CreateGroupApiRequest {
-                        group_id: None,
-                        app_key: None,
+                    .create_namespace(admin::CreateNamespaceApiRequest {
                         application_id,
                         upgrade_policy,
                         alias,
-                        parent_group_id: None,
                     })
                     .await
             });
