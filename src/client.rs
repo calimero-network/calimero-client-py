@@ -594,7 +594,7 @@ impl PyClient {
                     service_name,
                     context_seed: None,
                     initialization_params: params,
-                    group_id: Some(group_id),
+                    group_id,
                     identity_secret: None,
                     alias: None,
                 };
