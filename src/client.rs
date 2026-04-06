@@ -4,6 +4,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use calimero_client::client::Client;
+use hex;
 use calimero_client::CliAuthenticator;
 use calimero_primitives::alias::Alias;
 use calimero_primitives::application::ApplicationId;
@@ -562,7 +563,7 @@ impl PyClient {
                     application_id,
                     None, // context_seed
                     params,
-                    group_id,
+                    group_id.unwrap_or_default(),
                     None, // identity_secret
                 );
                 inner.create_context(request).await
@@ -1467,13 +1468,13 @@ impl PyClient {
     }
     // ---- Group Management ----
 
-    /// List all groups
+    /// List all groups (now returns namespaces)
     pub fn list_groups(&self) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         Python::with_gil(|py| {
             let result = self
                 .runtime
-                .block_on(async move { inner.list_groups().await });
+                .block_on(async move { inner.list_namespaces().await });
             match result {
                 Ok(data) => {
                     let json_data = serde_json::to_value(data).map_err(|e| {
@@ -1492,7 +1493,8 @@ impl PyClient {
         })
     }
 
-    /// Create a group
+    /// Create a group / namespace. When parent_group_id is None this creates a root namespace;
+    /// when provided it creates a subgroup within that namespace.
     #[pyo3(signature = (application_id, parent_group_id=None))]
     pub fn create_group(
         &self,
@@ -1509,15 +1511,21 @@ impl PyClient {
         let parent_group_id = parent_group_id.map(|s| s.to_string());
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
-                let request = admin::CreateGroupApiRequest {
-                    group_id: None,
-                    app_key: None,
-                    application_id,
-                    upgrade_policy: UpgradePolicy::Automatic,
-                    alias: None,
-                    parent_group_id,
-                };
-                inner.create_group(request).await
+                if let Some(ns_id) = parent_group_id {
+                    // Subgroup: create within the given namespace.
+                    inner.create_group_in_namespace(&ns_id, None).await
+                } else {
+                    // Root namespace.
+                    let request = admin::CreateNamespaceApiRequest {
+                        application_id,
+                        upgrade_policy: UpgradePolicy::Automatic,
+                        alias: None,
+                    };
+                    inner
+                        .create_namespace(request)
+                        .await
+                        .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
+                }
             });
             match result {
                 Ok(data) => {
@@ -1590,7 +1598,7 @@ impl PyClient {
         })
     }
 
-    /// Create a group invitation
+    /// Create a group / namespace invitation
     pub fn create_group_invitation(&self, group_id: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let group_id = group_id.to_string();
@@ -1599,8 +1607,9 @@ impl PyClient {
                 let request = admin::CreateGroupInvitationApiRequest {
                     requester: None,
                     expiration_timestamp: None,
+                    recursive: None,
                 };
-                inner.create_group_invitation(&group_id, request).await
+                inner.create_namespace_invitation(&group_id, request).await
             });
             match result {
                 Ok(data) => {
@@ -1620,9 +1629,123 @@ impl PyClient {
         })
     }
 
-    /// Join a group using an invitation JSON string
+    /// Join a namespace using an invitation JSON string (extracts namespace_id from invitation)
     pub fn join_group(&self, invitation_json: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
+        let request: admin::JoinGroupApiRequest =
+            serde_json::from_str(invitation_json).map_err(|e| {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "Invalid invitation JSON: {}",
+                    e
+                ))
+            })?;
+        let namespace_id = hex::encode(request.invitation.invitation.group_id.to_bytes());
+        Python::with_gil(|py| {
+            let result = self
+                .runtime
+                .block_on(async move { inner.join_namespace(&namespace_id, request).await });
+            match result {
+                Ok(data) => {
+                    let json_data = serde_json::to_value(data).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Failed to serialize response: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(json_to_python(py, &json_data))
+                }
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
+        })
+    }
+
+    /// Create a namespace (root group) and return { data: { namespaceId: "..." } }
+    pub fn create_namespace(
+        &self,
+        application_id: &str,
+        alias: Option<&str>,
+    ) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let application_id = application_id.parse::<ApplicationId>().map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Invalid application ID '{}': {}",
+                application_id, e
+            ))
+        })?;
+        let alias = alias.map(|s| s.to_string());
+        Python::with_gil(|py| {
+            let result = self.runtime.block_on(async move {
+                let request = admin::CreateNamespaceApiRequest {
+                    application_id,
+                    upgrade_policy: UpgradePolicy::Automatic,
+                    alias,
+                };
+                inner.create_namespace(request).await
+            });
+            match result {
+                Ok(data) => {
+                    let json_data = serde_json::to_value(data).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Failed to serialize response: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(json_to_python(py, &json_data))
+                }
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
+        })
+    }
+
+    /// Create a namespace invitation
+    pub fn create_namespace_invitation(
+        &self,
+        namespace_id: &str,
+        recursive: bool,
+    ) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let namespace_id = namespace_id.to_string();
+        Python::with_gil(|py| {
+            let result = self.runtime.block_on(async move {
+                let request = admin::CreateGroupInvitationApiRequest {
+                    requester: None,
+                    expiration_timestamp: None,
+                    recursive: Some(recursive),
+                };
+                inner.create_namespace_invitation(&namespace_id, request).await
+            });
+            match result {
+                Ok(data) => {
+                    let json_data = serde_json::to_value(data).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Failed to serialize response: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(json_to_python(py, &json_data))
+                }
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
+        })
+    }
+
+    /// Join a namespace using a signed invitation
+    pub fn join_namespace(
+        &self,
+        namespace_id: &str,
+        invitation_json: &str,
+    ) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let namespace_id = namespace_id.to_string();
         let request: admin::JoinGroupApiRequest =
             serde_json::from_str(invitation_json).map_err(|e| {
                 PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
@@ -1633,7 +1756,7 @@ impl PyClient {
         Python::with_gil(|py| {
             let result = self
                 .runtime
-                .block_on(async move { inner.join_group(request).await });
+                .block_on(async move { inner.join_namespace(&namespace_id, request).await });
             match result {
                 Ok(data) => {
                     let json_data = serde_json::to_value(data).map_err(|e| {
