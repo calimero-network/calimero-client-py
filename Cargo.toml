@@ -27,11 +27,10 @@ crate-type = ["cdylib"]
 
 [dependencies]
 # Core Calimero crates
-# TODO: switch back to branch = "master" after core PR #2096 merges
-calimero-client = { git = "https://github.com/calimero-network/core", branch = "feat/namespace-identity" }
-calimero-primitives = { git = "https://github.com/calimero-network/core", branch = "feat/namespace-identity" }
-calimero-server-primitives = { git = "https://github.com/calimero-network/core", branch = "feat/namespace-identity" }
-calimero-context-config = { git = "https://github.com/calimero-network/core", branch = "feat/namespace-identity" }
+calimero-client = { git = "https://github.com/calimero-network/core", branch = "fix/auto-resolve-executor-identity" }
+calimero-primitives = { git = "https://github.com/calimero-network/core", branch = "fix/auto-resolve-executor-identity" }
+calimero-server-primitives = { git = "https://github.com/calimero-network/core", branch = "fix/auto-resolve-executor-identity" }
+calimero-context-config = { git = "https://github.com/calimero-network/core", branch = "fix/auto-resolve-executor-identity" }
 
 # Python bindings
 pyo3 = { version = "0.22", features = ["extension-module"] }

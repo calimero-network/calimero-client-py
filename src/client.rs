@@ -785,6 +785,10 @@ impl PyClient {
     }
 
     /// Execute function call via JSON-RPC
+    ///
+    /// The executor_public_key parameter is accepted for backward compatibility
+    /// but ignored — the node auto-resolves the owned identity for the context.
+    #[pyo3(signature = (context_id, method, args, executor_public_key=""))]
     pub fn execute_function(
         &self,
         context_id: &str,
@@ -799,15 +803,8 @@ impl PyClient {
                 context_id, e
             ))
         })?;
-        let executor_public_key =
-            executor_public_key
-                .parse::<identity::PublicKey>()
-                .map_err(|e| {
-                    PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                        "Invalid executor public key '{}': {}",
-                        executor_public_key, e
-                    ))
-                })?;
+        // Ignored — node auto-resolves executor identity.
+        let _ = executor_public_key;
 
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
@@ -819,7 +816,7 @@ impl PyClient {
                     context_id,
                     method.to_string(),
                     args_value,
-                    executor_public_key,
+                    None, // executor auto-resolved by node
                     vec![], // substitute aliases
                 );
 
