@@ -27,10 +27,10 @@ crate-type = ["cdylib"]
 
 [dependencies]
 # Core Calimero crates
-calimero-client = { git = "https://github.com/calimero-network/core", branch = "fix/auto-resolve-executor-identity" }
-calimero-primitives = { git = "https://github.com/calimero-network/core", branch = "fix/auto-resolve-executor-identity" }
-calimero-server-primitives = { git = "https://github.com/calimero-network/core", branch = "fix/auto-resolve-executor-identity" }
-calimero-context-config = { git = "https://github.com/calimero-network/core", branch = "fix/auto-resolve-executor-identity" }
+calimero-client = { git = "https://github.com/calimero-network/core", branch = "fix/nuke-executor-public-key" }
+calimero-primitives = { git = "https://github.com/calimero-network/core", branch = "fix/nuke-executor-public-key" }
+calimero-server-primitives = { git = "https://github.com/calimero-network/core", branch = "fix/nuke-executor-public-key" }
+calimero-context-config = { git = "https://github.com/calimero-network/core", branch = "fix/nuke-executor-public-key" }
 
 # Python bindings
 pyo3 = { version = "0.22", features = ["extension-module"] }
