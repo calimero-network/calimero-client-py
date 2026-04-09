@@ -816,7 +816,6 @@ impl PyClient {
                     context_id,
                     method.to_string(),
                     args_value,
-                    None, // executor auto-resolved by node
                     vec![], // substitute aliases
                 );
 
