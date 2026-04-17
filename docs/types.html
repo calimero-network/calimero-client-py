@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Types — Calimero Client Py</title>
+    <link rel="stylesheet" href="styles.css" />
+    <meta name="description" content="Type reference — AuthMode, JwtToken, ClientError." />
+    <meta name="theme-color" content="#0d1117" />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  </head>
+  <body>
+    <div class="main">
+      <div class="content">
+        <div class="breadcrumb">
+          <a href="index.html">Home</a><span class="sep">/</span>
+          <span>Types</span>
+        </div>
+
+        <h1>Types</h1>
+        <p class="page-subtitle">calimero_client_py — exported types</p>
+
+        <div class="card ga">
+          <h2>Exports</h2>
+          <p>All types are re-exported from the top-level <span class="code">calimero</span> package:</p>
+          <div class="typedef" style="margin-top: 12px">
+            <span class="kw">from</span> <span class="ty">calimero</span> <span class="kw">import</span> (<br />
+            &nbsp;&nbsp;<span class="ty">ConnectionInfo</span>,<br />
+            &nbsp;&nbsp;<span class="ty">Client</span>,<br />
+            &nbsp;&nbsp;<span class="ty">JwtToken</span>,<br />
+            &nbsp;&nbsp;<span class="ty">ClientError</span>,<br />
+            &nbsp;&nbsp;<span class="ty">AuthMode</span>,<br />
+            &nbsp;&nbsp;<span class="field">create_connection</span>,<br />
+            &nbsp;&nbsp;<span class="field">create_client</span>,<br />
+            &nbsp;&nbsp;<span class="field">get_token_cache_path</span>,<br />
+            &nbsp;&nbsp;<span class="field">get_token_cache_dir</span>,<br />
+            )
+          </div>
+        </div>
+
+        <div class="card gb">
+          <h2>AuthMode</h2>
+          <p class="page-subtitle" style="margin-bottom: 12px">src/auth.rs · calimero_client_py.AuthMode</p>
+          <p>
+            Represents whether a node requires authentication.
+            Returned by <span class="code">ConnectionInfo.detect_auth_mode()</span>
+            and can be constructed directly.
+          </p>
+
+          <h3>Values</h3>
+          <div class="g2" style="margin-top: 8px">
+            <div class="cb">
+              <h4><span class="tag tag-cli">"none"</span></h4>
+              <p>No authentication required. The node accepts unauthenticated requests.</p>
+            </div>
+            <div class="cb">
+              <h4><span class="tag tag-actor">"required"</span></h4>
+              <p>Authentication is required. A valid JWT token must be obtained before making API calls.</p>
+            </div>
+          </div>
+
+          <h3>Usage</h3>
+          <div class="typedef" style="margin-top: 8px">
+            <span class="comment"># Detect from node</span><br />
+            <span class="field">mode</span> = <span class="field">conn</span>.<span class="kw">detect_auth_mode</span>()<br />
+            <span class="kw">print</span>(<span class="field">mode</span>.<span class="field">value</span>)  <span class="comment"># "none" or "required"</span><br />
+            <span class="kw">str</span>(<span class="field">mode</span>)           <span class="comment"># "none" or "required"</span><br /><br />
+            <span class="comment"># Construct directly</span><br />
+            <span class="field">mode</span> = <span class="ty">calimero</span>.<span class="ty">AuthMode</span>(<span class="comment">"required"</span>)
+          </div>
+
+          <h3>Properties</h3>
+          <div class="fr">
+            <div class="fp">.value</div>
+            <div class="fd"><span class="code">str</span> — Either <span class="code">"none"</span> or <span class="code">"required"</span>.</div>
+          </div>
+        </div>
+
+        <div class="card gc">
+          <h2>JwtToken</h2>
+          <p class="page-subtitle" style="margin-bottom: 12px">src/token.rs · calimero_client_py.JwtToken</p>
+          <p>
+            Wraps a JWT access/refresh token pair used to authenticate requests
+            to a Calimero node. Tokens are cached automatically when a
+            <span class="code">node_name</span> is provided to
+            <span class="code">create_connection()</span>.
+          </p>
+
+          <div class="step" style="margin-top: 16px">
+            <div class="n">Note</div>
+            <h4>Automatic management</h4>
+            <p>
+              In normal usage, you do not need to interact with
+              <span class="code">JwtToken</span> directly. The Merobox
+              authenticator handles token acquisition and refresh transparently.
+              This type is exposed for introspection or advanced use cases.
+            </p>
+          </div>
+        </div>
+
+        <div class="card gd">
+          <h2>ClientError</h2>
+          <p class="page-subtitle" style="margin-bottom: 12px">src/error.rs · calimero_client_py.ClientError</p>
+          <p>
+            Raised when the Rust client layer encounters an error — network
+            failures, node-returned error responses, or serialization issues.
+            Use it to distinguish node errors from bad argument errors
+            (<span class="code">ValueError</span>).
+          </p>
+
+          <h3>Error handling pattern</h3>
+          <div class="typedef" style="margin-top: 8px">
+            <span class="kw">try</span>:<br />
+            &nbsp;&nbsp;<span class="field">result</span> = <span class="field">client</span>.<span class="kw">list_contexts</span>()<br />
+            <span class="kw">except</span> <span class="ty">calimero</span>.<span class="ty">ClientError</span> <span class="kw">as</span> <span class="field">e</span>:<br />
+            &nbsp;&nbsp;<span class="comment"># Node/network-level failure</span><br />
+            &nbsp;&nbsp;<span class="kw">print</span>(<span class="field">f"Client error: {<span class="field">e</span>}"</span>)<br />
+            <span class="kw">except</span> <span class="ty">ValueError</span> <span class="kw">as</span> <span class="field">e</span>:<br />
+            &nbsp;&nbsp;<span class="comment"># Bad argument (invalid ID format, etc.)</span><br />
+            &nbsp;&nbsp;<span class="kw">print</span>(<span class="field">f"Bad input: {<span class="field">e</span>}"</span>)<br />
+            <span class="kw">except</span> <span class="ty">RuntimeError</span> <span class="kw">as</span> <span class="field">e</span>:<br />
+            &nbsp;&nbsp;<span class="comment"># Unexpected internal error</span><br />
+            &nbsp;&nbsp;<span class="kw">print</span>(<span class="field">f"Runtime error: {<span class="field">e</span>}"</span>)
+          </div>
+
+          <h3>When each exception is raised</h3>
+          <div class="g3" style="margin-top: 12px">
+            <div class="cb">
+              <h4><span class="tag tag-gap">ClientError</span></h4>
+              <p>Node returned an error response, connection refused, authentication failure, or serialization of the response failed.</p>
+            </div>
+            <div class="cb">
+              <h4><span class="tag tag-partial">ValueError</span></h4>
+              <p>A passed argument could not be parsed — e.g. an invalid context ID, application ID, blob ID, or malformed URL.</p>
+            </div>
+            <div class="cb">
+              <h4><span class="tag tag-actor">RuntimeError</span></h4>
+              <p>The Tokio runtime failed to start, or another unexpected internal error occurred in the Rust layer.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="nav.js"></script>
+  </body>
+</html>

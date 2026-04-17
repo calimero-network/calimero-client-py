@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RPC — Calimero Client Py</title>
+    <link rel="stylesheet" href="styles.css" />
+    <meta name="description" content="Execute WASM application functions on a context via JSON-RPC." />
+    <meta name="theme-color" content="#0d1117" />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  </head>
+  <body>
+    <div class="main">
+      <div class="content">
+        <div class="breadcrumb">
+          <a href="index.html">Home</a><span class="sep">/</span>
+          <span>RPC</span>
+        </div>
+
+        <h1>RPC</h1>
+        <p class="page-subtitle">JSON-RPC execution — src/client.rs · execute_function</p>
+
+        <div class="card ga">
+          <h2>execute_function(context_id, method, args, executor_public_key?)</h2>
+          <p>
+            Calls a method on a WASM application running inside a context via
+            JSON-RPC. The node auto-resolves the caller's owned identity for
+            the context — <span class="code">executor_public_key</span> is
+            accepted for backward compatibility but ignored.
+          </p>
+
+          <div class="g3" style="margin-top: 20px">
+            <div class="step">
+              <div class="n">context_id</div>
+              <h4><span class="code">str</span></h4>
+              <p>The context ID string that the application is running in.</p>
+            </div>
+            <div class="step">
+              <div class="n">method</div>
+              <h4><span class="code">str</span></h4>
+              <p>The WASM function name to call, e.g. <span class="code">"get_value"</span> or <span class="code">"set_entries"</span>.</p>
+            </div>
+            <div class="step">
+              <div class="n">args</div>
+              <h4><span class="code">str</span> (JSON)</h4>
+              <p>
+                Arguments to the function as a JSON string. Must be valid JSON —
+                raises <span class="code">RuntimeError</span> if it cannot be
+                parsed.
+              </p>
+            </div>
+          </div>
+
+          <h3>Return value</h3>
+          <p>
+            Returns a Python <span class="code">dict</span> representing the
+            full JSON-RPC response envelope, including
+            <span class="code">id</span>, <span class="code">jsonrpc</span>,
+            and <span class="code">result</span> / <span class="code">error</span>
+            fields.
+          </p>
+        </div>
+
+        <div class="card gb">
+          <h2>Examples</h2>
+
+          <h3>Query — read-only call</h3>
+          <div class="typedef" style="margin-top: 8px; margin-bottom: 20px">
+            <span class="field">response</span> = <span class="field">client</span>.<span class="kw">execute_function</span>(<br />
+            &nbsp;&nbsp;<span class="field">context_id</span>=<span class="comment">"ctx-abc123"</span>,<br />
+            &nbsp;&nbsp;<span class="field">method</span>=<span class="comment">"get_value"</span>,<br />
+            &nbsp;&nbsp;<span class="field">args</span>=<span class="comment">'{"key": "my_key"}'</span><br />
+            )<br />
+            <span class="field">result</span> = <span class="field">response</span>[<span class="comment">"result"</span>]
+          </div>
+
+          <h3>Mutation — state-changing call</h3>
+          <div class="typedef" style="margin-top: 8px; margin-bottom: 20px">
+            <span class="field">response</span> = <span class="field">client</span>.<span class="kw">execute_function</span>(<br />
+            &nbsp;&nbsp;<span class="field">context_id</span>=<span class="comment">"ctx-abc123"</span>,<br />
+            &nbsp;&nbsp;<span class="field">method</span>=<span class="comment">"set_entries"</span>,<br />
+            &nbsp;&nbsp;<span class="field">args</span>=<span class="comment">'[{"key": "x", "value": "hello"}]'</span><br />
+            )
+          </div>
+
+          <h3>No arguments</h3>
+          <div class="typedef" style="margin-top: 8px">
+            <span class="field">response</span> = <span class="field">client</span>.<span class="kw">execute_function</span>(<br />
+            &nbsp;&nbsp;<span class="field">context_id</span>=<span class="comment">"ctx-abc123"</span>,<br />
+            &nbsp;&nbsp;<span class="field">method</span>=<span class="comment">"get_all_entries"</span>,<br />
+            &nbsp;&nbsp;<span class="field">args</span>=<span class="comment">"{}"</span><br />
+            )
+          </div>
+        </div>
+
+        <div class="card gc">
+          <h2>How it works</h2>
+          <div class="g3">
+            <div class="step">
+              <div class="n">1</div>
+              <h4>Build request</h4>
+              <p>
+                The Python args string is parsed as JSON and wrapped in a
+                <span class="code">jsonrpc::ExecutionRequest</span> targeting
+                the given context and method.
+              </p>
+            </div>
+            <div class="step">
+              <div class="n">2</div>
+              <h4>Send to node</h4>
+              <p>
+                Sent as a JSON-RPC 2.0 request to the node's RPC endpoint.
+                The node resolves the caller's identity from the JWT token.
+              </p>
+            </div>
+            <div class="step">
+              <div class="n">3</div>
+              <h4>Return response</h4>
+              <p>
+                The full JSON-RPC response is deserialized and returned as a
+                Python dict. Check <span class="code">response["result"]</span>
+                for the function output.
+              </p>
+            </div>
+          </div>
+
+          <div class="step" style="margin-top: 20px">
+            <div class="n">Note</div>
+            <h4>executor_public_key is ignored</h4>
+            <p>
+              This parameter is present for backward compatibility with older
+              clients. The node always auto-resolves the executor identity from
+              the authenticated session. You can pass an empty string or omit
+              it entirely.
+            </p>
+          </div>
+        </div>
+
+        <div class="card gd">
+          <h2>Error handling</h2>
+          <div class="typedef">
+            <span class="kw">try</span>:<br />
+            &nbsp;&nbsp;<span class="field">resp</span> = <span class="field">client</span>.<span class="kw">execute_function</span>(<span class="field">ctx_id</span>, <span class="comment">"my_method"</span>, <span class="comment">"{}"</span>)<br />
+            &nbsp;&nbsp;<span class="kw">if</span> <span class="comment">"error"</span> <span class="kw">in</span> <span class="field">resp</span>:<br />
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">print</span>(<span class="field">f"App error: {<span class="field">resp</span>[<span class="comment">'error'</span>]}"</span>)<br />
+            <span class="kw">except</span> <span class="ty">calimero</span>.<span class="ty">ClientError</span> <span class="kw">as</span> <span class="field">e</span>:<br />
+            &nbsp;&nbsp;<span class="comment"># Transport or auth failure</span><br />
+            &nbsp;&nbsp;<span class="kw">print</span>(<span class="field">f"Client error: {<span class="field">e</span>}"</span>)<br />
+            <span class="kw">except</span> <span class="ty">RuntimeError</span> <span class="kw">as</span> <span class="field">e</span>:<br />
+            &nbsp;&nbsp;<span class="comment"># Invalid JSON in args</span><br />
+            &nbsp;&nbsp;<span class="kw">print</span>(<span class="field">f"Bad args: {<span class="field">e</span>}"</span>)
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="nav.js"></script>
+  </body>
+</html>

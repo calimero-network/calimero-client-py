@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aliases — Calimero Client Py</title>
+    <link rel="stylesheet" href="styles.css" />
+    <meta name="description" content="Alias management for contexts, applications, and identities." />
+    <meta name="theme-color" content="#0d1117" />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  </head>
+  <body>
+    <div class="main">
+      <div class="content">
+        <div class="breadcrumb">
+          <a href="index.html">Home</a><span class="sep">/</span>
+          <span>Aliases</span>
+        </div>
+
+        <h1>Aliases</h1>
+        <p class="page-subtitle">Human-readable names for contexts, applications, and identities · src/client.rs</p>
+
+        <div class="card ga">
+          <h2>Overview</h2>
+          <p>
+            Aliases let you attach a stable, human-readable string to a context
+            ID, application ID, or identity public key. Instead of passing raw
+            hex IDs around, you can resolve a name like
+            <span class="code">"my-app"</span> to its underlying ID on demand.
+          </p>
+          <p style="margin-top: 10px">
+            There are three alias <em>types</em>, each with separate create /
+            delete / list / lookup / resolve operations:
+          </p>
+          <div class="g3" style="margin-top: 16px">
+            <div class="cb">
+              <h4><span class="tag tag-cli">Context alias</span></h4>
+              <p>Maps a name → <span class="code">ContextId</span>. Global scope (not tied to a specific context).</p>
+            </div>
+            <div class="cb">
+              <h4><span class="tag tag-lib">Application alias</span></h4>
+              <p>Maps a name → <span class="code">ApplicationId</span>. Global scope.</p>
+            </div>
+            <div class="cb">
+              <h4><span class="tag tag-actor">Identity alias</span></h4>
+              <p>Maps a name → <span class="code">PublicKey</span>. Scoped to a specific context ID.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- CONTEXT ALIASES -->
+        <div class="card gb">
+          <h2>Context Aliases</h2>
+          <div class="g2">
+            <div class="cb">
+              <h4>create_context_alias(alias, context_id)</h4>
+              <p>Registers a new name pointing to a context ID.</p>
+              <div class="typedef" style="margin-top: 6px">
+                <span class="field">client</span>.<span class="kw">create_context_alias</span>(<span class="comment">"my-ctx"</span>, <span class="comment">"abc123…"</span>)
+              </div>
+            </div>
+            <div class="cb">
+              <h4>delete_context_alias(alias)</h4>
+              <p>Removes a context alias by name.</p>
+              <div class="typedef" style="margin-top: 6px">
+                <span class="field">client</span>.<span class="kw">delete_context_alias</span>(<span class="comment">"my-ctx"</span>)
+              </div>
+            </div>
+            <div class="cb">
+              <h4>list_context_aliases()</h4>
+              <p>Returns all registered context aliases.</p>
+              <div class="typedef" style="margin-top: 6px">
+                <span class="field">aliases</span> = <span class="field">client</span>.<span class="kw">list_context_aliases</span>()
+              </div>
+            </div>
+            <div class="cb">
+              <h4>lookup_context_alias(alias)</h4>
+              <p>
+                Returns the alias record for a given name, including the
+                associated context ID and metadata.
+              </p>
+              <div class="typedef" style="margin-top: 6px">
+                <span class="field">record</span> = <span class="field">client</span>.<span class="kw">lookup_context_alias</span>(<span class="comment">"my-ctx"</span>)
+              </div>
+            </div>
+            <div class="cb">
+              <h4>resolve_context_alias(alias)</h4>
+              <p>
+                Returns only the <span class="code">ContextId</span> for a
+                given alias name — a lighter call than
+                <span class="code">lookup</span> when you only need the ID.
+              </p>
+              <div class="typedef" style="margin-top: 6px">
+                <span class="field">ctx_id</span> = <span class="field">client</span>.<span class="kw">resolve_context_alias</span>(<span class="comment">"my-ctx"</span>)
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- APPLICATION ALIASES -->
+        <div class="card gc">
+          <h2>Application Aliases</h2>
+          <div class="g2">
+            <div class="cb">
+              <h4>create_application_alias(alias, application_id)</h4>
+              <p>Registers a new name pointing to an application ID.</p>
+              <div class="typedef" style="margin-top: 6px">
+                <span class="field">client</span>.<span class="kw">create_application_alias</span>(<span class="comment">"kv-store"</span>, <span class="comment">"app-id…"</span>)
+              </div>
+            </div>
+            <div class="cb">
+              <h4>delete_application_alias(alias)</h4>
+              <p>Removes an application alias by name.</p>
+            </div>
+            <div class="cb">
+              <h4>list_application_aliases()</h4>
+              <p>Returns all registered application aliases.</p>
+            </div>
+            <div class="cb">
+              <h4>lookup_application_alias(alias)</h4>
+              <p>Returns the alias record for a given application alias name.</p>
+            </div>
+            <div class="cb">
+              <h4>resolve_application_alias(alias)</h4>
+              <p>Returns only the <span class="code">ApplicationId</span> for a given alias.</p>
+              <div class="typedef" style="margin-top: 6px">
+                <span class="field">app_id</span> = <span class="field">client</span>.<span class="kw">resolve_application_alias</span>(<span class="comment">"kv-store"</span>)
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- IDENTITY ALIASES -->
+        <div class="card gd">
+          <h2>Identity Aliases</h2>
+          <p>
+            Identity aliases are context-scoped — the same alias name can exist
+            in multiple contexts pointing to different public keys.
+          </p>
+          <div class="g2" style="margin-top: 16px">
+            <div class="cb">
+              <h4>create_context_identity_alias(context_id, alias, public_key)</h4>
+              <p>
+                Registers a name pointing to a public key within a specific
+                context.
+              </p>
+              <div class="typedef" style="margin-top: 6px">
+                <span class="field">client</span>.<span class="kw">create_context_identity_alias</span>(<br />
+                &nbsp;&nbsp;<span class="comment">"ctx-id"</span>, <span class="comment">"alice"</span>, <span class="comment">"pubkey…"</span><br />
+                )
+              </div>
+            </div>
+            <div class="cb">
+              <h4>delete_context_identity_alias(alias, context_id)</h4>
+              <p>Removes an identity alias within a specific context.</p>
+            </div>
+            <div class="cb">
+              <h4>list_context_identity_aliases(context_id)</h4>
+              <p>Returns all identity aliases registered within a context.</p>
+              <div class="typedef" style="margin-top: 6px">
+                <span class="field">aliases</span> = <span class="field">client</span>.<span class="kw">list_context_identity_aliases</span>(<span class="comment">"ctx-id"</span>)
+              </div>
+            </div>
+            <div class="cb">
+              <h4>lookup_context_identity_alias(alias, context_id)</h4>
+              <p>Returns the alias record for a given identity alias within a context.</p>
+            </div>
+            <div class="cb">
+              <h4>resolve_context_identity_alias(alias, context_id)</h4>
+              <p>Returns only the public key for a given identity alias within a context.</p>
+              <div class="typedef" style="margin-top: 6px">
+                <span class="field">pubkey</span> = <span class="field">client</span>.<span class="kw">resolve_context_identity_alias</span>(<span class="comment">"alice"</span>, <span class="comment">"ctx-id"</span>)
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- LOOKUP vs RESOLVE -->
+        <div class="card ga">
+          <h2>lookup vs resolve</h2>
+          <div class="g2">
+            <div class="step">
+              <div class="n">lookup</div>
+              <h4>Returns the full alias record</h4>
+              <p>
+                Includes the alias name, the value it points to, any scope
+                metadata, and creation info. Use this when you need full
+                context about the registration.
+              </p>
+            </div>
+            <div class="step">
+              <div class="n">resolve</div>
+              <h4>Returns just the target ID</h4>
+              <p>
+                Returns only the raw ID (context, application, or public key).
+                Prefer this when you only need the underlying ID to pass to
+                another API call.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="nav.js"></script>
+  </body>
+</html>

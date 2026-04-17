@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ConnectionInfo — Calimero Client Py</title>
+    <link rel="stylesheet" href="styles.css" />
+    <meta name="description" content="ConnectionInfo class — node URL, auth mode detection, raw HTTP access." />
+    <meta name="theme-color" content="#0d1117" />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  </head>
+  <body>
+    <div class="main">
+      <div class="content">
+        <div class="breadcrumb">
+          <a href="index.html">Home</a><span class="sep">/</span>
+          <span>ConnectionInfo</span>
+        </div>
+
+        <h1>ConnectionInfo</h1>
+        <p class="page-subtitle">calimero_client_py.ConnectionInfo · src/connection.rs</p>
+
+        <div class="card ga">
+          <h2>create_connection()</h2>
+          <p>
+            The preferred way to create a <span class="code">ConnectionInfo</span>
+            is via the module-level factory function.
+          </p>
+          <div class="typedef" style="margin-top: 12px">
+            <span class="kw">import</span> <span class="ty">calimero</span><br /><br />
+            <span class="field">conn</span> = <span class="ty">calimero</span>.<span class="kw">create_connection</span>(<br />
+            &nbsp;&nbsp;<span class="field">api_url</span>=<span class="comment">"https://node.example.com"</span>,<br />
+            &nbsp;&nbsp;<span class="field">node_name</span>=<span class="comment">"prod-node"</span>  <span class="comment"># optional, but recommended</span><br />
+            )
+          </div>
+
+          <div class="g2" style="margin-top: 20px">
+            <div class="step">
+              <div class="n">api_url</div>
+              <h4><span class="code">str</span></h4>
+              <p>
+                Full URL of the Calimero node, e.g.
+                <span class="code">https://test.merod.dev.p2p.aws.calimero.network</span>.
+                Must be a valid URL — raises <span class="code">ValueError</span>
+                if malformed.
+              </p>
+            </div>
+            <div class="step">
+              <div class="n">node_name</div>
+              <h4><span class="code">str | None</span></h4>
+              <p>
+                A stable, unique identifier for this node. Used as a key when
+                caching JWT tokens to disk. Use the same name across sessions to
+                reuse cached credentials. Defaults to <span class="code">None</span>.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card gb">
+          <h2>Properties</h2>
+          <div class="g2">
+            <div class="fr">
+              <div class="fp">.api_url</div>
+              <div class="fd"><span class="code">str</span> — The base URL the connection is pointed at.</div>
+            </div>
+            <div class="fr">
+              <div class="fp">.node_name</div>
+              <div class="fd"><span class="code">str | None</span> — The name assigned at construction for token caching.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card gc">
+          <h2>Methods</h2>
+
+          <h3>detect_auth_mode()</h3>
+          <p>
+            Probes the node to determine whether authentication is required.
+            Returns an <span class="code">AuthMode</span> object.
+          </p>
+          <div class="typedef" style="margin-top: 8px; margin-bottom: 20px">
+            <span class="field">mode</span> = <span class="field">conn</span>.<span class="kw">detect_auth_mode</span>()<br />
+            <span class="kw">if</span> <span class="field">mode</span>.<span class="field">value</span> == <span class="comment">"required"</span>:<br />
+            &nbsp;&nbsp;<span class="kw">print</span>(<span class="comment">"Node requires authentication"</span>)
+          </div>
+
+          <h3>get(path)</h3>
+          <p>
+            Makes a raw authenticated GET request to the node at the given path.
+            Returns a Python dict/list (deserialized from JSON). Useful for
+            accessing endpoints not yet wrapped by <span class="code">Client</span>.
+          </p>
+          <div class="typedef" style="margin-top: 8px">
+            <span class="field">data</span> = <span class="field">conn</span>.<span class="kw">get</span>(<span class="comment">"/admin-api/health"</span>)
+          </div>
+        </div>
+
+        <div class="card gd">
+          <h2>Token Caching</h2>
+          <p>
+            When <span class="code">node_name</span> is provided, JWT tokens are
+            cached to disk under <span class="code">~/.merobox/auth_cache/</span>.
+            The filename is derived from a hash of the node name to keep it
+            stable and unique.
+          </p>
+          <div class="g2" style="margin-top: 16px">
+            <div class="cb">
+              <h4>get_token_cache_dir()</h4>
+              <p>Returns the path to the token cache directory as a string.</p>
+              <div class="typedef" style="margin-top: 8px">
+                <span class="field">dir</span> = <span class="ty">calimero</span>.<span class="kw">get_token_cache_dir</span>()<br />
+                <span class="comment"># e.g. /home/user/.merobox/auth_cache</span>
+              </div>
+            </div>
+            <div class="cb">
+              <h4>get_token_cache_path(node_name)</h4>
+              <p>
+                Returns the full path to the cached token file for a specific
+                node name. Same input always produces the same output.
+              </p>
+              <div class="typedef" style="margin-top: 8px">
+                <span class="field">path</span> = <span class="ty">calimero</span>.<span class="kw">get_token_cache_path</span>(<span class="comment">"prod-node"</span>)<br />
+                <span class="comment"># ~/.merobox/auth_cache/prod-node-a1b2c3.json</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="step" style="margin-top: 20px">
+            <div class="n">!</div>
+            <h4>Use stable node names</h4>
+            <p>
+              Use the same <span class="code">node_name</span> across all
+              sessions to ensure cached tokens are found and reused. A different
+              name each run (e.g. using a UUID) defeats caching and forces a
+              re-authentication every time.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="nav.js"></script>
+  </body>
+</html>
