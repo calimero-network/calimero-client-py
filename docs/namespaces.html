@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Namespaces &amp; Groups — Calimero Client Py</title>
+    <link rel="stylesheet" href="styles.css" />
+    <meta name="description" content="Namespace and group management — create, invite, join, nest subgroups." />
+    <meta name="theme-color" content="#0d1117" />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  </head>
+  <body>
+    <div class="main">
+      <div class="content">
+        <div class="breadcrumb">
+          <a href="index.html">Home</a><span class="sep">/</span>
+          <span>Namespaces &amp; Groups</span>
+        </div>
+
+        <h1>Namespaces <em>&amp; Groups</em></h1>
+        <p class="page-subtitle">Multi-node coordination · src/client.rs</p>
+
+        <div class="card ga">
+          <h2>Overview</h2>
+          <p>
+            A <strong>namespace</strong> is a coordination boundary tied to an
+            application. Nodes can join a namespace to share state and contexts
+            across the network. Within a namespace, <strong>groups</strong>
+            organise members into hierarchical units that can be nested into
+            subgroups.
+          </p>
+          <div class="g3" style="margin-top: 16px">
+            <div class="step">
+              <div class="n">1</div>
+              <h4>Create a namespace</h4>
+              <p>Pick an installed application and an upgrade policy. Optionally assign a human-readable alias.</p>
+            </div>
+            <div class="step">
+              <div class="n">2</div>
+              <h4>Invite other nodes</h4>
+              <p>Generate an invitation token. Other nodes use it to join the namespace.</p>
+            </div>
+            <div class="step">
+              <div class="n">3</div>
+              <h4>Organise into groups</h4>
+              <p>Create groups within the namespace, nest them as subgroups, and manage membership.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- NAMESPACES -->
+        <div class="card gb">
+          <h2>Namespace Management</h2>
+          <div class="g2">
+            <div class="cb">
+              <h4>create_namespace(application_id, upgrade_policy?, alias?)</h4>
+              <p>
+                Creates a new namespace for an installed application.
+                <span class="code">upgrade_policy</span> defaults to
+                <span class="code">"lazy-on-access"</span>.
+                Accepted values: <span class="code">"automatic"</span>,
+                <span class="code">"lazy-on-access"</span>,
+                <span class="code">"coordinated"</span>.
+              </p>
+              <div class="typedef" style="margin-top: 6px">
+                <span class="field">ns</span> = <span class="field">client</span>.<span class="kw">create_namespace</span>(<br />
+                &nbsp;&nbsp;<span class="comment">"app-id"</span>,<br />
+                &nbsp;&nbsp;<span class="field">upgrade_policy</span>=<span class="comment">"lazy-on-access"</span>,<br />
+                &nbsp;&nbsp;<span class="field">alias</span>=<span class="comment">"my-namespace"</span><br />
+                )
+              </div>
+            </div>
+            <div class="cb">
+              <h4>get_namespace(namespace_id)</h4>
+              <p>Returns info about a namespace by its ID.</p>
+            </div>
+            <div class="cb">
+              <h4>delete_namespace(namespace_id)</h4>
+              <p>Deletes a namespace. This operation is irreversible.</p>
+            </div>
+            <div class="cb">
+              <h4>list_namespaces()</h4>
+              <p>Returns all namespaces this node is a member of.</p>
+              <div class="typedef" style="margin-top: 6px">
+                <span class="field">namespaces</span> = <span class="field">client</span>.<span class="kw">list_namespaces</span>()
+              </div>
+            </div>
+            <div class="cb">
+              <h4>list_namespaces_for_application(application_id)</h4>
+              <p>Returns all namespaces associated with a specific application.</p>
+            </div>
+            <div class="cb">
+              <h4>get_namespace_identity(namespace_id)</h4>
+              <p>Returns the identity (keypair) associated with this node's membership in the namespace.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- INVITATIONS -->
+        <div class="card gc">
+          <h2>Invitations</h2>
+          <div class="g2">
+            <div class="cb">
+              <h4>create_namespace_invitation(namespace_id, recursive?, expiration_timestamp?)</h4>
+              <p>
+                Generates an invitation token for others to join this namespace.
+                <span class="code">recursive</span> controls whether the
+                invitation grants access to sub-namespaces.
+                <span class="code">expiration_timestamp</span> is a Unix
+                millisecond timestamp after which the invitation expires.
+              </p>
+              <div class="typedef" style="margin-top: 6px">
+                <span class="field">invite</span> = <span class="field">client</span>.<span class="kw">create_namespace_invitation</span>(<br />
+                &nbsp;&nbsp;<span class="comment">"ns-id"</span>,<br />
+                &nbsp;&nbsp;<span class="field">recursive</span>=<span class="ty">True</span>,<br />
+                &nbsp;&nbsp;<span class="field">expiration_timestamp</span>=<span class="field">1800000000000</span><br />
+                )
+              </div>
+            </div>
+            <div class="cb">
+              <h4>join_namespace(namespace_id, invitation_json)</h4>
+              <p>
+                Joins a namespace using an invitation token received from
+                another node. <span class="code">invitation_json</span> is the
+                raw JSON string from the invitation response.
+              </p>
+              <div class="typedef" style="margin-top: 6px">
+                <span class="field">client</span>.<span class="kw">join_namespace</span>(<br />
+                &nbsp;&nbsp;<span class="comment">"ns-id"</span>,<br />
+                &nbsp;&nbsp;<span class="field">invitation_json</span>=<span class="field">json</span>.<span class="kw">dumps</span>(<span class="field">invite</span>)<br />
+                )
+              </div>
+            </div>
+            <div class="cb">
+              <h4>subscribe_namespace(namespace_id)</h4>
+              <p>
+                Subscribes this node to a namespace it has already joined, enabling it to receive updates and sync events.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- GROUPS -->
+        <div class="card gd">
+          <h2>Groups</h2>
+          <div class="g2">
+            <div class="cb">
+              <h4>list_namespace_groups(namespace_id)</h4>
+              <p>Returns all groups within a namespace.</p>
+              <div class="typedef" style="margin-top: 6px">
+                <span class="field">groups</span> = <span class="field">client</span>.<span class="kw">list_namespace_groups</span>(<span class="comment">"ns-id"</span>)
+              </div>
+            </div>
+            <div class="cb">
+              <h4>create_group_in_namespace(namespace_id, group_alias?)</h4>
+              <p>
+                Creates a new group inside a namespace. An optional
+                <span class="code">group_alias</span> gives it a human-readable
+                name.
+              </p>
+              <div class="typedef" style="margin-top: 6px">
+                <span class="field">group</span> = <span class="field">client</span>.<span class="kw">create_group_in_namespace</span>(<br />
+                &nbsp;&nbsp;<span class="comment">"ns-id"</span>, <span class="field">group_alias</span>=<span class="comment">"team-a"</span><br />
+                )
+              </div>
+            </div>
+            <div class="cb">
+              <h4>nest_group(parent_group_id, child_group_id)</h4>
+              <p>
+                Makes one group a subgroup of another. Groups can be nested to
+                form a hierarchy.
+              </p>
+              <div class="typedef" style="margin-top: 6px">
+                <span class="field">client</span>.<span class="kw">nest_group</span>(<span class="comment">"parent-id"</span>, <span class="comment">"child-id"</span>)
+              </div>
+            </div>
+            <div class="cb">
+              <h4>unnest_group(parent_group_id, child_group_id)</h4>
+              <p>Removes a group from being a subgroup of another.</p>
+              <div class="typedef" style="margin-top: 6px">
+                <span class="field">client</span>.<span class="kw">unnest_group</span>(<span class="comment">"parent-id"</span>, <span class="comment">"child-id"</span>)
+              </div>
+            </div>
+            <div class="cb">
+              <h4>list_subgroups(group_id)</h4>
+              <p>Returns all direct subgroups of a group.</p>
+              <div class="typedef" style="margin-top: 6px">
+                <span class="field">subs</span> = <span class="field">client</span>.<span class="kw">list_subgroups</span>(<span class="comment">"group-id"</span>)
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- UPGRADE POLICIES -->
+        <div class="card ga">
+          <h2>Upgrade Policies</h2>
+          <p>
+            When creating a namespace, the upgrade policy controls how application
+            updates are applied across participating nodes.
+          </p>
+          <div class="g3" style="margin-top: 16px">
+            <div class="cb">
+              <h4><span class="code">"automatic"</span></h4>
+              <p>Nodes upgrade to a new application version as soon as it is published to the namespace.</p>
+            </div>
+            <div class="cb">
+              <h4><span class="code">"lazy-on-access"</span></h4>
+              <p>Nodes upgrade on their next access to the context after a new version is available. <strong>Default.</strong></p>
+            </div>
+            <div class="cb">
+              <h4><span class="code">"coordinated"</span></h4>
+              <p>Upgrade happens at a scheduled deadline agreed upon by all nodes.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="nav.js"></script>
+  </body>
+</html>

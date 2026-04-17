@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Architecture — Calimero Client Py</title>
+    <link rel="stylesheet" href="styles.css" />
+    <meta name="description" content="Architecture overview — PyO3 bindings, Tokio runtime, Merobox authenticator, and token cache." />
+    <meta name="theme-color" content="#0d1117" />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  </head>
+  <body>
+    <div class="main">
+      <div class="content">
+        <div class="breadcrumb">
+          <a href="index.html">Home</a><span class="sep">/</span>
+          <span>Architecture</span>
+        </div>
+
+        <h1>Architecture</h1>
+        <p class="page-subtitle">How calimero-client-py is structured internally</p>
+
+        <div class="card ga">
+          <h2>Overview</h2>
+          <p>
+            <span class="code">calimero-client-py</span> is a Python extension
+            module built with <strong>PyO3</strong> and <strong>Maturin</strong>.
+            The Python API is a thin synchronous wrapper around an async Rust
+            client — each method call spins up a Tokio runtime internally to
+            drive async requests to completion before returning a result to
+            Python.
+          </p>
+          <div class="g3" style="margin-top: 20px">
+            <div class="step">
+              <div class="n">1</div>
+              <h4>Python layer</h4>
+              <p>
+                <span class="code">calimero/</span> package re-exports all types
+                from the compiled Rust extension
+                <span class="code">calimero_client_py.so</span>.
+              </p>
+            </div>
+            <div class="step">
+              <div class="n">2</div>
+              <h4>PyO3 bindings</h4>
+              <p>
+                <span class="code">src/*.rs</span> wraps every Rust type with a
+                <span class="code">#[pyclass]</span> and every function with
+                <span class="code">#[pyfunction]</span> for seamless Python
+                interop.
+              </p>
+            </div>
+            <div class="step">
+              <div class="n">3</div>
+              <h4>Rust core</h4>
+              <p>
+                <span class="code">calimero_client</span> crate provides the
+                actual HTTP transport, auth, and serialization, shared with
+                other Calimero tooling.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card gb">
+          <h2>Module Structure</h2>
+          <div class="g2">
+            <div>
+              <div class="fr">
+                <div class="fp">src/lib.rs</div>
+                <div class="fd">PyO3 module entry point. Registers all classes and functions.</div>
+              </div>
+              <div class="fr">
+                <div class="fp">src/client.rs</div>
+                <div class="fd">
+                  <span class="code">PyClient</span> — wraps <span class="code">calimero_client::client::Client</span>.
+                  All API methods: contexts, apps, blobs, identities, RPC.
+                </div>
+              </div>
+              <div class="fr">
+                <div class="fp">src/connection.rs</div>
+                <div class="fd">
+                  <span class="code">PyConnectionInfo</span> — wraps <span class="code">ConnectionInfo</span>,
+                  exposes <span class="code">api_url</span>, <span class="code">node_name</span>,
+                  <span class="code">get()</span>, <span class="code">detect_auth_mode()</span>.
+                </div>
+              </div>
+              <div class="fr">
+                <div class="fp">src/auth.rs</div>
+                <div class="fd"><span class="code">PyAuthMode</span> — "none" | "required" enum wrapper.</div>
+              </div>
+              <div class="fr">
+                <div class="fp">src/token.rs</div>
+                <div class="fd"><span class="code">PyJwtToken</span> — JWT access/refresh token pair.</div>
+              </div>
+              <div class="fr">
+                <div class="fp">src/cache.rs</div>
+                <div class="fd">Token cache path utilities: <span class="code">get_token_cache_path()</span>, <span class="code">get_token_cache_dir()</span>.</div>
+              </div>
+              <div class="fr">
+                <div class="fp">src/storage.rs</div>
+                <div class="fd"><span class="code">MeroboxFileStorage</span> — disk-backed JWT token storage for the authenticator.</div>
+              </div>
+              <div class="fr">
+                <div class="fp">src/utils.rs</div>
+                <div class="fd">JSON → Python object conversion helpers used by all API wrappers.</div>
+              </div>
+            </div>
+            <div>
+              <div class="fr">
+                <div class="fp">calimero/__init__.py</div>
+                <div class="fd">Re-exports all types from <span class="code">calimero_client_py</span>. This is the user-facing import surface.</div>
+              </div>
+              <div class="fr">
+                <div class="fp">calimero/cli.py</div>
+                <div class="fd">CLI entry point. Provides <span class="code">calimero-client-py</span> shell command.</div>
+              </div>
+              <div class="fr">
+                <div class="fp">pyproject.toml</div>
+                <div class="fd">Maturin build config. Produces a source distribution (sdist). Requires Rust toolchain to build from source.</div>
+              </div>
+              <div class="fr">
+                <div class="fp">Cargo.toml</div>
+                <div class="fd">Rust crate manifest. Depends on <span class="code">calimero_client</span>, <span class="code">pyo3</span>, <span class="code">tokio</span>.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card gc">
+          <h2>Async Model</h2>
+          <p>
+            Python code calls synchronous methods — no
+            <span class="code">async/await</span> needed. Internally, each
+            method creates or reuses a <strong>Tokio runtime</strong>
+            (<span class="code">Runtime::block_on</span>) that runs the async
+            Rust future to completion before handing the result back to Python.
+          </p>
+          <div class="g2" style="margin-top: 16px">
+            <div class="step">
+              <div class="n">Why sync?</div>
+              <h4>Simpler Python ergonomics</h4>
+              <p>
+                Python users benefit from straightforward synchronous calls
+                without needing to manage event loops. The Rust layer handles
+                all async complexity internally.
+              </p>
+            </div>
+            <div class="step">
+              <div class="n">GIL</div>
+              <h4>Thread safety</h4>
+              <p>
+                PyO3 acquires the GIL for all Python object creation
+                (<span class="code">Python::with_gil</span>). The async Rust
+                work runs outside the GIL via
+                <span class="code">block_on</span>, allowing other threads to
+                run during network I/O.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card gd">
+          <h2>Authentication Flow</h2>
+          <div class="g3">
+            <div class="step">
+              <div class="n">1</div>
+              <h4>detect_auth_mode()</h4>
+              <p>
+                Call <span class="code">conn.detect_auth_mode()</span> to probe
+                the node. Returns <span class="code">AuthMode("none")</span> for
+                open nodes or <span class="code">AuthMode("required")</span> for
+                authenticated ones.
+              </p>
+            </div>
+            <div class="step">
+              <div class="n">2</div>
+              <h4>CliAuthenticator</h4>
+              <p>
+                When auth is required, the
+                <span class="code">CliAuthenticator</span> prompts the user in
+                the terminal for credentials, obtains JWT tokens from the node,
+                and stores them via <span class="code">MeroboxFileStorage</span>.
+              </p>
+            </div>
+            <div class="step">
+              <div class="n">3</div>
+              <h4>Token cache</h4>
+              <p>
+                Tokens are cached at
+                <span class="code">~/.merobox/auth_cache/{node_name}-{hash}.json</span>.
+                Subsequent calls reuse cached tokens and refresh automatically
+                before expiry.
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <script src="nav.js"></script>
+  </body>
+</html>

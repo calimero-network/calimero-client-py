@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Client — Calimero Client Py</title>
+    <link rel="stylesheet" href="styles.css" />
+    <meta name="description" content="Client class API reference — contexts, applications, blobs, identities." />
+    <meta name="theme-color" content="#0d1117" />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  </head>
+  <body>
+    <div class="main">
+      <div class="content">
+        <div class="breadcrumb">
+          <a href="index.html">Home</a><span class="sep">/</span>
+          <span>Client</span>
+        </div>
+
+        <h1>Client</h1>
+        <p class="page-subtitle">calimero_client_py.Client · src/client.rs</p>
+
+        <div class="card ga">
+          <h2>Constructor</h2>
+          <p>
+            Create a <span class="code">Client</span> from an existing
+            <span class="code">ConnectionInfo</span>. All methods are
+            synchronous — the Tokio runtime is managed internally.
+            Responses are returned as Python <span class="code">dict</span> /
+            <span class="code">list</span> (JSON-deserialized).
+          </p>
+          <div class="typedef" style="margin-top: 12px">
+            <span class="kw">import</span> <span class="ty">calimero</span><br /><br />
+            <span class="field">conn</span> = <span class="ty">calimero</span>.<span class="kw">create_connection</span>(<br />
+            &nbsp;&nbsp;<span class="field">api_url</span>=<span class="comment">"https://node.example.com"</span>,<br />
+            &nbsp;&nbsp;<span class="field">node_name</span>=<span class="comment">"prod-node"</span><br />
+            )<br />
+            <span class="field">client</span> = <span class="ty">calimero</span>.<span class="kw">create_client</span>(<span class="field">conn</span>)
+          </div>
+
+          <h3>get_api_url()</h3>
+          <p>Returns the node URL this client is connected to.</p>
+          <div class="typedef" style="margin-top: 6px">
+            <span class="field">url</span>: <span class="ty">str</span> = <span class="field">client</span>.<span class="kw">get_api_url</span>()
+          </div>
+        </div>
+
+        <!-- CONTEXTS -->
+        <div class="card gb">
+          <h2>Contexts</h2>
+          <div class="g2">
+            <div class="cb">
+              <h4>list_contexts()</h4>
+              <p>Returns all contexts on the node.</p>
+              <div class="typedef" style="margin-top: 6px">
+                <span class="field">contexts</span> = <span class="field">client</span>.<span class="kw">list_contexts</span>()
+              </div>
+            </div>
+            <div class="cb">
+              <h4>get_context(context_id)</h4>
+              <p>Returns details of a single context by its ID string.</p>
+              <div class="typedef" style="margin-top: 6px">
+                <span class="field">ctx</span> = <span class="field">client</span>.<span class="kw">get_context</span>(<span class="comment">"abc123…"</span>)
+              </div>
+            </div>
+            <div class="cb">
+              <h4>create_context(application_id, group_id, params?, service_name?)</h4>
+              <p>
+                Creates a new context for an installed application.
+                <span class="code">params</span> is a JSON string of initialization
+                parameters. <span class="code">service_name</span> is an optional
+                service qualifier.
+              </p>
+              <div class="typedef" style="margin-top: 6px">
+                <span class="field">ctx</span> = <span class="field">client</span>.<span class="kw">create_context</span>(<br />
+                &nbsp;&nbsp;<span class="comment">"app-id"</span>, <span class="comment">"group-id"</span>,<br />
+                &nbsp;&nbsp;<span class="field">params</span>=<span class="comment">'{"key":"val"}'</span><br />
+                )
+              </div>
+            </div>
+            <div class="cb">
+              <h4>delete_context(context_id)</h4>
+              <p>Permanently deletes a context by ID.</p>
+            </div>
+            <div class="cb">
+              <h4>sync_context(context_id)</h4>
+              <p>Triggers a sync for a specific context.</p>
+            </div>
+            <div class="cb">
+              <h4>sync_all_contexts()</h4>
+              <p>Triggers a sync for all contexts on the node.</p>
+            </div>
+            <div class="cb">
+              <h4>update_context_application(context_id, application_id, executor_public_key)</h4>
+              <p>Upgrades a context to a different (or newer) application version.</p>
+            </div>
+            <div class="cb">
+              <h4>get_context_storage(context_id)</h4>
+              <p>Returns storage usage stats for a context.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- IDENTITIES & KEYS -->
+        <div class="card gc">
+          <h2>Identities &amp; Keys</h2>
+          <div class="g2">
+            <div class="cb">
+              <h4>get_context_identities(context_id)</h4>
+              <p>Lists all identity public keys associated with a context.</p>
+            </div>
+            <div class="cb">
+              <h4>get_context_client_keys(context_id)</h4>
+              <p>Returns the client keys registered for a context.</p>
+            </div>
+            <div class="cb">
+              <h4>generate_context_identity()</h4>
+              <p>
+                Generates a new keypair for use in contexts. Returns the public
+                key and associated metadata.
+              </p>
+              <div class="typedef" style="margin-top: 6px">
+                <span class="field">identity</span> = <span class="field">client</span>.<span class="kw">generate_context_identity</span>()
+              </div>
+            </div>
+            <div class="cb">
+              <h4>get_peers_count()</h4>
+              <p>Returns the number of peers currently connected to the node.</p>
+              <div class="typedef" style="margin-top: 6px">
+                <span class="field">count</span> = <span class="field">client</span>.<span class="kw">get_peers_count</span>()
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- APPLICATIONS -->
+        <div class="card gd">
+          <h2>Applications</h2>
+          <div class="g2">
+            <div class="cb">
+              <h4>list_applications()</h4>
+              <p>Returns all applications installed on the node.</p>
+            </div>
+            <div class="cb">
+              <h4>get_application(app_id)</h4>
+              <p>Returns details of an installed application by its ID.</p>
+            </div>
+            <div class="cb">
+              <h4>install_application(url, hash?, metadata?)</h4>
+              <p>
+                Installs an application from a remote URL. The optional
+                <span class="code">hash</span> (hex string, 32 bytes) verifies
+                integrity. <span class="code">metadata</span> is raw bytes
+                (defaults to <span class="code">b"{}"</span>).
+              </p>
+              <div class="typedef" style="margin-top: 6px">
+                <span class="field">result</span> = <span class="field">client</span>.<span class="kw">install_application</span>(<br />
+                &nbsp;&nbsp;<span class="comment">"https://example.com/app.wasm"</span>,<br />
+                &nbsp;&nbsp;<span class="field">hash</span>=<span class="comment">"ab12cd…"</span><br />
+                )
+              </div>
+            </div>
+            <div class="cb">
+              <h4>install_dev_application(path, metadata?)</h4>
+              <p>
+                Installs a local WASM file for development. Accepts a UTF-8
+                filesystem path.
+              </p>
+              <div class="typedef" style="margin-top: 6px">
+                <span class="field">result</span> = <span class="field">client</span>.<span class="kw">install_dev_application</span>(<span class="comment">"/path/to/app.wasm"</span>)
+              </div>
+            </div>
+            <div class="cb">
+              <h4>uninstall_application(app_id)</h4>
+              <p>Removes an installed application by its ID.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- BLOBS -->
+        <div class="card ga">
+          <h2>Blobs</h2>
+          <div class="g2">
+            <div class="cb">
+              <h4>list_blobs()</h4>
+              <p>Returns all blobs stored on the node.</p>
+            </div>
+            <div class="cb">
+              <h4>get_blob_info(blob_id)</h4>
+              <p>Returns metadata about a blob by its ID string.</p>
+            </div>
+            <div class="cb">
+              <h4>upload_blob(data, context_id?)</h4>
+              <p>
+                Uploads raw bytes as a blob. Optionally scoped to a
+                <span class="code">context_id</span>. Returns blob metadata
+                including the new blob ID.
+              </p>
+              <div class="typedef" style="margin-top: 6px">
+                <span class="field">info</span> = <span class="field">client</span>.<span class="kw">upload_blob</span>(<span class="field">b"hello world"</span>)
+              </div>
+            </div>
+            <div class="cb">
+              <h4>download_blob(blob_id, context_id?)</h4>
+              <p>
+                Downloads a blob by ID. Returns raw
+                <span class="code">bytes</span>.
+              </p>
+              <div class="typedef" style="margin-top: 6px">
+                <span class="field">data</span>: <span class="ty">bytes</span> = <span class="field">client</span>.<span class="kw">download_blob</span>(<span class="comment">"blob-id"</span>)
+              </div>
+            </div>
+            <div class="cb">
+              <h4>delete_blob(blob_id)</h4>
+              <p>Permanently deletes a blob by its ID.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ERROR HANDLING -->
+        <div class="card gb">
+          <h2>Error Handling</h2>
+          <p>
+            Methods raise <span class="code">calimero.ClientError</span> for
+            node/network failures and <span class="code">ValueError</span> for
+            malformed arguments (bad IDs, invalid URLs).
+          </p>
+          <div class="typedef" style="margin-top: 12px">
+            <span class="kw">try</span>:<br />
+            &nbsp;&nbsp;<span class="field">ctx</span> = <span class="field">client</span>.<span class="kw">get_context</span>(<span class="comment">"bad-id"</span>)<br />
+            <span class="kw">except</span> <span class="ty">calimero</span>.<span class="ty">ClientError</span> <span class="kw">as</span> <span class="field">e</span>:<br />
+            &nbsp;&nbsp;<span class="kw">print</span>(<span class="field">f"Node error: {<span class="field">e</span>}"</span>)<br />
+            <span class="kw">except</span> <span class="ty">ValueError</span> <span class="kw">as</span> <span class="field">e</span>:<br />
+            &nbsp;&nbsp;<span class="kw">print</span>(<span class="field">f"Bad argument: {<span class="field">e</span>}"</span>)
+          </div>
+          <p style="margin-top: 12px">
+            See <a href="types.html">Types</a> for a full breakdown of when
+            each exception is raised.
+          </p>
+        </div>
+      </div>
+    </div>
+    <script src="nav.js"></script>
+  </body>
+</html>
