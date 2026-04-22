@@ -106,23 +106,23 @@ def _client():
 def test_client_has_reparent_group_method():
     """The pyo3 wrapper must expose reparent_group()."""
     client = _client()
-    assert hasattr(client, "reparent_group"), (
-        "Client.reparent_group missing — pyo3 binding not registered"
-    )
+    assert hasattr(
+        client, "reparent_group"
+    ), "Client.reparent_group missing — pyo3 binding not registered"
     assert callable(getattr(client, "reparent_group"))
 
 
 def test_client_does_not_have_nest_group_method():
     """nest_group has been removed in the strict-tree refactor."""
     client = _client()
-    assert not hasattr(client, "nest_group"), (
-        "Client.nest_group should be removed — orphan-creating primitive"
-    )
+    assert not hasattr(
+        client, "nest_group"
+    ), "Client.nest_group should be removed — orphan-creating primitive"
 
 
 def test_client_does_not_have_unnest_group_method():
     """unnest_group has been removed in the strict-tree refactor."""
     client = _client()
-    assert not hasattr(client, "unnest_group"), (
-        "Client.unnest_group should be removed — orphan-creating primitive"
-    )
+    assert not hasattr(
+        client, "unnest_group"
+    ), "Client.unnest_group should be removed — orphan-creating primitive"
