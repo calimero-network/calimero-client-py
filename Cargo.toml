@@ -1,6 +1,6 @@
 [package]
 name = "calimero-client-py"
-version = "0.5.2"
+version = "0.6.0"
 edition = "2021"
 authors = ["Calimero Limited <info@calimero.network>"]
 description = "Python client library for Calimero Network"
@@ -27,10 +27,10 @@ crate-type = ["cdylib"]
 
 [dependencies]
 # Core Calimero crates
-calimero-client = { git = "https://github.com/calimero-network/core", branch = "master" }
-calimero-primitives = { git = "https://github.com/calimero-network/core", branch = "master" }
-calimero-server-primitives = { git = "https://github.com/calimero-network/core", branch = "master" }
-calimero-context-config = { git = "https://github.com/calimero-network/core", branch = "master" }
+calimero-client = { git = "https://github.com/calimero-network/core", branch = "feat/strict-group-tree-cascade-delete" }
+calimero-primitives = { git = "https://github.com/calimero-network/core", branch = "feat/strict-group-tree-cascade-delete" }
+calimero-server-primitives = { git = "https://github.com/calimero-network/core", branch = "feat/strict-group-tree-cascade-delete" }
+calimero-context-config = { git = "https://github.com/calimero-network/core", branch = "feat/strict-group-tree-cascade-delete" }
 
 # Python bindings
 pyo3 = { version = "0.22", features = ["extension-module"] }
