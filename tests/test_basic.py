@@ -84,3 +84,45 @@ async def test_async_fixtures():
     # This test will use the async fixtures from conftest.py
     # The fixtures will be injected by pytest
     pass
+
+
+# -----------------------------------------------------------------------
+# Strict-tree refactor coordination (calimero-network/core PR #2200):
+# the orphan-creating nest_group/unnest_group methods are removed and
+# replaced by the atomic reparent_group primitive. These introspection
+# tests pin the API surface so a regression (re-adding the old methods,
+# losing the new one) fails CI fast without needing a live node.
+# -----------------------------------------------------------------------
+
+
+def _client():
+    connection = create_connection(
+        api_url="https://test.merod.dev.p2p.aws.calimero.network",
+        node_name="test-dev-node",
+    )
+    return create_client(connection)
+
+
+def test_client_has_reparent_group_method():
+    """The pyo3 wrapper must expose reparent_group()."""
+    client = _client()
+    assert hasattr(client, "reparent_group"), (
+        "Client.reparent_group missing — pyo3 binding not registered"
+    )
+    assert callable(getattr(client, "reparent_group"))
+
+
+def test_client_does_not_have_nest_group_method():
+    """nest_group has been removed in the strict-tree refactor."""
+    client = _client()
+    assert not hasattr(client, "nest_group"), (
+        "Client.nest_group should be removed — orphan-creating primitive"
+    )
+
+
+def test_client_does_not_have_unnest_group_method():
+    """unnest_group has been removed in the strict-tree refactor."""
+    client = _client()
+    assert not hasattr(client, "unnest_group"), (
+        "Client.unnest_group should be removed — orphan-creating primitive"
+    )

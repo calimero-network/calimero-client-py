@@ -1818,53 +1818,22 @@ impl PyClient {
         })
     }
 
-    pub fn nest_group(&self, parent_group_id: &str, child_group_id: &str) -> PyResult<PyObject> {
+    /// Atomic edge swap: move `group_id` to a new parent. Replaces the
+    /// previous nest/unnest pair — orphan state is no longer reachable.
+    /// Returns `{ "reparented": bool }` (false on idempotent no-op when
+    /// `group_id` already had `new_parent_id` as its parent).
+    pub fn reparent_group(&self, group_id: &str, new_parent_id: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
-        let parent_group_id = parent_group_id.to_string();
-        let child_group_id = child_group_id.to_string();
+        let group_id = group_id.to_string();
+        let new_parent_id = new_parent_id.to_string();
 
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
                 inner
-                    .nest_group(
-                        &parent_group_id,
-                        admin::NestGroupApiRequest {
-                            child_group_id,
-                            requester: None,
-                        },
-                    )
-                    .await
-            });
-            match result {
-                Ok(data) => {
-                    let json_data = serde_json::to_value(data).map_err(|e| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                            "Failed to serialize response: {}",
-                            e
-                        ))
-                    })?;
-                    Ok(json_to_python(py, &json_data))
-                }
-                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Client error: {}",
-                    e
-                ))),
-            }
-        })
-    }
-
-    pub fn unnest_group(&self, parent_group_id: &str, child_group_id: &str) -> PyResult<PyObject> {
-        let inner = self.inner.clone();
-        let parent_group_id = parent_group_id.to_string();
-        let child_group_id = child_group_id.to_string();
-
-        Python::with_gil(|py| {
-            let result = self.runtime.block_on(async move {
-                inner
-                    .unnest_group(
-                        &parent_group_id,
-                        admin::UnnestGroupApiRequest {
-                            child_group_id,
+                    .reparent_group(
+                        &group_id,
+                        admin::ReparentGroupApiRequest {
+                            new_parent_id,
                             requester: None,
                         },
                     )
