@@ -1604,7 +1604,10 @@ impl PyClient {
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
                 inner
-                    .delete_group(&namespace_id, admin::DeleteGroupApiRequest { requester })
+                    .delete_namespace(
+                        &namespace_id,
+                        admin::DeleteNamespaceApiRequest { requester },
+                    )
                     .await
             });
 
