@@ -126,3 +126,110 @@ def test_client_does_not_have_unnest_group_method():
     assert not hasattr(
         client, "unnest_group"
     ), "Client.unnest_group should be removed — orphan-creating primitive"
+
+
+# -----------------------------------------------------------------------
+# Optional `requester` parameter on delete_context / delete_group /
+# delete_namespace. The server requires an admin requester for
+# group-registered operations (e.g.
+# core/crates/context/src/handlers/delete_context.rs:54-68). These
+# tests pin the parameter into the Python binding so a regression
+# (dropping the param, renaming it, or breaking backward compat) fails
+# CI without needing a live node.
+# -----------------------------------------------------------------------
+
+
+def _method_accepts_kwarg(method, kwarg_name: str) -> bool:
+    """Pyo3 methods don't expose a Python inspect.signature — probe by call.
+
+    We pass the kwarg along with a bogus value that triggers our own
+    ValueError at parse time. If the binding accepts the kwarg name, we
+    reach the parse step and see ValueError. If the binding doesn't know
+    the kwarg, pyo3 raises TypeError("unexpected keyword argument ...")
+    before any parse happens.
+    """
+    try:
+        # Bogus but well-formed-looking public-key string. Real call will
+        # fail server-side; we only care whether the binding accepts the kwarg.
+        method("a" * 44, **{kwarg_name: "not-a-real-public-key"})
+    except TypeError as e:
+        # "got an unexpected keyword argument 'requester'" means the
+        # binding doesn't declare the kwarg.
+        if kwarg_name in str(e) and "unexpected keyword" in str(e):
+            return False
+        # Any other TypeError: signature accepted the kwarg but failed
+        # later (e.g. required positional was a dummy) — which still
+        # means the kwarg is known.
+        return True
+    except ValueError:
+        # Our own "Invalid requester public key '...'" — the kwarg was
+        # accepted and reached our PublicKey parser. That's what we want.
+        return True
+    except Exception:
+        # Any other exception (RuntimeError from network, etc.) means
+        # the kwarg was accepted and the call progressed past signature
+        # parsing. Treat as accepted.
+        return True
+    return True
+
+
+def test_delete_context_accepts_requester_kwarg():
+    """delete_context must accept an optional `requester` keyword."""
+    client = _client()
+    assert _method_accepts_kwarg(
+        client.delete_context, "requester"
+    ), "delete_context is missing the 'requester' kwarg — pyo3 signature not updated"
+
+
+def test_delete_group_accepts_requester_kwarg():
+    """delete_group must accept an optional `requester` keyword."""
+    client = _client()
+    assert _method_accepts_kwarg(
+        client.delete_group, "requester"
+    ), "delete_group is missing the 'requester' kwarg — pyo3 signature not updated"
+
+
+def test_delete_namespace_accepts_requester_kwarg():
+    """delete_namespace must accept an optional `requester` keyword."""
+    client = _client()
+    assert _method_accepts_kwarg(
+        client.delete_namespace, "requester"
+    ), "delete_namespace is missing the 'requester' kwarg — pyo3 signature not updated"
+
+
+def test_delete_group_rejects_invalid_requester_public_key():
+    """Invalid requester string should fail fast with ValueError.
+
+    delete_group takes group_id as a plain string (no ContextId parse),
+    so an invalid requester hits the PublicKey parser deterministically.
+    This pins the validation path: the pyo3 binding parses the requester
+    string as PublicKey before any network round-trip. A workflow author
+    who typos the key gets a meaningful Python ValueError, not a generic
+    server 500.
+    """
+    client = _client()
+    with pytest.raises(ValueError, match="Invalid requester public key"):
+        client.delete_group("some-group-id", requester="not-a-real-public-key")
+
+
+def test_delete_namespace_rejects_invalid_requester_public_key():
+    """Same contract as delete_group — validates the requester before dispatch."""
+    client = _client()
+    with pytest.raises(ValueError, match="Invalid requester public key"):
+        client.delete_namespace("some-namespace-id", requester="not-a-real-public-key")
+
+
+def test_delete_group_backward_compatible_without_requester():
+    """Existing callers that omit requester must keep working (no signature break).
+
+    We can't actually DELETE from a test environment — we just verify
+    the call doesn't raise TypeError about the signature. Any other
+    failure (network, server-side) is fine; what we're pinning is that
+    the old single-argument call still dispatches.
+    """
+    client = _client()
+    with pytest.raises(Exception) as exc_info:
+        client.delete_group("some-group-id")
+    assert not isinstance(
+        exc_info.value, TypeError
+    ), f"delete_group without requester raised TypeError (signature regression): {exc_info.value}"

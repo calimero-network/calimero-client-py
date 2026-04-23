@@ -12,6 +12,7 @@ use calimero_primitives::blobs;
 use calimero_primitives::context::{ContextId, GroupMemberRole, UpgradePolicy};
 use calimero_primitives::hash::Hash;
 use calimero_primitives::identity;
+use calimero_primitives::identity::PublicKey;
 use calimero_server_primitives::admin;
 use calimero_server_primitives::jsonrpc;
 use pyo3::prelude::*;
@@ -620,7 +621,8 @@ impl PyClient {
     }
 
     /// Delete context
-    pub fn delete_context(&self, context_id: &str) -> PyResult<PyObject> {
+    #[pyo3(signature = (context_id, requester=None))]
+    pub fn delete_context(&self, context_id: &str, requester: Option<&str>) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let context_id = context_id.parse::<ContextId>().map_err(|e| {
             PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
@@ -628,11 +630,20 @@ impl PyClient {
                 context_id, e
             ))
         })?;
+        let requester = match requester {
+            Some(r) => Some(r.parse::<PublicKey>().map_err(|e| {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "Invalid requester public key '{}': {}",
+                    r, e
+                ))
+            })?),
+            None => None,
+        };
 
         Python::with_gil(|py| {
             let result = self
                 .runtime
-                .block_on(async move { inner.delete_context(&context_id, None).await });
+                .block_on(async move { inner.delete_context(&context_id, requester).await });
 
             match result {
                 Ok(data) => {
@@ -1572,17 +1583,28 @@ impl PyClient {
         })
     }
 
-    pub fn delete_namespace(&self, namespace_id: &str) -> PyResult<PyObject> {
+    #[pyo3(signature = (namespace_id, requester=None))]
+    pub fn delete_namespace(
+        &self,
+        namespace_id: &str,
+        requester: Option<&str>,
+    ) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let namespace_id = namespace_id.to_string();
+        let requester = match requester {
+            Some(r) => Some(r.parse::<PublicKey>().map_err(|e| {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "Invalid requester public key '{}': {}",
+                    r, e
+                ))
+            })?),
+            None => None,
+        };
 
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
                 inner
-                    .delete_group(
-                        &namespace_id,
-                        admin::DeleteGroupApiRequest { requester: None },
-                    )
+                    .delete_group(&namespace_id, admin::DeleteGroupApiRequest { requester })
                     .await
             });
 
@@ -1669,9 +1691,7 @@ impl PyClient {
 
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
-                inner
-                    .list_namespaces_for_application(&application_id)
-                    .await
+                inner.list_namespaces_for_application(&application_id).await
             });
 
             match result {
@@ -1910,12 +1930,22 @@ impl PyClient {
     }
 
     /// Delete a group
-    pub fn delete_group(&self, group_id: &str) -> PyResult<PyObject> {
+    #[pyo3(signature = (group_id, requester=None))]
+    pub fn delete_group(&self, group_id: &str, requester: Option<&str>) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let group_id = group_id.to_string();
+        let requester = match requester {
+            Some(r) => Some(r.parse::<PublicKey>().map_err(|e| {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "Invalid requester public key '{}': {}",
+                    r, e
+                ))
+            })?),
+            None => None,
+        };
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
-                let request = admin::DeleteGroupApiRequest { requester: None };
+                let request = admin::DeleteGroupApiRequest { requester };
                 inner.delete_group(&group_id, request).await
             });
             match result {
@@ -2025,10 +2055,7 @@ impl PyClient {
         let inner = self.inner.clone();
         let group_id = group_id.to_string();
         let members: Vec<serde_json::Value> = serde_json::from_str(members_json).map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid members JSON: {}",
-                e
-            ))
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Invalid members JSON: {}", e))
         })?;
         let api_members: Vec<admin::GroupMemberApiInput> = members
             .iter()
@@ -2077,14 +2104,14 @@ impl PyClient {
         let inner = self.inner.clone();
         let group_id = group_id.to_string();
         let member_strs: Vec<String> = serde_json::from_str(members_json).map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid members JSON: {}",
-                e
-            ))
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Invalid members JSON: {}", e))
         })?;
         let members: Vec<identity::PublicKey> = member_strs
             .iter()
-            .map(|s| s.parse::<identity::PublicKey>().expect("invalid public key"))
+            .map(|s| {
+                s.parse::<identity::PublicKey>()
+                    .expect("invalid public key")
+            })
             .collect();
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
@@ -2157,9 +2184,7 @@ impl PyClient {
         let member_id = member_id.to_string();
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
-                inner
-                    .get_member_capabilities(&group_id, &member_id)
-                    .await
+                inner.get_member_capabilities(&group_id, &member_id).await
             });
             match result {
                 Ok(data) => {
@@ -2179,7 +2204,11 @@ impl PyClient {
         })
     }
 
-    pub fn update_group_settings(&self, group_id: &str, upgrade_policy: &str) -> PyResult<PyObject> {
+    pub fn update_group_settings(
+        &self,
+        group_id: &str,
+        upgrade_policy: &str,
+    ) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let group_id = group_id.to_string();
         let upgrade_policy = parse_upgrade_policy(upgrade_policy)?;
@@ -2336,7 +2365,11 @@ impl PyClient {
         })
     }
 
-    pub fn set_default_capabilities(&self, group_id: &str, capabilities: u32) -> PyResult<PyObject> {
+    pub fn set_default_capabilities(
+        &self,
+        group_id: &str,
+        capabilities: u32,
+    ) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let group_id = group_id.to_string();
 
