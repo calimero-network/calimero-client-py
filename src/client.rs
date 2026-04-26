@@ -2407,7 +2407,11 @@ impl PyClient {
         })
     }
 
-    pub fn set_default_visibility(&self, group_id: &str, visibility: &str) -> PyResult<PyObject> {
+    pub fn set_subgroup_visibility(
+        &self,
+        group_id: &str,
+        visibility: &str,
+    ) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let group_id = group_id.to_string();
         let visibility = visibility.to_ascii_lowercase();
@@ -2415,10 +2419,10 @@ impl PyClient {
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
                 inner
-                    .set_default_visibility(
+                    .set_subgroup_visibility(
                         &group_id,
-                        admin::SetDefaultVisibilityApiRequest {
-                            default_visibility: visibility,
+                        admin::SetSubgroupVisibilityApiRequest {
+                            subgroup_visibility: visibility,
                             requester: None,
                         },
                     )
@@ -2441,6 +2445,15 @@ impl PyClient {
                 ))),
             }
         })
+    }
+
+    /// Deprecated alias for [`Self::set_subgroup_visibility`]. Kept so older
+    /// merobox releases that still emit `set_default_visibility` keep working
+    /// while the wider ecosystem rolls forward to the renamed surface (issue
+    /// calimero-network/core#2256). New callers should use
+    /// `set_subgroup_visibility` directly.
+    pub fn set_default_visibility(&self, group_id: &str, visibility: &str) -> PyResult<PyObject> {
+        self.set_subgroup_visibility(group_id, visibility)
     }
 
     pub fn sync_group(&self, group_id: &str) -> PyResult<PyObject> {
