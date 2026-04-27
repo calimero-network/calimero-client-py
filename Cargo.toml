@@ -1,6 +1,6 @@
 [package]
 name = "calimero-client-py"
-version = "0.6.3"
+version = "0.6.4"
 edition = "2021"
 authors = ["Calimero Limited <info@calimero.network>"]
 description = "Python client library for Calimero Network"
@@ -26,15 +26,11 @@ name = "calimero_client_py"
 crate-type = ["cdylib"]
 
 [dependencies]
-# Core Calimero crates.
-#
-# Temporarily pinned to the `impl/2256-subgroup-visibility` branch while
-# calimero-network/core#2261 (subgroup visibility refactor) is in review.
-# Flip back to `branch = "master"` immediately after that PR merges.
-calimero-client = { git = "https://github.com/calimero-network/core", branch = "impl/2256-subgroup-visibility" }
-calimero-primitives = { git = "https://github.com/calimero-network/core", branch = "impl/2256-subgroup-visibility" }
-calimero-server-primitives = { git = "https://github.com/calimero-network/core", branch = "impl/2256-subgroup-visibility" }
-calimero-context-config = { git = "https://github.com/calimero-network/core", branch = "impl/2256-subgroup-visibility" }
+# Core Calimero crates
+calimero-client = { git = "https://github.com/calimero-network/core", branch = "master" }
+calimero-primitives = { git = "https://github.com/calimero-network/core", branch = "master" }
+calimero-server-primitives = { git = "https://github.com/calimero-network/core", branch = "master" }
+calimero-context-config = { git = "https://github.com/calimero-network/core", branch = "master" }
 
 # Python bindings
 pyo3 = { version = "0.22", features = ["extension-module"] }
