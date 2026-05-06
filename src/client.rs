@@ -2001,6 +2001,97 @@ impl PyClient {
         })
     }
 
+    /// Leave a context locally on this node (no DAG op published).
+    /// Stops sync, disarms auto-follow. Reversible by calling
+    /// `join_context` again.
+    pub fn leave_context(&self, context_id: &str) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let context_id = context_id.parse::<ContextId>().map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Invalid context ID '{}': {}",
+                context_id, e
+            ))
+        })?;
+        Python::with_gil(|py| {
+            let result = self.runtime.block_on(async move {
+                let cid_str = context_id.to_string();
+                inner.leave_context(&cid_str).await
+            });
+            match result {
+                Ok(data) => {
+                    let json_data = serde_json::to_value(data).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Failed to serialize response: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(json_to_python(py, &json_data))
+                }
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
+        })
+    }
+
+    /// Self-leave from a single group. Publishes `MemberLeft` so peers
+    /// observe the leave. Subject to apply-side checks: must be a
+    /// direct member, not the Owner, not the only admin.
+    pub fn leave_group(&self, group_id: &str) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let group_id = group_id.to_string();
+        Python::with_gil(|py| {
+            let result = self
+                .runtime
+                .block_on(async move { inner.leave_group(&group_id).await });
+            match result {
+                Ok(data) => {
+                    let json_data = serde_json::to_value(data).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Failed to serialize response: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(json_to_python(py, &json_data))
+                }
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
+        })
+    }
+
+    /// Self-leave from a namespace (root group). Cascades through
+    /// every descendant where this node has a direct row. Rejects
+    /// with `MustTransferOwnership` if the leaver owns any group in
+    /// the subtree.
+    pub fn leave_namespace(&self, namespace_id: &str) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let namespace_id = namespace_id.to_string();
+        Python::with_gil(|py| {
+            let result = self
+                .runtime
+                .block_on(async move { inner.leave_namespace(&namespace_id).await });
+            match result {
+                Ok(data) => {
+                    let json_data = serde_json::to_value(data).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Failed to serialize response: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(json_to_python(py, &json_data))
+                }
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
+        })
+    }
+
     /// List members of a group
     pub fn list_group_members(&self, group_id: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
