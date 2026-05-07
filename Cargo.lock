@@ -349,7 +349,7 @@ checksum = "1e748733b7cbc798e1434b6ac524f0c1ff2ab456fe201501e6497c8417a4fc33"
 [[package]]
 name = "calimero-blobstore"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#219ef0d282b61b75b880bc13cef74a3f8b1d2e22"
+source = "git+https://github.com/calimero-network/core?branch=chore%2Fleave-member-wait-for-sync#d3f514554c743e9510201b0ad1a1f41d3ea6968f"
 dependencies = [
  "async-stream",
  "calimero-primitives",
@@ -367,7 +367,7 @@ dependencies = [
 [[package]]
 name = "calimero-client"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#219ef0d282b61b75b880bc13cef74a3f8b1d2e22"
+source = "git+https://github.com/calimero-network/core?branch=chore%2Fleave-member-wait-for-sync#d3f514554c743e9510201b0ad1a1f41d3ea6968f"
 dependencies = [
  "async-trait",
  "calimero-context-config",
@@ -388,7 +388,7 @@ dependencies = [
 
 [[package]]
 name = "calimero-client-py"
-version = "0.6.7"
+version = "0.6.8"
 dependencies = [
  "async-trait",
  "calimero-client",
@@ -412,7 +412,7 @@ dependencies = [
 [[package]]
 name = "calimero-context-client"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#219ef0d282b61b75b880bc13cef74a3f8b1d2e22"
+source = "git+https://github.com/calimero-network/core?branch=chore%2Fleave-member-wait-for-sync#d3f514554c743e9510201b0ad1a1f41d3ea6968f"
 dependencies = [
  "actix",
  "async-stream",
@@ -439,7 +439,7 @@ dependencies = [
 [[package]]
 name = "calimero-context-config"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#219ef0d282b61b75b880bc13cef74a3f8b1d2e22"
+source = "git+https://github.com/calimero-network/core?branch=chore%2Fleave-member-wait-for-sync#d3f514554c743e9510201b0ad1a1f41d3ea6968f"
 dependencies = [
  "borsh",
  "bs58",
@@ -452,7 +452,7 @@ dependencies = [
 [[package]]
 name = "calimero-crypto"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#219ef0d282b61b75b880bc13cef74a3f8b1d2e22"
+source = "git+https://github.com/calimero-network/core?branch=chore%2Fleave-member-wait-for-sync#d3f514554c743e9510201b0ad1a1f41d3ea6968f"
 dependencies = [
  "calimero-primitives",
  "curve25519-dalek",
@@ -464,7 +464,7 @@ dependencies = [
 [[package]]
 name = "calimero-network-primitives"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#219ef0d282b61b75b880bc13cef74a3f8b1d2e22"
+source = "git+https://github.com/calimero-network/core?branch=chore%2Fleave-member-wait-for-sync#d3f514554c743e9510201b0ad1a1f41d3ea6968f"
 dependencies = [
  "actix",
  "async-trait",
@@ -488,7 +488,7 @@ dependencies = [
 [[package]]
 name = "calimero-node-primitives"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#219ef0d282b61b75b880bc13cef74a3f8b1d2e22"
+source = "git+https://github.com/calimero-network/core?branch=chore%2Fleave-member-wait-for-sync#d3f514554c743e9510201b0ad1a1f41d3ea6968f"
 dependencies = [
  "actix",
  "async-stream",
@@ -530,7 +530,7 @@ dependencies = [
 [[package]]
 name = "calimero-prelude"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#219ef0d282b61b75b880bc13cef74a3f8b1d2e22"
+source = "git+https://github.com/calimero-network/core?branch=chore%2Fleave-member-wait-for-sync#d3f514554c743e9510201b0ad1a1f41d3ea6968f"
 dependencies = [
  "borsh",
  "calimero-primitives",
@@ -541,7 +541,7 @@ dependencies = [
 [[package]]
 name = "calimero-primitives"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#219ef0d282b61b75b880bc13cef74a3f8b1d2e22"
+source = "git+https://github.com/calimero-network/core?branch=chore%2Fleave-member-wait-for-sync#d3f514554c743e9510201b0ad1a1f41d3ea6968f"
 dependencies = [
  "borsh",
  "bs58",
@@ -560,7 +560,7 @@ dependencies = [
 [[package]]
 name = "calimero-sdk"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#219ef0d282b61b75b880bc13cef74a3f8b1d2e22"
+source = "git+https://github.com/calimero-network/core?branch=chore%2Fleave-member-wait-for-sync#d3f514554c743e9510201b0ad1a1f41d3ea6968f"
 dependencies = [
  "borsh",
  "calimero-prelude",
@@ -576,7 +576,7 @@ dependencies = [
 [[package]]
 name = "calimero-sdk-macros"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#219ef0d282b61b75b880bc13cef74a3f8b1d2e22"
+source = "git+https://github.com/calimero-network/core?branch=chore%2Fleave-member-wait-for-sync#d3f514554c743e9510201b0ad1a1f41d3ea6968f"
 dependencies = [
  "prettyplease",
  "proc-macro2",
@@ -589,7 +589,7 @@ dependencies = [
 [[package]]
 name = "calimero-server-primitives"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#219ef0d282b61b75b880bc13cef74a3f8b1d2e22"
+source = "git+https://github.com/calimero-network/core?branch=chore%2Fleave-member-wait-for-sync#d3f514554c743e9510201b0ad1a1f41d3ea6968f"
 dependencies = [
  "calimero-context-client",
  "calimero-context-config",
@@ -607,7 +607,7 @@ dependencies = [
 [[package]]
 name = "calimero-storage"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#219ef0d282b61b75b880bc13cef74a3f8b1d2e22"
+source = "git+https://github.com/calimero-network/core?branch=chore%2Fleave-member-wait-for-sync#d3f514554c743e9510201b0ad1a1f41d3ea6968f"
 dependencies = [
  "borsh",
  "calimero-prelude",
@@ -629,7 +629,7 @@ dependencies = [
 [[package]]
 name = "calimero-storage-macros"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#219ef0d282b61b75b880bc13cef74a3f8b1d2e22"
+source = "git+https://github.com/calimero-network/core?branch=chore%2Fleave-member-wait-for-sync#d3f514554c743e9510201b0ad1a1f41d3ea6968f"
 dependencies = [
  "quote",
  "syn",
@@ -638,7 +638,7 @@ dependencies = [
 [[package]]
 name = "calimero-store"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#219ef0d282b61b75b880bc13cef74a3f8b1d2e22"
+source = "git+https://github.com/calimero-network/core?branch=chore%2Fleave-member-wait-for-sync#d3f514554c743e9510201b0ad1a1f41d3ea6968f"
 dependencies = [
  "borsh",
  "calimero-primitives",
@@ -654,7 +654,7 @@ dependencies = [
 [[package]]
 name = "calimero-sys"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#219ef0d282b61b75b880bc13cef74a3f8b1d2e22"
+source = "git+https://github.com/calimero-network/core?branch=chore%2Fleave-member-wait-for-sync#d3f514554c743e9510201b0ad1a1f41d3ea6968f"
 dependencies = [
  "cfg-if",
 ]
@@ -662,7 +662,7 @@ dependencies = [
 [[package]]
 name = "calimero-utils-actix"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#219ef0d282b61b75b880bc13cef74a3f8b1d2e22"
+source = "git+https://github.com/calimero-network/core?branch=chore%2Fleave-member-wait-for-sync#d3f514554c743e9510201b0ad1a1f41d3ea6968f"
 dependencies = [
  "actix",
  "async-stream",
@@ -677,7 +677,7 @@ dependencies = [
 [[package]]
 name = "calimero-wasm-abi"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#219ef0d282b61b75b880bc13cef74a3f8b1d2e22"
+source = "git+https://github.com/calimero-network/core?branch=chore%2Fleave-member-wait-for-sync#d3f514554c743e9510201b0ad1a1f41d3ea6968f"
 dependencies = [
  "proc-macro2",
  "serde",
