@@ -1,6 +1,6 @@
 [package]
 name = "calimero-client-py"
-version = "0.6.5"
+version = "0.6.6"
 edition = "2021"
 authors = ["Calimero Limited <info@calimero.network>"]
 description = "Python client library for Calimero Network"
@@ -26,11 +26,14 @@ name = "calimero_client_py"
 crate-type = ["cdylib"]
 
 [dependencies]
-# Core Calimero crates
-calimero-client = { git = "https://github.com/calimero-network/core", branch = "master" }
-calimero-primitives = { git = "https://github.com/calimero-network/core", branch = "master" }
-calimero-server-primitives = { git = "https://github.com/calimero-network/core", branch = "master" }
-calimero-context-config = { git = "https://github.com/calimero-network/core", branch = "master" }
+# Core Calimero crates — temporarily pegged to the cross-DAG auth A1 PR
+# branch (calimero-network/core#2289) so this release ships the
+# `contextStateHash` rename + `groupStateHash` field that calimero/core
+# CI needs. Flip back to master in a follow-up after #2289 lands.
+calimero-client = { git = "https://github.com/calimero-network/core", branch = "feat/group-state-hash-admin-api" }
+calimero-primitives = { git = "https://github.com/calimero-network/core", branch = "feat/group-state-hash-admin-api" }
+calimero-server-primitives = { git = "https://github.com/calimero-network/core", branch = "feat/group-state-hash-admin-api" }
+calimero-context-config = { git = "https://github.com/calimero-network/core", branch = "feat/group-state-hash-admin-api" }
 
 # Python bindings
 pyo3 = { version = "0.22", features = ["extension-module"] }
