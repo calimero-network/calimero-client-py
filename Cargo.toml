@@ -1,6 +1,6 @@
 [package]
 name = "calimero-client-py"
-version = "0.6.7"
+version = "0.6.8"
 edition = "2021"
 authors = ["Calimero Limited <info@calimero.network>"]
 description = "Python client library for Calimero Network"
@@ -26,11 +26,17 @@ name = "calimero_client_py"
 crate-type = ["cdylib"]
 
 [dependencies]
-# Core Calimero crates
-calimero-client = { git = "https://github.com/calimero-network/core", branch = "master" }
-calimero-primitives = { git = "https://github.com/calimero-network/core", branch = "master" }
-calimero-server-primitives = { git = "https://github.com/calimero-network/core", branch = "master" }
-calimero-context-config = { git = "https://github.com/calimero-network/core", branch = "master" }
+# Core Calimero crates — temporarily pegged to the e2e/governance fix
+# branch (calimero-network/core#2292) so this release ships the
+# `application_id` field on `SignedGroupOpenInvitation`. Without it,
+# the typed deserialize at client.rs:1754 silently drops the new
+# field during the merobox/HTTP round-trip and the joiner falls back
+# to zero, losing the convergence guarantee. Flip back to master in
+# a follow-up after #2292 lands.
+calimero-client = { git = "https://github.com/calimero-network/core", branch = "chore/leave-member-wait-for-sync" }
+calimero-primitives = { git = "https://github.com/calimero-network/core", branch = "chore/leave-member-wait-for-sync" }
+calimero-server-primitives = { git = "https://github.com/calimero-network/core", branch = "chore/leave-member-wait-for-sync" }
+calimero-context-config = { git = "https://github.com/calimero-network/core", branch = "chore/leave-member-wait-for-sync" }
 
 # Python bindings
 pyo3 = { version = "0.22", features = ["extension-module"] }
