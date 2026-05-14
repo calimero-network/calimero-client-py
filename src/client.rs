@@ -2001,6 +2001,35 @@ impl PyClient {
         })
     }
 
+    /// Materialise an inherited Open-subgroup membership without an
+    /// admin-signed invitation and without first joining a child
+    /// context. See core PR #2357 for the endpoint contract — accepts
+    /// `Inherited` and `Direct` paths, rejects `None` with HTTP 403.
+    pub fn join_subgroup_inheritance(&self, group_id: &str) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let group_id = group_id.to_string();
+        Python::with_gil(|py| {
+            let result = self
+                .runtime
+                .block_on(async move { inner.join_subgroup_inheritance(&group_id).await });
+            match result {
+                Ok(data) => {
+                    let json_data = serde_json::to_value(data).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Failed to serialize response: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(json_to_python(py, &json_data))
+                }
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
+        })
+    }
+
     /// Leave a context locally on this node (no DAG op published).
     /// Stops sync, disarms auto-follow. Reversible by calling
     /// `join_context` again.
