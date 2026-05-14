@@ -2003,8 +2003,15 @@ impl PyClient {
 
     /// Materialise an inherited Open-subgroup membership without an
     /// admin-signed invitation and without first joining a child
-    /// context. See core PR #2357 for the endpoint contract — accepts
-    /// `Inherited` and `Direct` paths, rejects `None` with HTTP 403.
+    /// context.
+    ///
+    /// Wraps `POST /admin-api/groups/:group_id/join-via-inheritance`.
+    /// On success returns `{group_id, member_public_key, was_inherited}`.
+    /// `was_inherited` is `false` for callers who were already direct
+    /// members (no-op); `true` for callers whose membership was
+    /// materialised via `RootOp::MemberJoinedOpen`. Returns HTTP 403
+    /// if the caller has no inheritance path, 404 if the subgroup is
+    /// not visible to this node.
     pub fn join_subgroup_inheritance(&self, group_id: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let group_id = group_id.to_string();
