@@ -2307,6 +2307,62 @@ impl PyClient {
         })
     }
 
+    /// Set per-member auto-follow flags on a group.
+    ///
+    /// Authorized by group admin (for any `member_id`) or by the target itself
+    /// (self-setting); apply path enforces admin-or-self. The optional
+    /// `requester` lets you act on behalf of a specific identity registered on
+    /// this node (otherwise the server resolves an admin signing key it holds).
+    #[pyo3(signature = (group_id, member_id, auto_follow_contexts, auto_follow_subgroups, requester=None))]
+    pub fn set_member_auto_follow(
+        &self,
+        group_id: &str,
+        member_id: &str,
+        auto_follow_contexts: bool,
+        auto_follow_subgroups: bool,
+        requester: Option<&str>,
+    ) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let group_id = group_id.to_string();
+        let member_id = member_id.to_string();
+        let requester = match requester {
+            Some(r) => Some(r.parse::<PublicKey>().map_err(|e| {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "Invalid requester public key '{}': {}",
+                    r, e
+                ))
+            })?),
+            None => None,
+        };
+        Python::with_gil(|py| {
+            let result = self.runtime.block_on(async move {
+                let request = admin::SetMemberAutoFollowApiRequest {
+                    auto_follow_contexts,
+                    auto_follow_subgroups,
+                    requester,
+                };
+                inner
+                    .set_member_auto_follow(&group_id, &member_id, request)
+                    .await
+            });
+            match result {
+                Ok(data) => {
+                    let json_data = serde_json::to_value(data).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Failed to serialize response: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(json_to_python(py, &json_data))
+                }
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
+        })
+    }
+
     /// Get member capabilities in a group
     pub fn get_member_capabilities(&self, group_id: &str, member_id: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
