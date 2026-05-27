@@ -2835,12 +2835,13 @@ impl PyClient {
         })
     }
 
-    #[pyo3(signature = (group_id, target_application_id, migrate_method=None))]
+    #[pyo3(signature = (group_id, target_application_id, migrate_method=None, cascade=false))]
     pub fn upgrade_group(
         &self,
         group_id: &str,
         target_application_id: &str,
         migrate_method: Option<&str>,
+        cascade: bool,
     ) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let group_id = group_id.to_string();
@@ -2864,6 +2865,7 @@ impl PyClient {
                             target_application_id,
                             requester: None,
                             migrate_method,
+                            cascade,
                         },
                     )
                     .await
