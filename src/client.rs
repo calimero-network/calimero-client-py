@@ -2835,12 +2835,24 @@ impl PyClient {
         })
     }
 
-    #[pyo3(signature = (group_id, target_application_id, migrate_method=None))]
+    /// Initiate a target-application upgrade for a group.
+    ///
+    /// When `cascade=False` (default), upgrades only `group_id` — the
+    /// existing per-group flow.
+    ///
+    /// When `cascade=True`, publishes `CascadeTargetApplicationSet`
+    /// against `group_id` (treated as a namespace root): the core
+    /// cascade engine fans the upgrade out to **every matching
+    /// descendant subgroup and context** in a single sync round
+    /// (calimero-network/core#2493). Use deliberately — the blast
+    /// radius is the entire subtree.
+    #[pyo3(signature = (group_id, target_application_id, migrate_method=None, cascade=false))]
     pub fn upgrade_group(
         &self,
         group_id: &str,
         target_application_id: &str,
         migrate_method: Option<&str>,
+        cascade: bool,
     ) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let group_id = group_id.to_string();
@@ -2864,6 +2876,7 @@ impl PyClient {
                             target_application_id,
                             requester: None,
                             migrate_method,
+                            cascade,
                         },
                     )
                     .await
