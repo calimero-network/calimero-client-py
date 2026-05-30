@@ -2927,6 +2927,38 @@ impl PyClient {
         })
     }
 
+    /// Per-descendant cascade migration status across a namespace subtree.
+    ///
+    /// Returns a list of `{group_id, upgrade, cascade_hlc}` entries, one per
+    /// descendant group (including the namespace root) that carries a cascade
+    /// upgrade record. Wraps `GET admin-api/groups/{namespace_id}/cascade-status`.
+    pub fn get_cascade_status(&self, namespace_id: &str) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let namespace_id = namespace_id.to_string();
+
+        Python::with_gil(|py| {
+            let result = self
+                .runtime
+                .block_on(async move { inner.get_cascade_status(&namespace_id).await });
+
+            match result {
+                Ok(data) => {
+                    let json_data = serde_json::to_value(data).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Failed to serialize response: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(json_to_python(py, &json_data))
+                }
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
+        })
+    }
+
     pub fn retry_group_upgrade(&self, group_id: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let group_id = group_id.to_string();

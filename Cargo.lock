@@ -130,7 +130,7 @@ version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40c48f72fd53cd289104fc64099abca73db4166ad86ea0b4341abe65af83dadc"
 dependencies = [
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -141,7 +141,7 @@ checksum = "291e6a250ff86cd4a820112fb8898808a366d8f9f58ce16d1f538353ad55747d"
 dependencies = [
  "anstyle",
  "once_cell_polyfill",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -349,7 +349,7 @@ checksum = "1e748733b7cbc798e1434b6ac524f0c1ff2ab456fe201501e6497c8417a4fc33"
 [[package]]
 name = "calimero-blobstore"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#7f3f9d8262b0030e8b74daa05ce7f696299077d7"
+source = "git+https://github.com/calimero-network/core?branch=feat%2Fcascade-atomic-op-fence-status#c998b760486f71a148b734fb3f5e5f032680bebe"
 dependencies = [
  "async-stream",
  "calimero-primitives",
@@ -367,7 +367,7 @@ dependencies = [
 [[package]]
 name = "calimero-client"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#7f3f9d8262b0030e8b74daa05ce7f696299077d7"
+source = "git+https://github.com/calimero-network/core?branch=feat%2Fcascade-atomic-op-fence-status#c998b760486f71a148b734fb3f5e5f032680bebe"
 dependencies = [
  "async-trait",
  "calimero-context-config",
@@ -412,7 +412,7 @@ dependencies = [
 [[package]]
 name = "calimero-context-client"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#7f3f9d8262b0030e8b74daa05ce7f696299077d7"
+source = "git+https://github.com/calimero-network/core?branch=feat%2Fcascade-atomic-op-fence-status#c998b760486f71a148b734fb3f5e5f032680bebe"
 dependencies = [
  "actix",
  "async-stream",
@@ -441,7 +441,7 @@ dependencies = [
 [[package]]
 name = "calimero-context-config"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#7f3f9d8262b0030e8b74daa05ce7f696299077d7"
+source = "git+https://github.com/calimero-network/core?branch=feat%2Fcascade-atomic-op-fence-status#c998b760486f71a148b734fb3f5e5f032680bebe"
 dependencies = [
  "borsh",
  "bs58",
@@ -454,7 +454,7 @@ dependencies = [
 [[package]]
 name = "calimero-crypto"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#7f3f9d8262b0030e8b74daa05ce7f696299077d7"
+source = "git+https://github.com/calimero-network/core?branch=feat%2Fcascade-atomic-op-fence-status#c998b760486f71a148b734fb3f5e5f032680bebe"
 dependencies = [
  "calimero-primitives",
  "curve25519-dalek",
@@ -466,12 +466,13 @@ dependencies = [
 [[package]]
 name = "calimero-governance-types"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#7f3f9d8262b0030e8b74daa05ce7f696299077d7"
+source = "git+https://github.com/calimero-network/core?branch=feat%2Fcascade-atomic-op-fence-status#c998b760486f71a148b734fb3f5e5f032680bebe"
 dependencies = [
  "blake3",
  "borsh",
  "calimero-context-config",
  "calimero-primitives",
+ "calimero-storage",
  "ed25519-dalek",
  "sha2",
  "thiserror 1.0.69",
@@ -480,7 +481,7 @@ dependencies = [
 [[package]]
 name = "calimero-network-primitives"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#7f3f9d8262b0030e8b74daa05ce7f696299077d7"
+source = "git+https://github.com/calimero-network/core?branch=feat%2Fcascade-atomic-op-fence-status#c998b760486f71a148b734fb3f5e5f032680bebe"
 dependencies = [
  "actix",
  "async-trait",
@@ -504,7 +505,7 @@ dependencies = [
 [[package]]
 name = "calimero-node-primitives"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#7f3f9d8262b0030e8b74daa05ce7f696299077d7"
+source = "git+https://github.com/calimero-network/core?branch=feat%2Fcascade-atomic-op-fence-status#c998b760486f71a148b734fb3f5e5f032680bebe"
 dependencies = [
  "actix",
  "async-stream",
@@ -547,7 +548,7 @@ dependencies = [
 [[package]]
 name = "calimero-prelude"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#7f3f9d8262b0030e8b74daa05ce7f696299077d7"
+source = "git+https://github.com/calimero-network/core?branch=feat%2Fcascade-atomic-op-fence-status#c998b760486f71a148b734fb3f5e5f032680bebe"
 dependencies = [
  "borsh",
  "calimero-primitives",
@@ -558,7 +559,7 @@ dependencies = [
 [[package]]
 name = "calimero-primitives"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#7f3f9d8262b0030e8b74daa05ce7f696299077d7"
+source = "git+https://github.com/calimero-network/core?branch=feat%2Fcascade-atomic-op-fence-status#c998b760486f71a148b734fb3f5e5f032680bebe"
 dependencies = [
  "borsh",
  "bs58",
@@ -577,7 +578,7 @@ dependencies = [
 [[package]]
 name = "calimero-sdk"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#7f3f9d8262b0030e8b74daa05ce7f696299077d7"
+source = "git+https://github.com/calimero-network/core?branch=feat%2Fcascade-atomic-op-fence-status#c998b760486f71a148b734fb3f5e5f032680bebe"
 dependencies = [
  "borsh",
  "calimero-prelude",
@@ -593,7 +594,7 @@ dependencies = [
 [[package]]
 name = "calimero-sdk-macros"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#7f3f9d8262b0030e8b74daa05ce7f696299077d7"
+source = "git+https://github.com/calimero-network/core?branch=feat%2Fcascade-atomic-op-fence-status#c998b760486f71a148b734fb3f5e5f032680bebe"
 dependencies = [
  "prettyplease",
  "proc-macro2",
@@ -606,7 +607,7 @@ dependencies = [
 [[package]]
 name = "calimero-server-primitives"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#7f3f9d8262b0030e8b74daa05ce7f696299077d7"
+source = "git+https://github.com/calimero-network/core?branch=feat%2Fcascade-atomic-op-fence-status#c998b760486f71a148b734fb3f5e5f032680bebe"
 dependencies = [
  "calimero-context-client",
  "calimero-context-config",
@@ -624,7 +625,7 @@ dependencies = [
 [[package]]
 name = "calimero-storage"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#7f3f9d8262b0030e8b74daa05ce7f696299077d7"
+source = "git+https://github.com/calimero-network/core?branch=feat%2Fcascade-atomic-op-fence-status#c998b760486f71a148b734fb3f5e5f032680bebe"
 dependencies = [
  "borsh",
  "calimero-prelude",
@@ -646,7 +647,7 @@ dependencies = [
 [[package]]
 name = "calimero-storage-macros"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#7f3f9d8262b0030e8b74daa05ce7f696299077d7"
+source = "git+https://github.com/calimero-network/core?branch=feat%2Fcascade-atomic-op-fence-status#c998b760486f71a148b734fb3f5e5f032680bebe"
 dependencies = [
  "quote",
  "syn",
@@ -655,7 +656,7 @@ dependencies = [
 [[package]]
 name = "calimero-store"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#7f3f9d8262b0030e8b74daa05ce7f696299077d7"
+source = "git+https://github.com/calimero-network/core?branch=feat%2Fcascade-atomic-op-fence-status#c998b760486f71a148b734fb3f5e5f032680bebe"
 dependencies = [
  "borsh",
  "calimero-primitives",
@@ -671,7 +672,7 @@ dependencies = [
 [[package]]
 name = "calimero-sys"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#7f3f9d8262b0030e8b74daa05ce7f696299077d7"
+source = "git+https://github.com/calimero-network/core?branch=feat%2Fcascade-atomic-op-fence-status#c998b760486f71a148b734fb3f5e5f032680bebe"
 dependencies = [
  "cfg-if",
 ]
@@ -679,7 +680,7 @@ dependencies = [
 [[package]]
 name = "calimero-utils-actix"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#7f3f9d8262b0030e8b74daa05ce7f696299077d7"
+source = "git+https://github.com/calimero-network/core?branch=feat%2Fcascade-atomic-op-fence-status#c998b760486f71a148b734fb3f5e5f032680bebe"
 dependencies = [
  "actix",
  "async-stream",
@@ -694,7 +695,7 @@ dependencies = [
 [[package]]
 name = "calimero-wasm-abi"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=master#7f3f9d8262b0030e8b74daa05ce7f696299077d7"
+source = "git+https://github.com/calimero-network/core?branch=feat%2Fcascade-atomic-op-fence-status#c998b760486f71a148b734fb3f5e5f032680bebe"
 dependencies = [
  "proc-macro2",
  "serde",
@@ -1139,7 +1140,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -2984,7 +2985,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3239,7 +3240,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3a766e1110788c36f4fa1c2b71b387a7815aa65f88ce0229841826633d93723e"
 dependencies = [
  "libc",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3894,7 +3895,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
