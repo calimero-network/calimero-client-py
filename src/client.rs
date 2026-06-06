@@ -36,9 +36,10 @@ fn parse_upgrade_policy(policy: &str) -> PyResult<UpgradePolicy> {
         "lazyonaccess" | "lazy_on_access" | "lazy-on-access" | "lazy" => {
             Ok(UpgradePolicy::LazyOnAccess)
         }
-        "coordinated" => Ok(UpgradePolicy::Coordinated { deadline: None }),
+        // `Coordinated` was removed upstream (calimero-network/core: deadline was
+        // inert; migrate only converges under LazyOnAccess). Reject it explicitly.
         _ => Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-            "Invalid upgrade policy '{}'. Expected one of: automatic, lazy-on-access, coordinated",
+            "Invalid upgrade policy '{}'. Expected one of: automatic, lazy-on-access",
             policy
         ))),
     }
@@ -2940,6 +2941,40 @@ impl PyClient {
             let result = self
                 .runtime
                 .block_on(async move { inner.get_cascade_status(&namespace_id).await });
+
+            match result {
+                Ok(data) => {
+                    let json_data = serde_json::to_value(data).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Failed to serialize response: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(json_to_python(py, &json_data))
+                }
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
+        })
+    }
+
+    /// Logically abort an in-flight namespace migration.
+    ///
+    /// Flips the group's pending migration target back to the pre-migration app
+    /// id and drops the pending marker, cascading to every descendant subgroup
+    /// carrying the same pending migration. Idempotent (a subtree with nothing
+    /// pending is a no-op). Returns `{namespace_id, aborted}`. Wraps
+    /// `POST admin-api/groups/{namespace_id}/migration/abort`.
+    pub fn abort_migration(&self, namespace_id: &str) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let namespace_id = namespace_id.to_string();
+
+        Python::with_gil(|py| {
+            let result = self
+                .runtime
+                .block_on(async move { inner.abort_migration(&namespace_id).await });
 
             match result {
                 Ok(data) => {
