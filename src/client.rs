@@ -149,6 +149,44 @@ impl PyClient {
         })
     }
 
+    /// List every locally-retained bytecode version of an application.
+    ///
+    /// Returns `{data: [{version, blob_id, size, package}]}` — the row's latest
+    /// install plus any older blobs still referenced by groups or context
+    /// activation markers. The `blob_id` doubles as the `app_key` accepted by
+    /// `create_namespace`. Wraps `GET admin-api/applications/{id}/versions`.
+    pub fn list_application_versions(&self, application_id: &str) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let application_id = application_id.parse::<ApplicationId>().map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Invalid application ID '{}': {}",
+                application_id, e
+            ))
+        })?;
+
+        Python::with_gil(|py| {
+            let result = self
+                .runtime
+                .block_on(async move { inner.list_application_versions(&application_id).await });
+
+            match result {
+                Ok(data) => {
+                    let json_data = serde_json::to_value(data).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Failed to serialize response: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(json_to_python(py, &json_data))
+                }
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
+        })
+    }
+
     /// Get context
     pub fn get_context(&self, context_id: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
@@ -941,6 +979,44 @@ impl PyClient {
         })
     }
 
+    /// Resync a stranded context by adopting a peer's full state.
+    ///
+    /// Recovers a context that can no longer replay its upgrade ladder (e.g. an
+    /// intermediate bytecode blob is unobtainable from every reachable peer) by
+    /// discarding local DAG heads and pulling a peer's full-state snapshot.
+    /// Destructive: `force` must be `True` when the context still holds local
+    /// heads. Returns `{context_id, resync_started}`. Wraps
+    /// `POST admin-api/contexts/{context_id}/resync`.
+    #[pyo3(signature = (context_id, force=false))]
+    pub fn resync_context(&self, context_id: &str, force: bool) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let context_id = context_id.to_string();
+
+        Python::with_gil(|py| {
+            let result = self.runtime.block_on(async move {
+                inner
+                    .resync_context(&context_id, admin::ResyncContextApiRequest { force })
+                    .await
+            });
+
+            match result {
+                Ok(data) => {
+                    let json_data = serde_json::to_value(data).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Failed to serialize response: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(json_to_python(py, &json_data))
+                }
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
+        })
+    }
+
     /// Create context identity alias
     pub fn create_context_identity_alias(
         &self,
@@ -1508,12 +1584,13 @@ impl PyClient {
     }
     // ---- Namespace and Group Management ----
 
-    #[pyo3(signature = (application_id, upgrade_policy=None, name=None))]
+    #[pyo3(signature = (application_id, upgrade_policy=None, name=None, app_key=None))]
     pub fn create_namespace(
         &self,
         application_id: &str,
         upgrade_policy: Option<&str>,
         name: Option<&str>,
+        app_key: Option<&str>,
     ) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let application_id = application_id.parse::<ApplicationId>().map_err(|e| {
@@ -1527,6 +1604,10 @@ impl PyClient {
             None => UpgradePolicy::LazyOnAccess,
         };
         let name = name.map(str::to_owned);
+        // Hex-encoded 32-byte blob id that pins the namespace to a specific
+        // installed bytecode version; `None` lets the node use the app row's
+        // latest blob.
+        let app_key = app_key.map(str::to_owned);
 
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
@@ -1535,6 +1616,7 @@ impl PyClient {
                         application_id,
                         upgrade_policy,
                         name,
+                        app_key,
                     })
                     .await
             });
@@ -2847,12 +2929,11 @@ impl PyClient {
     /// descendant subgroup and context** in a single sync round
     /// (calimero-network/core#2493). Use deliberately — the blast
     /// radius is the entire subtree.
-    #[pyo3(signature = (group_id, target_application_id, migrate_method=None, cascade=false))]
+    #[pyo3(signature = (group_id, target_application_id, cascade=false))]
     pub fn upgrade_group(
         &self,
         group_id: &str,
         target_application_id: &str,
-        migrate_method: Option<&str>,
         cascade: bool,
     ) -> PyResult<PyObject> {
         let inner = self.inner.clone();
@@ -2866,7 +2947,6 @@ impl PyClient {
                         target_application_id, e
                     ))
                 })?;
-        let migrate_method = migrate_method.map(str::to_owned);
 
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
@@ -2876,7 +2956,6 @@ impl PyClient {
                         admin::UpgradeGroupApiRequest {
                             target_application_id,
                             requester: None,
-                            migrate_method,
                             cascade,
                         },
                     )
@@ -2941,6 +3020,41 @@ impl PyClient {
             let result = self
                 .runtime
                 .block_on(async move { inner.get_cascade_status(&namespace_id).await });
+
+            match result {
+                Ok(data) => {
+                    let json_data = serde_json::to_value(data).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                            "Failed to serialize response: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(json_to_python(py, &json_data))
+                }
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
+        })
+    }
+
+    /// Pinned-cohort migration rollup for a namespace.
+    ///
+    /// Returns the target version, expected member count, and a per-member
+    /// breakdown of migration `state` (`migrated`/`in_progress`/`unknown`/
+    /// `failed`) plus the `all_migrated` flag. A stranded context surfaces as a
+    /// member with `state:"failed"` and `report.migration_failed:
+    /// "no_migration_path"`. Observability only — never gates a write or apply.
+    /// Wraps `GET admin-api/groups/{namespace_id}/migration-status`.
+    pub fn get_migration_status(&self, namespace_id: &str) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let namespace_id = namespace_id.to_string();
+
+        Python::with_gil(|py| {
+            let result = self
+                .runtime
+                .block_on(async move { inner.get_migration_status(&namespace_id).await });
 
             match result {
                 Ok(data) => {
