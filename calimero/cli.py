@@ -7,6 +7,7 @@ import asyncio
 import sys
 from typing import Optional
 
+from calimero import __version__
 from calimero_client_py import create_connection, create_client, AuthMode
 
 
@@ -24,7 +25,9 @@ Examples:
     )
 
     parser.add_argument(
-        "--version", action="version", version="calimero-client-py 0.3.0"
+        "--version",
+        action="version",
+        version=f"calimero-client-py {__version__}",
     )
 
     parser.add_argument(
