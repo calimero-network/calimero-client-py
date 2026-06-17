@@ -151,9 +151,9 @@ impl PyClient {
 
     /// List every locally-retained bytecode version of an application.
     ///
-    /// Returns `{data: [{version, blob_id, size, package}]}` — the row's latest
+    /// Returns `{data: [{version, blobId, size, package}]}` — the row's latest
     /// install plus any older blobs still referenced by groups or context
-    /// activation markers. The `blob_id` doubles as the `app_key` accepted by
+    /// activation markers. The `blobId` doubles as the `app_key` accepted by
     /// `create_namespace`. Wraps `GET admin-api/applications/{id}/versions`.
     pub fn list_application_versions(&self, application_id: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
@@ -985,7 +985,7 @@ impl PyClient {
     /// intermediate bytecode blob is unobtainable from every reachable peer) by
     /// discarding local DAG heads and pulling a peer's full-state snapshot.
     /// Destructive: `force` must be `True` when the context still holds local
-    /// heads. Returns `{context_id, resync_started}`. Wraps
+    /// heads. Returns `{contextId, resyncStarted}`. Wraps
     /// `POST admin-api/contexts/{context_id}/resync`.
     #[pyo3(signature = (context_id, force=false))]
     pub fn resync_context(&self, context_id: &str, force: bool) -> PyResult<PyObject> {
@@ -3009,7 +3009,7 @@ impl PyClient {
 
     /// Per-descendant cascade migration status across a namespace subtree.
     ///
-    /// Returns a list of `{group_id, upgrade, cascade_hlc}` entries, one per
+    /// Returns `{data: [{groupId, upgrade, cascadeHlc}]}` — one entry per
     /// descendant group (including the namespace root) that carries a cascade
     /// upgrade record. Wraps `GET admin-api/groups/{namespace_id}/cascade-status`.
     pub fn get_cascade_status(&self, namespace_id: &str) -> PyResult<PyObject> {
@@ -3041,11 +3041,13 @@ impl PyClient {
 
     /// Pinned-cohort migration rollup for a namespace.
     ///
-    /// Returns the target version, expected member count, and a per-member
-    /// breakdown of migration `state` (`migrated`/`in_progress`/`unknown`/
-    /// `failed`) plus the `all_migrated` flag. A stranded context surfaces as a
-    /// member with `state:"failed"` and `report.migration_failed:
-    /// "no_migration_path"`. Observability only — never gates a write or apply.
+    /// Returns `{targetVersion, expectedMembers, rollup, members}`. The `rollup`
+    /// carries per-`state` counts (`migrated`/`inProgress`/`unknown`/`failed`),
+    /// `total`, `membersPendingSignature`, and the `allMigrated` flag. A stranded
+    /// context surfaces as a member with `state: "failed"` and
+    /// `report.migrationFailed: "no_migration_path"` (the `state`/reason strings
+    /// stay snake_case; the dict keys are camelCase). Observability only — never
+    /// gates a write or apply.
     /// Wraps `GET admin-api/groups/{namespace_id}/migration-status`.
     pub fn get_migration_status(&self, namespace_id: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
@@ -3079,7 +3081,7 @@ impl PyClient {
     /// Flips the group's pending migration target back to the pre-migration app
     /// id and drops the pending marker, cascading to every descendant subgroup
     /// carrying the same pending migration. Idempotent (a subtree with nothing
-    /// pending is a no-op). Returns `{namespace_id, aborted}`. Wraps
+    /// pending is a no-op). Returns `{namespaceId, aborted}`. Wraps
     /// `POST admin-api/groups/{namespace_id}/migration/abort`.
     pub fn abort_migration(&self, namespace_id: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
