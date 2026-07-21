@@ -1,0 +1,45 @@
+---
+title: Calimero Python Client
+description: The Python client SDK for Calimero Network — connect to a node and manage applications, contexts, blobs, aliases, namespaces and groups, and call app methods over JSON-RPC.
+template: splash
+hero:
+  tagline: A Python client SDK for Calimero Network, over a native Rust core (PyO3). Connect to a node, manage applications and contexts, move blobs, administer namespaces and groups, and call your app's methods over JSON-RPC — all from synchronous Python.
+  actions:
+    - text: Install it
+      link: /get-started/installation/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/calimero-network/calimero-client-py
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+{/* Audience-routed landing — pick your track. */}
+
+<CardGrid>
+  <Card title="Get started" icon="rocket">
+    Install the package and make your first connect-and-call against a node.
+    [Install it →](/get-started/installation/)
+  </Card>
+  <Card title="Guides" icon="open-book">
+    Task guides: connecting, authentication and token persistence, contexts,
+    applications and blobs, namespaces and groups.
+    [Browse the guides →](/guides/connecting/)
+  </Card>
+  <Card title="API reference" icon="list-format">
+    Every module function, class, and `Client` method with its signature.
+    [Open the reference →](/reference/api/)
+  </Card>
+  <Card title="CLI" icon="seti:python">
+    The bundled `calimero-client-py` command-line entry point.
+    [See the CLI →](/reference/cli/)
+  </Card>
+</CardGrid>
+
+The client talks to a [Calimero](https://calimero-network.github.io/core/) node's
+HTTP admin and JSON-RPC APIs. For the protocol those nodes implement — contexts,
+CRDT sync, namespaces and groups — see the
+[Calimero Core docs](https://calimero-network.github.io/core/).

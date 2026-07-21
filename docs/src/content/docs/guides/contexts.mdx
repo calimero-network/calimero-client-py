@@ -1,0 +1,138 @@
+---
+title: Working with contexts
+description: Create and inspect contexts, join and leave them, sync state, and execute application functions over JSON-RPC.
+sidebar:
+  order: 3
+---
+
+import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+A **context** is a running instance of an application with its own state,
+belonging to a group. This guide covers the context lifecycle and calling into
+an app. Every method returns a plain Python value (usually a `dict` or `list`).
+
+## Creating a context
+
+A context is created inside a group, so you need a `group_id` (from a namespace
+or group — see [namespaces and groups](/guides/namespaces-and-groups/)) and an
+installed application (see [applications and blobs](/guides/applications-and-blobs/)):
+
+```python
+result = client.create_context(
+    application_id="<application-id>",
+    group_id="<group-id>",
+    params='{"init": true}',   # optional: initialization params (a string)
+    service_name=None,          # optional
+)
+```
+
+`params` and `service_name` are optional. `params` is passed through as the
+application's initialization payload.
+
+To create a fresh identity for use in a context:
+
+```python
+identity = client.generate_context_identity()
+```
+
+## Inspecting contexts
+
+```python
+client.list_contexts()                       # all contexts on the node
+client.get_context("<context-id>")           # one context's metadata
+client.get_context_storage("<context-id>")   # storage/state info
+client.get_context_identities("<context-id>")   # identities in the context
+client.get_context_client_keys("<context-id>")  # client keys
+```
+
+Context IDs are validated: an invalid ID raises `ValueError`.
+
+## Joining and leaving
+
+```python
+client.join_context("<context-id>")   # join via group membership
+client.leave_context("<context-id>")  # local leave — stops sync, reversible
+```
+
+`leave_context` is a **local** operation: it stops syncing the context on this
+node and disarms auto-follow, without publishing anything. Calling
+`join_context` again reverses it.
+
+To remove a context entirely:
+
+```python
+client.delete_context("<context-id>")                       # requester optional
+client.delete_context("<context-id>", requester="<public-key>")
+```
+
+## Syncing state
+
+```python
+client.sync_context("<context-id>")   # sync one context
+client.sync_all_contexts()            # sync every context on the node
+```
+
+For a context that can no longer replay its history (for example a missing
+bytecode blob), `resync_context` adopts a peer's full-state snapshot. It is
+destructive — pass `force=True` when the context still holds local heads:
+
+```python
+client.resync_context("<context-id>", force=True)
+```
+
+## Executing application functions
+
+Call a method on the app running in a context over JSON-RPC. Arguments are a
+**JSON string**:
+
+```python
+result = client.execute_function(
+    context_id="<context-id>",
+    method="set",
+    args='{"key": "greeting", "value": "hello"}',
+)
+```
+
+The trailing `executor_public_key` argument is accepted for backward
+compatibility but ignored — the node auto-resolves the context's owned identity.
+Invalid JSON in `args` raises `ValueError`.
+
+To point a context at a different application version:
+
+```python
+client.update_context_application(
+    context_id="<context-id>",
+    application_id="<new-application-id>",
+    executor_public_key="<public-key>",
+)
+```
+
+## Context aliases
+
+Give a context (or a context identity) a human-friendly alias:
+
+```python
+client.create_context_alias("my-context", "<context-id>")
+client.create_context_identity_alias("<context-id>", "alice", "<public-key>")
+
+client.lookup_context_alias("my-context")     # resolve without side effects
+client.resolve_context_alias("my-context")    # resolve to the value
+client.list_context_aliases()                 # all context aliases
+client.delete_context_alias("my-context")
+```
+
+The [API reference](/reference/api/#aliases) lists the full alias surface,
+including the identity- and application-scoped variants.
+
+## Next steps
+
+<CardGrid>
+  <LinkCard
+    title="Applications and blobs"
+    href="/guides/applications-and-blobs/"
+    description="Install applications and move blob data." />
+  <LinkCard
+    title="Namespaces and groups"
+    href="/guides/namespaces-and-groups/"
+    description="Create the group a context lives in." />
+</CardGrid>

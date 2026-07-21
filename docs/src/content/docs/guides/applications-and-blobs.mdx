@@ -1,0 +1,103 @@
+---
+title: Applications and blobs
+description: Install, list, and remove applications, inspect their versions, and upload or download blob data.
+sidebar:
+  order: 4
+---
+
+import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+Applications are the WASM programs a context runs. Blobs are the binary objects
+(including application bytecode) the node stores. This guide covers both.
+
+## Installing an application
+
+Install from a URL. The optional `hash` (a hex-encoded 32-byte digest) pins the
+download, and `metadata` is optional `bytes`:
+
+```python
+result = client.install_application(
+    url="https://example.com/app.wasm",
+    hash=None,                 # optional hex-encoded 32-byte hash
+    metadata=None,             # optional bytes
+)
+```
+
+For local development, install straight from a path on the node's filesystem:
+
+```python
+client.install_dev_application("/path/to/app.wasm", metadata=None)
+```
+
+:::note
+`hash` must be a hex string that decodes to exactly 32 bytes, or the call raises
+an error. Leave it `None` to skip integrity pinning.
+:::
+
+## Listing and inspecting
+
+```python
+client.list_applications()                        # all installed applications
+client.get_application("<application-id>")         # one application's info
+client.list_application_versions("<application-id>")  # retained bytecode versions
+```
+
+`list_application_versions` returns each locally retained bytecode version —
+the latest install plus any older blobs still referenced by groups or context
+activation markers. Each row's `blobId` doubles as the `app_key` accepted by
+[`create_namespace`](/guides/namespaces-and-groups/#creating-a-namespace).
+
+## Removing an application
+
+```python
+client.uninstall_application("<application-id>")
+```
+
+## Application aliases
+
+Give an application a friendly name:
+
+```python
+client.create_application_alias("my-app", "<application-id>")
+client.lookup_application_alias("my-app")
+client.resolve_application_alias("my-app")
+client.list_application_aliases()
+client.delete_application_alias("my-app")
+```
+
+## Blobs
+
+Upload raw `bytes`, optionally scoped to a context:
+
+```python
+info = client.upload_blob(b"...raw bytes...", context_id=None)
+```
+
+Download returns the blob's `bytes` directly:
+
+```python
+data = client.download_blob("<blob-id>", context_id=None)  # -> bytes
+```
+
+Inspect and manage stored blobs:
+
+```python
+client.list_blobs()                    # all blobs
+client.get_blob_info("<blob-id>")      # one blob's metadata
+client.delete_blob("<blob-id>")        # remove a blob
+```
+
+Blob IDs are validated — an invalid ID raises `ValueError`.
+
+## Next steps
+
+<CardGrid>
+  <LinkCard
+    title="Working with contexts"
+    href="/guides/contexts/"
+    description="Run an installed application in a context." />
+  <LinkCard
+    title="Namespaces and groups"
+    href="/guides/namespaces-and-groups/"
+    description="Pin an application version to a namespace." />
+</CardGrid>

@@ -1,0 +1,99 @@
+---
+title: Connecting to a node
+description: Create connections and clients, understand the node_name parameter, and use the low-level connection helpers.
+sidebar:
+  order: 1
+---
+
+import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+Everything starts with a **connection** to a node's API URL and a **client**
+built from it. This guide covers both, plus the `node_name` parameter that
+matters for authenticated remote nodes.
+
+## Creating a connection
+
+`create_connection(api_url, node_name=None)` returns a `ConnectionInfo`. The URL
+must be a valid absolute URL (an invalid one raises `ValueError`):
+
+```python
+from calimero_client_py import create_connection
+
+connection = create_connection(api_url="http://localhost:2428")
+```
+
+A `ConnectionInfo` exposes what it was built from:
+
+```python
+connection.api_url    # -> "http://localhost:2428/"
+connection.node_name  # -> None (or the name you passed)
+```
+
+## Creating a client
+
+Pass the connection to `create_client` (equivalently, `Client(connection)`):
+
+```python
+from calimero_client_py import create_client
+
+client = create_client(connection)
+print(client.get_api_url())      # the node's API URL
+print(client.get_peers_count())  # connected P2P peer count
+```
+
+The client is the surface for everything else — applications, contexts, blobs,
+aliases, namespaces, and groups. See the [API reference](/reference/api/) for
+the full method list.
+
+## The `node_name` parameter
+
+`node_name` labels the connection for the **token cache**. For unauthenticated
+local development it can be omitted (or any string). For authenticated remote
+nodes it is important:
+
+- **Stable** — use the same value across sessions, so cached tokens are found
+  and reused.
+- **Unique per node** — different remote nodes should use different names to
+  avoid token collisions in the cache.
+
+```python
+connection = create_connection(
+    api_url="https://my-node.example.com:2428",
+    node_name="prod-node-1",  # stable, descriptive, unique
+)
+```
+
+:::caution
+Avoid dynamic names like `f"node-{uuid4()}"` — a new name every run means the
+client can never find previously cached tokens. See
+[authentication](/guides/authentication/) for how the cache works.
+:::
+
+## Low-level connection helpers
+
+`ConnectionInfo` also offers two helpers used directly, without a full client:
+
+- `connection.get(path)` — issue a raw authenticated `GET` against the node and
+  return the JSON body as a Python object.
+- `connection.detect_auth_mode()` — probe whether the node requires
+  authentication; returns an [`AuthMode`](/guides/authentication/).
+
+```python
+mode = connection.detect_auth_mode()
+print(mode.value)  # "none" or "required"
+
+health = connection.get("admin-api/health")
+```
+
+## Next steps
+
+<CardGrid>
+  <LinkCard
+    title="Authentication"
+    href="/guides/authentication/"
+    description="Token persistence, AuthMode, and JwtToken." />
+  <LinkCard
+    title="Working with contexts"
+    href="/guides/contexts/"
+    description="Create, join, and drive contexts." />
+</CardGrid>

@@ -1,0 +1,106 @@
+---
+title: Quickstart
+description: Connect to a Calimero node, create a client, list contexts, and call an application method — a minimal end-to-end example.
+sidebar:
+  order: 2
+---
+
+import { Steps, LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+This page takes you from a fresh install to a working connection and a first
+call. It assumes you have a reachable Calimero node — either a local
+[`merod`](https://calimero-network.github.io/core/) node or a remote one.
+
+:::note[The client is synchronous]
+Every `Client` method blocks until the node responds and returns a plain Python
+value (a `dict`, `list`, `bytes`, or scalar) — there are no coroutines and
+nothing to `await`. Call the methods directly.
+:::
+
+## Connect and list contexts
+
+<Steps>
+
+1. Create a connection to the node's API URL, then a client from it:
+
+   ```python
+   from calimero_client_py import create_connection, create_client
+
+   connection = create_connection(
+       api_url="http://localhost:2428",
+       node_name="local-dev",  # stable name; used for the token cache
+   )
+   client = create_client(connection)
+   ```
+
+2. Ask the node something simple:
+
+   ```python
+   print("connected to", client.get_api_url())
+
+   contexts = client.list_contexts()
+   print(f"found {len(contexts)} contexts")
+   ```
+
+</Steps>
+
+`create_connection` only validates and stores the URL; it does not open a
+socket. The first request the client makes (here `list_contexts`) is what
+actually reaches the node.
+
+## Call an application method
+
+Once you have a context running an application, execute one of its methods over
+JSON-RPC. Arguments are passed as a **JSON string**:
+
+```python
+result = client.execute_function(
+    context_id="<context-id>",
+    method="set",
+    args='{"key": "greeting", "value": "hello"}',
+)
+print(result)
+```
+
+:::tip
+`execute_function` accepts a trailing `executor_public_key` argument for
+backward compatibility, but it is ignored — the node resolves the owned
+identity for the context automatically. You can omit it.
+:::
+
+## Handle errors
+
+Calls raise a `ValueError` for malformed inputs (an invalid ID, URL, or JSON
+argument) and a `RuntimeError` when the node call itself fails:
+
+```python
+try:
+    ctx = client.get_context("not-a-real-id")
+except ValueError as e:
+    print("bad input:", e)
+except RuntimeError as e:
+    print("node error:", e)
+```
+
+See [error handling](/reference/errors/) for the full picture.
+
+## Next steps
+
+<CardGrid>
+  <LinkCard
+    title="Connecting to a node"
+    href="/guides/connecting/"
+    description="Connections, the node_name parameter, and client basics." />
+  <LinkCard
+    title="Working with contexts"
+    href="/guides/contexts/"
+    description="Create contexts, join them, and execute functions." />
+  <LinkCard
+    title="Authentication"
+    href="/guides/authentication/"
+    description="Token persistence and authenticated remote nodes." />
+  <LinkCard
+    title="API reference"
+    href="/reference/api/"
+    description="Every function, class, and method." />
+</CardGrid>

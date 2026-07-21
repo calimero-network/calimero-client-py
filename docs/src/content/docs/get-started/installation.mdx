@@ -1,0 +1,115 @@
+---
+title: Installation
+description: Install calimero-client-py from PyPI or from source. The package ships as a source distribution and compiles a native Rust extension at install time, so a Rust toolchain is required.
+sidebar:
+  order: 1
+---
+
+import { Steps, Tabs, TabItem, LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+`calimero-client-py` is a Python client SDK backed by a native Rust core, built
+with [PyO3](https://pyo3.rs/) and [maturin](https://www.maturin.rs/). Two
+importable modules are installed:
+
+- **`calimero_client_py`** — the compiled extension: the classes and functions
+  documented in the [API reference](/reference/api/).
+- **`calimero`** — a thin Python package that re-exports the same names and
+  provides the [`calimero-client-py` CLI](/reference/cli/).
+
+## Requirements
+
+- **Python 3.9 or newer.**
+- **A Rust toolchain** (stable) and a working C compiler.
+
+:::caution[Installing compiles from source]
+The package is published to PyPI as a **source distribution** (sdist), not as
+prebuilt wheels. `pip install` therefore builds the Rust extension on your
+machine, which needs a Rust toolchain on `PATH`. Install one with
+[rustup](https://rustup.rs/) if you do not have `cargo` already:
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+:::
+
+## Install from PyPI
+
+<Tabs>
+  <TabItem label="pip">
+
+```bash
+pip install calimero-client-py
+```
+
+  </TabItem>
+  <TabItem label="pipx">
+
+```bash
+pipx install calimero-client-py
+```
+
+  </TabItem>
+</Tabs>
+
+The build can take a few minutes the first time while Cargo compiles the Rust
+dependencies.
+
+## Verify
+
+```bash
+python -c "import calimero_client_py; print(calimero_client_py.VERSION)"
+```
+
+That prints the installed version. The CLI is also on your `PATH`:
+
+```bash
+calimero-client-py --version
+```
+
+## Install from source
+
+Clone the repository and build with maturin. `maturin develop` compiles the
+extension and installs it into the active virtual environment in one step.
+
+<Steps>
+
+1. Clone and enter the repository:
+
+   ```bash
+   git clone https://github.com/calimero-network/calimero-client-py.git
+   cd calimero-client-py
+   ```
+
+2. Install maturin and build in development mode:
+
+   ```bash
+   pip install maturin
+   maturin develop --release
+   ```
+
+3. Confirm the import works:
+
+   ```bash
+   python -c "import calimero_client_py; print('ok', calimero_client_py.VERSION)"
+   ```
+
+</Steps>
+
+:::note
+The Rust core depends on Calimero crates pulled from
+`github.com/calimero-network/core`, so the first build fetches and compiles
+those too. A network connection is required for the initial build.
+:::
+
+## Next steps
+
+<CardGrid>
+  <LinkCard
+    title="Quickstart"
+    href="/get-started/quickstart/"
+    description="Connect to a node and make your first call." />
+  <LinkCard
+    title="Connecting to a node"
+    href="/guides/connecting/"
+    description="Connections, the node_name parameter, and creating a client." />
+</CardGrid>

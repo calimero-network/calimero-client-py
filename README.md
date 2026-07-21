@@ -2,6 +2,13 @@
 
 A comprehensive Python client library for Calimero Network APIs, built with PyO3 for high performance and native integration.
 
+## Documentation
+
+Full documentation is published at
+<https://calimero-network.github.io/calimero-client-py/> — installation,
+quickstart, task guides, and the complete Python API reference. The source lives
+under [`docs/`](docs/).
+
 ## Features
 
 - **High Performance**: Built with Rust and PyO3 for optimal performance
