@@ -1,0 +1,53 @@
+---
+title: CLI
+description: The bundled calimero-client-py command-line entry point — global options and the list-contexts subcommand.
+sidebar:
+  order: 2
+---
+
+Installing the package puts a `calimero-client-py` command on your `PATH`
+(provided by the `calimero` package's `cli` module). It is intentionally small —
+a thin wrapper for quick checks, not a full-featured CLI.
+
+## Usage
+
+```bash
+calimero-client-py [--base-url URL] [--auth-mode {none,required}] <command>
+```
+
+With no command, it prints help.
+
+## Global options
+
+- `--version` — print the version and exit.
+- `--base-url URL` — the node's base URL. Defaults to
+  `https://test.merod.dev.p2p.aws.calimero.network`.
+- `--auth-mode {none,required}` — authentication mode (default `none`).
+
+## Commands
+
+### `list-contexts`
+
+List the contexts on the target node.
+
+```bash
+calimero-client-py --base-url http://localhost:2428 list-contexts
+```
+
+## Examples
+
+```bash
+# Show the version
+calimero-client-py --version
+
+# Print help
+calimero-client-py --help
+
+# List contexts on a local node
+calimero-client-py --base-url http://localhost:2428 list-contexts
+```
+
+:::note
+For anything beyond listing contexts, use the Python API directly — see the
+[API reference](/reference/api/) and the [quickstart](/get-started/quickstart/).
+:::

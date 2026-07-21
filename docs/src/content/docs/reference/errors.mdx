@@ -1,0 +1,59 @@
+---
+title: Error handling
+description: What the client raises — ValueError for bad inputs, RuntimeError for node failures — and how the ClientError taxonomy relates.
+sidebar:
+  order: 3
+---
+
+The client raises standard Python exceptions. Knowing which is which makes
+error handling straightforward.
+
+## What gets raised
+
+- **`ValueError`** — a malformed input caught before the request is sent: an
+  invalid context, application, or blob ID; an unparseable URL; invalid JSON in
+  an `args`, members, or metadata argument; or an unknown enum value (for
+  example an upgrade policy other than `"automatic"` / `"lazy-on-access"`).
+- **`RuntimeError`** — the node call itself failed. The message is prefixed with
+  `Client error:` followed by the underlying reason (network, authentication,
+  storage, or internal).
+
+```python
+try:
+    ctx = client.get_context(context_id)
+except ValueError as e:
+    print("bad input:", e)      # e.g. malformed context id
+except RuntimeError as e:
+    print("node error:", e)     # e.g. "Client error: ..."
+```
+
+## The `ClientError` taxonomy
+
+`ClientError` is exported and models the core error categories via its
+`error_type`: `Network`, `Authentication`, `Storage`, and `Internal`.
+
+:::caution
+In the current bindings, `Client` methods do **not** raise `ClientError` —
+failures surface as `RuntimeError` (message prefixed `Client error:`) and
+`ValueError`. Catch those, not `ClientError`, around client calls.
+:::
+
+## Recommended pattern
+
+Catch both, most specific first:
+
+```python
+def safe_list_contexts(client):
+    try:
+        return client.list_contexts()
+    except ValueError as e:
+        # inputs we constructed are wrong — a bug to fix
+        raise
+    except RuntimeError as e:
+        # the node/network failed — retry, log, or surface to the user
+        print("call failed:", e)
+        return None
+```
+
+See [authentication](/guides/authentication/) for the auth-specific failure
+paths (token expiry and automatic refresh).

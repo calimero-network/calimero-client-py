@@ -1,0 +1,191 @@
+---
+title: Namespaces and groups
+description: Administer the governance surface — create namespaces and subgroups, invite and manage members, set roles and capabilities, and drive application upgrades.
+sidebar:
+  order: 5
+---
+
+import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+A **namespace** is a root group that binds an application and holds members,
+subgroups, and contexts. This guide walks the governance surface the client
+exposes. It is broad — the [API reference](/reference/api/#namespaces-and-groups)
+lists every method and signature; this page shows the common flows.
+
+Governance responses are returned as plain Python `dict`/`list` values. Several
+methods take a `requester` argument (a public-key string) to act on behalf of a
+specific identity registered on the node; when omitted, the node resolves a
+signing key it holds.
+
+## Creating a namespace
+
+```python
+result = client.create_namespace(
+    application_id="<application-id>",
+    upgrade_policy="lazy-on-access",   # or "automatic"; default: lazy-on-access
+    name="my-namespace",                # optional
+    app_key=None,                       # optional: hex blob id pinning a version
+)
+```
+
+`upgrade_policy` accepts `"automatic"` or `"lazy-on-access"` (an unknown value
+raises `ValueError`). `app_key` pins the namespace to a specific installed
+bytecode version — the `blobId` from
+[`list_application_versions`](/guides/applications-and-blobs/#listing-and-inspecting).
+
+Inspect and remove namespaces:
+
+```python
+client.list_namespaces()
+client.get_namespace("<namespace-id>")
+client.get_namespace_identity("<namespace-id>")
+client.list_namespaces_for_application("<application-id>")
+client.delete_namespace("<namespace-id>")            # requester optional
+```
+
+## Invitations and joining
+
+Create an invitation on the namespace owner's node, then hand the returned
+invitation JSON to the joiner:
+
+```python
+invitation = client.create_namespace_invitation(
+    "<namespace-id>",
+    recursive=None,               # optional
+    expiration_timestamp=None,    # optional Unix timestamp
+)
+
+# on the joining node:
+client.join_namespace("<namespace-id>", invitation_json)
+```
+
+`join_namespace` expects the invitation as a JSON string; malformed JSON raises
+`ValueError`.
+
+## Groups and subgroups
+
+Namespaces can nest subgroups:
+
+```python
+client.create_group_in_namespace("<namespace-id>", group_name="engineering")
+client.list_namespace_groups("<namespace-id>")   # groups in a namespace
+client.list_subgroups("<group-id>")              # direct subgroups of a group
+client.get_group_info("<group-id>")
+client.delete_group("<group-id>")                # requester optional
+```
+
+Move a subgroup under a new parent in one atomic edge swap:
+
+```python
+client.reparent_group("<group-id>", "<new-parent-id>")
+```
+
+A member whose access is inherited through an open subgroup can materialise that
+membership directly:
+
+```python
+client.join_subgroup_inheritance("<group-id>")
+```
+
+## Members
+
+List, add, and remove members. `add_group_members` takes a JSON array of
+`{identity, role}` objects (roles here are `"Admin"`, `"Member"`, or
+`"ReadOnly"`); `remove_group_members` takes a JSON array of public-key strings:
+
+```python
+client.list_group_members("<group-id>")
+
+client.add_group_members("<group-id>",
+    '[{"identity": "<public-key>", "role": "Member"}]')
+
+client.remove_group_members("<group-id>", '["<public-key>"]')
+```
+
+Change a member's role (case-insensitive `"admin"`, `"member"`, `"read-only"`):
+
+```python
+client.update_member_role("<group-id>", "<member-id>", "admin")
+```
+
+Leave a group or an entire namespace yourself:
+
+```python
+client.leave_group("<group-id>")
+client.leave_namespace("<namespace-id>")
+```
+
+## Capabilities and auto-follow
+
+Capabilities are an integer bitmask. Set them per member or as the group default,
+and control whether a member auto-follows new contexts and subgroups:
+
+```python
+client.set_member_capabilities("<group-id>", "<member-id>", 0)
+client.get_member_capabilities("<group-id>", "<member-id>")
+client.set_default_capabilities("<group-id>", 0)
+
+client.set_member_auto_follow("<group-id>", "<member-id>",
+    auto_follow_contexts=True, auto_follow_subgroups=False)
+```
+
+## Settings, visibility, and metadata
+
+```python
+client.update_group_settings("<group-id>", "automatic")   # change upgrade policy
+client.set_subgroup_visibility("<group-id>", "open")       # subgroup visibility
+
+# metadata setters take a JSON body; getters return the stored metadata
+client.set_group_metadata("<group-id>", '{"key": "value"}')
+client.get_group_metadata("<group-id>")
+client.get_member_metadata("<group-id>", "<member-id>")
+client.get_context_metadata("<group-id>", "<context-id>")
+```
+
+There are matching `set_member_metadata` and `set_context_metadata` setters —
+see the [reference](/reference/api/#namespaces-and-groups).
+
+## Contexts within a group
+
+```python
+client.list_group_contexts("<group-id>")
+client.detach_context_from_group("<group-id>", "<context-id>")
+client.sync_group("<group-id>")
+```
+
+## Upgrades and migration
+
+Upgrade a group to a target application. With `cascade=True` the upgrade fans out
+to every matching descendant subgroup and context in one round — use it
+deliberately, since the blast radius is the whole subtree:
+
+```python
+client.upgrade_group("<group-id>", "<target-application-id>")            # single group
+client.upgrade_group("<namespace-id>", "<target-application-id>", cascade=True)
+```
+
+Observe and control migration:
+
+```python
+client.get_group_upgrade_status("<group-id>")
+client.get_cascade_status("<namespace-id>")     # per-descendant cascade status
+client.get_migration_status("<namespace-id>")   # pinned-cohort migration rollup
+client.retry_group_upgrade("<group-id>")
+client.abort_migration("<namespace-id>")         # roll a pending migration back
+```
+
+The migration/cascade status calls are observability only — they never gate a
+write.
+
+## Next steps
+
+<CardGrid>
+  <LinkCard
+    title="API reference"
+    href="/reference/api/"
+    description="Every governance method and its full signature." />
+  <LinkCard
+    title="Working with contexts"
+    href="/guides/contexts/"
+    description="Create contexts inside a group." />
+</CardGrid>

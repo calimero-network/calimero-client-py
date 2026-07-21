@@ -1,0 +1,128 @@
+---
+title: Authentication
+description: How the client detects auth mode, persists JWT tokens on disk, refreshes them automatically, and where the token cache lives.
+sidebar:
+  order: 2
+---
+
+import { Steps, LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+Local nodes usually run without authentication. Remote nodes typically require a
+JWT. The client persists tokens on disk, attaches them automatically, and
+refreshes them when they expire — keyed by the connection's
+[`node_name`](/guides/connecting/#the-node_name-parameter).
+
+## Detecting whether auth is required
+
+Probe a node before connecting for real:
+
+```python
+from calimero_client_py import create_connection
+
+connection = create_connection(api_url="https://my-node.example.com:2428",
+                               node_name="prod-node-1")
+mode = connection.detect_auth_mode()
+print(mode.value)  # "none" or "required"
+```
+
+`detect_auth_mode()` returns an `AuthMode`. You can also construct one directly —
+`AuthMode("required")` or `AuthMode("none")` — and read `.value`; any other
+string raises `ValueError`.
+
+## Where tokens are cached
+
+Tokens live under `~/.merobox/auth_cache/`, one JSON file per node. The filename
+is derived from `node_name` — a sanitized, truncated slug plus a short SHA-256
+hash for collision resistance:
+
+```
+~/.merobox/auth_cache/{slug}-{hash}.json
+```
+
+Two helpers expose these paths so your application can write the initial tokens
+to the right place:
+
+```python
+from calimero_client_py import get_token_cache_path, get_token_cache_dir
+
+get_token_cache_dir()                 # -> ~/.merobox/auth_cache
+get_token_cache_path("prod-node-1")   # -> ~/.merobox/auth_cache/prod-node-1-<hash>.json
+```
+
+`get_token_cache_path` is stable: the same `node_name` always maps to the same
+file. That is why a stable name matters — it is how the client finds tokens
+saved in a previous session.
+
+## The authentication flow
+
+<Steps>
+
+1. **Obtain tokens** through your node's auth endpoint (handled by your
+   application, e.g. merobox) and **write them** to the cache path for the
+   node's `node_name`:
+
+   ```python
+   import json, os
+   from calimero_client_py import get_token_cache_path
+
+   NODE_NAME = "prod-node-1"  # keep this stable
+   path = get_token_cache_path(NODE_NAME)
+   os.makedirs(os.path.dirname(path), exist_ok=True)
+   with open(path, "w") as f:
+       json.dump({
+           "access_token": access_token,
+           "refresh_token": refresh_token,
+           "expires_at": expires_at,
+       }, f)
+   ```
+
+2. **Connect with the same `node_name`.** The client loads the cached tokens and
+   attaches an `Authorization: Bearer …` header to every request:
+
+   ```python
+   from calimero_client_py import create_connection, create_client
+
+   connection = create_connection(api_url="https://my-node.example.com:2428",
+                                  node_name=NODE_NAME)
+   client = create_client(connection)
+   contexts = client.list_contexts()  # authenticated automatically
+   ```
+
+3. **Refresh is automatic.** On a `401`, the client calls the node's
+   `/auth/refresh`, then writes the new tokens back to the same cache file.
+
+</Steps>
+
+:::note
+On Unix the cache file is written with restrictive `0600` permissions. The
+directory name `.merobox` is shared with the merobox tooling — the same cache is
+reused when both run as the same user.
+:::
+
+## The `JwtToken` type
+
+`JwtToken` models a token in Python. Construct it with an access token and,
+optionally, a refresh token and an expiry (a Unix timestamp, seconds):
+
+```python
+from calimero_client_py import JwtToken
+
+token = JwtToken("eyJhbGciOi...", refresh_token="r-...", expires_at=1893456000)
+token.access_token   # the access token string
+token.refresh_token  # the refresh token, or None
+token.expires_at     # the expiry timestamp, or None
+token.is_expired()   # True once expires_at has passed (False if unset)
+```
+
+## Next steps
+
+<CardGrid>
+  <LinkCard
+    title="Connecting to a node"
+    href="/guides/connecting/"
+    description="Connections, node_name, and the client." />
+  <LinkCard
+    title="Error handling"
+    href="/reference/errors/"
+    description="What the client raises and how to catch it." />
+</CardGrid>

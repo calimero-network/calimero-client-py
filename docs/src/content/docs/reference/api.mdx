@@ -1,0 +1,219 @@
+---
+title: API reference
+description: The complete public Python API surface — module functions, classes, and every Client method with its signature.
+sidebar:
+  order: 1
+---
+
+The public surface lives in the `calimero_client_py` module (also re-exported
+from the `calimero` package). Every `Client` method is **synchronous**: it
+blocks until the node responds and returns a plain Python value — a `dict`,
+`list`, `bytes`, or scalar decoded from the node's JSON response. There are no
+coroutines.
+
+Signatures below use Python conventions; arguments shown with `=` are optional
+with the default given. IDs, URLs, and JSON arguments are validated and raise
+`ValueError` when malformed; a failing node call raises `RuntimeError` (see
+[error handling](/reference/errors/)).
+
+## Module attributes
+
+- `VERSION: str` — the package version.
+
+## Module functions
+
+- `create_connection(api_url, node_name=None) -> ConnectionInfo` — build a
+  connection to a node's API URL.
+- `create_client(connection) -> Client` — build a client from a `ConnectionInfo`.
+- `get_token_cache_path(node_name) -> str` — path to the JWT cache file for a
+  node name.
+- `get_token_cache_dir() -> str` — the base token-cache directory
+  (`~/.merobox/auth_cache`).
+
+## `ConnectionInfo`
+
+Constructed via `create_connection(...)` or `ConnectionInfo(api_url, node_name=None)`.
+
+**Properties**
+
+- `api_url: str` — the node's API URL.
+- `node_name: str | None` — the connection's node name.
+
+**Methods**
+
+- `get(path) -> object` — issue an authenticated `GET` and return the JSON body.
+- `detect_auth_mode() -> AuthMode` — probe whether the node requires auth.
+
+## `AuthMode`
+
+`AuthMode(mode)` where `mode` is `"required"` or `"none"` (any other value raises
+`ValueError`).
+
+- `value: str` — `"required"` or `"none"`.
+- `str(mode)` / `repr(mode)` — string forms.
+
+## `JwtToken`
+
+`JwtToken(access_token, refresh_token=None, expires_at=None)`.
+
+- `access_token: str`
+- `refresh_token: str | None`
+- `expires_at: int | None` — Unix timestamp (seconds).
+- `is_expired() -> bool` — `True` once `expires_at` has passed; `False` when
+  `expires_at` is unset.
+
+## `ClientError`
+
+`ClientError(error_type, message)` — models the core error taxonomy.
+
+- `error_type: str` — one of `Network`, `Authentication`, `Storage`, `Internal`.
+- `message: str`
+
+:::note
+`Client` methods surface failures as `RuntimeError` and `ValueError`, not as
+`ClientError`. See [error handling](/reference/errors/).
+:::
+
+## `Client`
+
+Constructed via `create_client(connection)` or `Client(connection)`.
+
+### Connection
+
+- `get_api_url() -> str`
+- `get_peers_count() -> object` — connected P2P peer count.
+
+### Applications
+
+- `get_application(app_id)`
+- `list_applications()`
+- `list_application_versions(application_id)` — retained bytecode versions; each
+  row's `blobId` doubles as the `app_key` for `create_namespace`.
+- `install_application(url, hash=None, metadata=None)` — `hash` is a hex-encoded
+  32-byte digest; `metadata` is `bytes`.
+- `install_dev_application(path, metadata=None)` — install from a local path.
+- `uninstall_application(app_id)`
+
+### Blobs
+
+- `upload_blob(data, context_id=None)` — `data` is `bytes`.
+- `download_blob(blob_id, context_id=None) -> bytes` — returns the raw bytes.
+- `list_blobs()`
+- `get_blob_info(blob_id)`
+- `delete_blob(blob_id)`
+
+### Contexts
+
+- `create_context(application_id, group_id, params=None, service_name=None)`
+- `get_context(context_id)`
+- `list_contexts()`
+- `delete_context(context_id, requester=None)`
+- `get_context_storage(context_id)`
+- `get_context_identities(context_id)`
+- `get_context_client_keys(context_id)`
+- `sync_context(context_id)`
+- `sync_all_contexts()`
+- `resync_context(context_id, force=False)` — adopt a peer's full-state snapshot;
+  destructive when local heads exist (`force=True`).
+- `update_context_application(context_id, application_id, executor_public_key)`
+- `join_context(context_id)` — join via group membership.
+- `leave_context(context_id)` — local leave; stops sync, reversible.
+- `generate_context_identity()`
+
+### Function execution
+
+- `execute_function(context_id, method, args, executor_public_key="")` — call an
+  app method over JSON-RPC. `args` is a JSON string. `executor_public_key` is
+  accepted for backward compatibility but ignored.
+
+### Aliases
+
+Context, context-identity, and application aliases:
+
+- `create_context_alias(alias, context_id)`
+- `create_context_identity_alias(context_id, alias, public_key)`
+- `create_application_alias(alias, application_id)`
+- `create_alias_generic(alias, value, scope=None)` — backward-compatible generic
+  helper (treats `value` as a context id).
+- `delete_context_alias(alias)`
+- `delete_context_identity_alias(alias, context_id)`
+- `delete_application_alias(alias)`
+- `list_context_aliases()`
+- `list_context_identity_aliases(context_id)`
+- `list_application_aliases()`
+- `lookup_context_alias(alias)`
+- `lookup_context_identity_alias(alias, context_id)`
+- `lookup_application_alias(alias)`
+- `resolve_context_alias(alias)`
+- `resolve_context_identity_alias(alias, context_id)`
+- `resolve_application_alias(alias)`
+
+### Namespaces and groups
+
+**Namespaces**
+
+- `create_namespace(application_id, upgrade_policy=None, name=None, app_key=None)`
+  — `upgrade_policy` is `"automatic"` or `"lazy-on-access"` (default
+  `"lazy-on-access"`).
+- `get_namespace(namespace_id)`
+- `list_namespaces()`
+- `delete_namespace(namespace_id, requester=None)`
+- `get_namespace_identity(namespace_id)`
+- `list_namespaces_for_application(application_id)`
+- `create_namespace_invitation(namespace_id, recursive=None, expiration_timestamp=None)`
+- `join_namespace(namespace_id, invitation_json)` — `invitation_json` is a JSON
+  string.
+- `list_namespace_groups(namespace_id)`
+- `leave_namespace(namespace_id)`
+
+**Groups and subgroups**
+
+- `create_group_in_namespace(namespace_id, group_name=None)`
+- `reparent_group(group_id, new_parent_id)`
+- `list_subgroups(group_id)`
+- `get_group_info(group_id)`
+- `delete_group(group_id, requester=None)`
+- `join_subgroup_inheritance(group_id)`
+- `leave_group(group_id)`
+- `list_group_members(group_id)`
+- `list_group_contexts(group_id)`
+- `detach_context_from_group(group_id, context_id)`
+- `sync_group(group_id)`
+- `register_group_signing_key(group_id, signing_key)`
+
+**Members, roles, and capabilities**
+
+- `add_group_members(group_id, members_json)` — JSON array of
+  `{"identity", "role"}` (roles `"Admin"`, `"Member"`, `"ReadOnly"`).
+- `remove_group_members(group_id, members_json)` — JSON array of public-key
+  strings.
+- `update_member_role(group_id, member_id, role)` — `role` is `"admin"`,
+  `"member"`, or `"read-only"` (case-insensitive).
+- `set_member_capabilities(group_id, member_id, capabilities)` — `capabilities`
+  is an `int` bitmask.
+- `get_member_capabilities(group_id, member_id)`
+- `set_default_capabilities(group_id, capabilities)`
+- `set_member_auto_follow(group_id, member_id, auto_follow_contexts, auto_follow_subgroups, requester=None)`
+
+**Settings, visibility, and metadata**
+
+- `update_group_settings(group_id, upgrade_policy)`
+- `set_subgroup_visibility(group_id, visibility)`
+- `set_default_visibility(group_id, visibility)` — deprecated alias for
+  `set_subgroup_visibility`.
+- `set_group_metadata(group_id, body_json)`
+- `set_member_metadata(group_id, member_id, body_json)`
+- `set_context_metadata(group_id, context_id, body_json)`
+- `get_group_metadata(group_id)`
+- `get_member_metadata(group_id, member_id)`
+- `get_context_metadata(group_id, context_id)`
+
+**Upgrades and migration**
+
+- `upgrade_group(group_id, target_application_id, cascade=False)` — `cascade=True`
+  fans the upgrade out to the whole subtree.
+- `get_group_upgrade_status(group_id)`
+- `get_cascade_status(namespace_id)`
+- `get_migration_status(namespace_id)`
+- `abort_migration(namespace_id)`
+- `retry_group_upgrade(group_id)`
