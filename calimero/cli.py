@@ -3,12 +3,10 @@ Command Line Interface for Calimero Client Python Library.
 """
 
 import argparse
-import asyncio
 import sys
-from typing import Optional
 
 from calimero import __version__
-from calimero_client_py import create_connection, create_client, AuthMode
+from calimero_client_py import create_connection, create_client
 
 
 def main():
@@ -37,16 +35,22 @@ Examples:
     )
 
     parser.add_argument(
+        "--node-name",
+        default=None,
+        help="Stable node name used to locate cached JWT tokens (required for authenticated nodes)",
+    )
+
+    parser.add_argument(
         "--auth-mode",
         choices=["none", "required"],
         default="none",
-        help="Authentication mode (default: none)",
+        help="Expected authentication mode; the node's actual mode is probed and a mismatch is reported (default: none)",
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # List contexts command
-    list_parser = subparsers.add_parser("list-contexts", help="List all contexts")
+    subparsers.add_parser("list-contexts", help="List all contexts")
 
     # Add more commands here as needed
 
@@ -57,7 +61,19 @@ Examples:
         return
 
     # Create connection
-    connection = create_connection(api_url=args.base_url, node_name=None)
+    connection = create_connection(api_url=args.base_url, node_name=args.node_name)
+
+    # Reconcile the expected auth mode against what the node actually requires.
+    try:
+        detected = connection.detect_auth_mode().value
+        if detected != args.auth_mode:
+            print(
+                f"Warning: --auth-mode is '{args.auth_mode}' but the node reports "
+                f"'{detected}'. Using the node's mode.",
+                file=sys.stderr,
+            )
+    except Exception as e:  # non-fatal: proceed and let the command surface errors
+        print(f"Warning: could not detect auth mode: {e}", file=sys.stderr)
 
     # Create client
     client = create_client(connection)
@@ -66,7 +82,11 @@ Examples:
     if args.command == "list-contexts":
         try:
             contexts = client.list_contexts()
-            print(f"Found {contexts} contexts:")
+            # Responses may be a bare list or wrap the list under a "data" key.
+            rows = contexts.get("data") if isinstance(contexts, dict) else contexts
+            count = len(rows) if hasattr(rows, "__len__") else "?"
+            print(f"Found {count} contexts:")
+            print(contexts)
         except Exception as e:
             print(f"Error listing contexts: {e}", file=sys.stderr)
             sys.exit(1)

@@ -16,6 +16,40 @@ with the default given. IDs, URLs, and JSON arguments are validated and raise
 `ValueError` when malformed; a failing node call raises `RuntimeError` (see
 [error handling](/reference/errors/)).
 
+## Response shapes
+
+Return values are the node's admin-API / JSON-RPC response, decoded from JSON
+into native Python (`dict`, `list`, `bytes`, or scalar). Two conventions hold
+across the surface:
+
+- **Keys are `camelCase`** — the node's wire format is passed through verbatim,
+  so you read `contextId`, `blobId`, `applicationId`, and so on (not
+  `context_id`). The method *names* are Pythonic; the *dict keys* are not.
+- **Many admin responses wrap their payload under a top-level `data` key** — for
+  example a list endpoint returns `{"data": [ ... ]}` rather than a bare list.
+
+Because the exact fields track the node's admin API version, the reliable way to
+learn a specific shape is to print a result against your node:
+
+```python
+import json
+print(json.dumps(client.list_contexts(), indent=2))
+```
+
+A few shapes are stable enough to document here (keys as returned):
+
+| Method | Returns |
+| --- | --- |
+| `list_application_versions(id)` | `{"data": [{"version", "blobId", "size", "package"}]}` — each `blobId` doubles as an `app_key` |
+| `resync_context(id, force)` | `{"contextId", "resyncStarted"}` |
+| `reparent_group(id, parent)` | `{"reparented": bool}` (`false` on an idempotent no-op) |
+| `join_subgroup_inheritance(id)` | `{"group_id", "member_public_key", "was_inherited"}` |
+| `get_cascade_status(namespace_id)` | `{"data": [{"groupId", "upgrade", "cascadeHlc"}]}` — one entry per descendant |
+| `get_migration_status(namespace_id)` | `{"targetVersion", "expectedMembers", "rollup", "members"}` |
+| `abort_migration(namespace_id)` | `{"namespaceId", "aborted"}` |
+
+`download_blob` is the exception to the JSON rule — it returns raw `bytes`.
+
 ## Module attributes
 
 - `VERSION: str` — the package version.

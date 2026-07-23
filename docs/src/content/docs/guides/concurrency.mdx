@@ -1,0 +1,100 @@
+---
+title: Concurrency and async
+description: The client is synchronous and blocking — how to use it from threads, and how to call it from async applications without blocking the event loop.
+sidebar:
+  order: 6
+---
+
+import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+Every `Client` method is **synchronous and blocking**: it issues the request,
+waits for the node to respond, and returns a plain Python value. There are no
+coroutines. This page covers using the client from threads and from `asyncio`
+applications.
+
+:::note[Why blocking]
+The native Rust core drives its own runtime internally and blocks the calling
+Python thread until the node responds. From Python's point of view a call is an
+ordinary function call — the Global Interpreter Lock is released while the
+request is in flight, so other threads can run.
+:::
+
+## From a single thread
+
+The common case. Create one connection and one client and call methods in
+sequence:
+
+```python
+from calimero_client_py import create_connection, create_client
+
+client = create_client(create_connection(api_url="http://localhost:2428"))
+for ctx in client.list_contexts():
+    print(ctx)
+```
+
+## From multiple threads
+
+A `Client` is backed by an internal HTTP client and runtime and can be shared
+across threads — calls release the GIL while waiting on the node, so several
+threads making requests will overlap their I/O:
+
+```python
+from concurrent.futures import ThreadPoolExecutor
+
+client = create_client(create_connection(api_url="http://localhost:2428"))
+
+def sync_one(context_id):
+    return client.sync_context(context_id)
+
+with ThreadPoolExecutor(max_workers=4) as pool:
+    results = list(pool.map(sync_one, context_ids))
+```
+
+:::caution
+Sharing one client across threads is fine for concurrent **requests**, but the
+methods are not transactional — if two threads mutate the same context, group,
+or alias, order is not guaranteed. Coordinate writes to the same resource
+yourself, or give each thread its own client.
+:::
+
+## From an async application
+
+Because the calls block, calling them directly inside a coroutine would stall
+the event loop for the duration of the request. Offload each call to a worker
+thread with [`asyncio.to_thread`](https://docs.python.org/3/library/asyncio-task.html#asyncio.to_thread)
+(Python 3.9+):
+
+```python
+import asyncio
+from calimero_client_py import create_connection, create_client
+
+client = create_client(create_connection(api_url="http://localhost:2428"))
+
+async def main():
+    # runs the blocking call on a thread; the event loop stays responsive
+    contexts = await asyncio.to_thread(client.list_contexts)
+    print(f"found {len(contexts)} contexts")
+
+    # fan several calls out concurrently
+    results = await asyncio.gather(
+        *(asyncio.to_thread(client.sync_context, cid) for cid in context_ids)
+    )
+
+asyncio.run(main())
+```
+
+This keeps the "no `await` on client methods" rule intact — you `await` the
+`to_thread` wrapper, not the client call itself.
+
+## Next steps
+
+<CardGrid>
+  <LinkCard
+    title="Error handling"
+    href="/reference/errors/"
+    description="What the client raises and how to catch it." />
+  <LinkCard
+    title="API reference"
+    href="/reference/api/"
+    description="Every function, class, and method." />
+</CardGrid>

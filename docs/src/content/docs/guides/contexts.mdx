@@ -122,7 +122,9 @@ client.delete_context_alias("my-context")
 ```
 
 The [API reference](/reference/api/#aliases) lists the full alias surface,
-including the identity- and application-scoped variants.
+including the identity- and application-scoped variants. There is also a
+backward-compatible `create_alias_generic(alias, value, scope=None)` helper that
+treats `value` as a context id — prefer the typed methods above for new code.
 
 ## Next steps
 
