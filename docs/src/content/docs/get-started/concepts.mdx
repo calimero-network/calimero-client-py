@@ -1,0 +1,78 @@
+---
+title: Concepts
+description: The object model the client works with — nodes, applications, blobs, namespaces, groups, contexts, identities, and aliases — and how they fit together.
+sidebar:
+  order: 3
+---
+
+import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+The client is a thin, typed surface over a Calimero node's HTTP admin and
+JSON-RPC APIs. This page names the objects you'll manipulate and how they nest,
+so the task guides read as a map rather than a list of methods. For the protocol
+itself — CRDT sync, the group model — see the
+[Calimero Core docs](https://calimero-network.github.io/core/).
+
+## The object model
+
+```
+node
+├── applications        (WASM programs; bytecode stored as blobs)
+├── blobs               (binary objects the node stores)
+└── namespaces          (root groups, each bound to an application)
+    └── groups / subgroups   (governance: members, roles, capabilities)
+        └── contexts    (running app instances with CRDT-synced state)
+            └── identities   (keypairs acting within a context)
+```
+
+Aliases sit alongside all of this — human-friendly names that resolve to
+context, context-identity, or application IDs.
+
+## The pieces
+
+- **Node** — a running [`merod`](https://calimero-network.github.io/core/)
+  instance. You reach one through its API URL; a
+  [connection](/guides/connecting/) plus a client is how everything starts.
+- **Application** — a WASM program a context runs. Its bytecode is stored as a
+  blob; installing an application registers it on the node. See
+  [applications and blobs](/guides/applications-and-blobs/).
+- **Blob** — a binary object the node stores, including application bytecode.
+  Blobs can be uploaded and downloaded directly.
+- **Namespace** — a root group that binds an application and holds members,
+  subgroups, and contexts. It is where governance and application upgrades are
+  rooted. See [namespaces and groups](/guides/namespaces-and-groups/).
+- **Group / subgroup** — the governance unit nested inside a namespace. Groups
+  carry members with **roles** (`Admin`, `Member`, `ReadOnly`) and an integer
+  **capability** bitmask, and can nest into subgroups.
+- **Context** — a running instance of an application with its own state,
+  belonging to a group. State is synchronised across peers via CRDTs. You call
+  an app's methods by executing a function against its context. See
+  [contexts](/guides/contexts/).
+- **Identity** — a keypair. Members and executors are identified by their public
+  keys; a context has one or more identities acting within it.
+- **Alias** — a stable, human-friendly name for a context, a context identity,
+  or an application, so you don't pass raw IDs around.
+
+## How a typical flow uses them
+
+1. **Connect** to a node and build a client.
+2. **Install an application** (or reference one already installed).
+3. **Create a namespace** bound to that application, then a **group**.
+4. **Create a context** inside the group — a live instance of the app.
+5. **Execute functions** against the context to read and write its state.
+
+The guides follow roughly this order. If you just want to make a call against an
+existing context, jump to the [quickstart](/get-started/quickstart/).
+
+## Next steps
+
+<CardGrid>
+  <LinkCard
+    title="Quickstart"
+    href="/get-started/quickstart/"
+    description="Connect to a node and make your first call." />
+  <LinkCard
+    title="Connecting to a node"
+    href="/guides/connecting/"
+    description="Connections, node_name, and the client." />
+</CardGrid>

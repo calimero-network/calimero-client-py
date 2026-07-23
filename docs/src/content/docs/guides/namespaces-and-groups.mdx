@@ -135,15 +135,24 @@ client.set_member_auto_follow("<group-id>", "<member-id>",
 client.update_group_settings("<group-id>", "automatic")   # change upgrade policy
 client.set_subgroup_visibility("<group-id>", "open")       # subgroup visibility
 
-# metadata setters take a JSON body; getters return the stored metadata
+# metadata: setters take a JSON body; getters return the stored metadata
 client.set_group_metadata("<group-id>", '{"key": "value"}')
+client.set_member_metadata("<group-id>", "<member-id>", '{"note": "lead"}')
+client.set_context_metadata("<group-id>", "<context-id>", '{"env": "prod"}')
+
 client.get_group_metadata("<group-id>")
 client.get_member_metadata("<group-id>", "<member-id>")
 client.get_context_metadata("<group-id>", "<context-id>")
 ```
 
-There are matching `set_member_metadata` and `set_context_metadata` setters —
-see the [reference](/reference/api/#namespaces-and-groups).
+## Signing keys
+
+Register a signing key for a group so this node can sign governance operations
+on the group's behalf:
+
+```python
+client.register_group_signing_key("<group-id>", "<signing-key>")
+```
 
 ## Contexts within a group
 

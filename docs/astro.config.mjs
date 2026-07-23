@@ -56,7 +56,11 @@ export default defineConfig({
         { label: 'Home', link: '/' },
         {
           label: 'Get Started',
-          items: ['get-started/installation', 'get-started/quickstart'],
+          items: [
+            'get-started/installation',
+            'get-started/quickstart',
+            'get-started/concepts',
+          ],
         },
         {
           label: 'Guides',
@@ -66,6 +70,7 @@ export default defineConfig({
             'guides/contexts',
             'guides/applications-and-blobs',
             'guides/namespaces-and-groups',
+            'guides/concurrency',
           ],
         },
         {

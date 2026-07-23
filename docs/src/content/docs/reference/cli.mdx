@@ -12,7 +12,7 @@ a thin wrapper for quick checks, not a full-featured CLI.
 ## Usage
 
 ```bash
-calimero-client-py [--base-url URL] [--auth-mode {none,required}] <command>
+calimero-client-py [--base-url URL] [--node-name NAME] [--auth-mode {none,required}] <command>
 ```
 
 With no command, it prints help.
@@ -22,13 +22,20 @@ With no command, it prints help.
 - `--version` — print the version and exit.
 - `--base-url URL` — the node's base URL. Defaults to
   `https://test.merod.dev.p2p.aws.calimero.network`.
-- `--auth-mode {none,required}` — authentication mode (default `none`).
+- `--node-name NAME` — a stable node name used to locate cached JWT tokens.
+  Required for authenticated nodes (see
+  [authentication](/guides/authentication/)); omit it for unauthenticated local
+  nodes.
+- `--auth-mode {none,required}` — the authentication mode you expect (default
+  `none`). The CLI probes the node's actual mode and prints a warning to stderr
+  if it differs; the node's real mode is what's used.
 
 ## Commands
 
 ### `list-contexts`
 
-List the contexts on the target node.
+List the contexts on the target node. Prints the number of contexts followed by
+the raw response.
 
 ```bash
 calimero-client-py --base-url http://localhost:2428 list-contexts
