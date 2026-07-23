@@ -13,7 +13,6 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from .parser import WASMABIParser
 from .generator import ClientGenerator
 
-
 console = Console()
 
 
