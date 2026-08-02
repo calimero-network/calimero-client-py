@@ -58,6 +58,13 @@ impl From<ClientError> for PyClientError {
                 error_type: "Storage".to_string(),
                 message,
             },
+            // The status is already rendered into `message` upstream, but keep it
+            // in the error_type so a caller can classify without parsing prose —
+            // which is the reason the variant carries it separately at all.
+            ClientError::Http { status, message } => Self {
+                error_type: format!("Http{status}"),
+                message,
+            },
             ClientError::Internal { message } => Self {
                 error_type: "Internal".to_string(),
                 message,

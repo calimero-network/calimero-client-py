@@ -51,12 +51,12 @@ impl PyConnectionInfo {
 
     #[getter]
     pub fn api_url(&self) -> String {
-        self.inner.api_url.to_string()
+        self.inner.api_url().to_string()
     }
 
     #[getter]
     pub fn node_name(&self) -> Option<String> {
-        self.inner.node_name.clone()
+        self.inner.node_name().map(str::to_owned)
     }
 
     /// Make a GET request

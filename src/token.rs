@@ -59,9 +59,12 @@ impl PyJwtToken {
 
 impl From<JwtToken> for PyJwtToken {
     fn from(token: JwtToken) -> Self {
+        // Cloned, not moved: `JwtToken` implements `Drop` upstream (it wipes the
+        // secret when it goes out of scope), and moving a field out of a `Drop`
+        // type is not allowed — the destructor still has to see a whole value.
         Self {
-            access_token: token.access_token,
-            refresh_token: token.refresh_token,
+            access_token: token.access_token.clone(),
+            refresh_token: token.refresh_token.clone(),
             expires_at: token.expires_at,
         }
     }
