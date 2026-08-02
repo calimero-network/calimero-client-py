@@ -57,6 +57,35 @@ fn parse_group_member_role(role: &str) -> PyResult<GroupMemberRole> {
     }
 }
 
+/// Response conversion shared by the account methods.
+///
+/// The older methods each inline this match; sharing it here keeps the five
+/// account bindings from repeating twenty lines of boilerplate five times. It
+/// lives in a plain `impl` because `#[pymethods]` may only contain methods
+/// exposed to Python.
+impl PyClient {
+    fn to_python<T: serde::Serialize, E: std::fmt::Display>(
+        py: Python<'_>,
+        result: Result<T, E>,
+    ) -> PyResult<PyObject> {
+        match result {
+            Ok(data) => {
+                let json_data = serde_json::to_value(data).map_err(|e| {
+                    PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                        "Failed to serialize response: {}",
+                        e
+                    ))
+                })?;
+                Ok(json_to_python(py, &json_data))
+            }
+            Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                "Client error: {}",
+                e
+            ))),
+        }
+    }
+}
+
 #[pymethods]
 impl PyClient {
     #[new]
@@ -1738,6 +1767,132 @@ impl PyClient {
         })
     }
 
+    /// Enrol a device for a fresh account in `namespace_id`.
+    ///
+    /// Publishes a device link, which travels as an *encrypted* group op — so the
+    /// node must already hold the namespace scope key. Called before joining, it
+    /// deadlocks.
+    pub fn create_account(&self, namespace_id: &str) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let namespace_id = namespace_id.to_string();
+
+        Python::with_gil(|py| {
+            let result = self
+                .runtime
+                .block_on(async move { inner.create_account(&namespace_id).await });
+            Self::to_python(py, result)
+        })
+    }
+
+    /// Which account this node speaks for in `namespace_id`, and the device it
+    /// holds there.
+    ///
+    /// Read-only and always answerable: the account is derived from this node's
+    /// root, so it exists before any device is enrolled. A `deviceId` of `None` is
+    /// a real answer — "this node holds no device here" — not missing data.
+    pub fn get_namespace_account(&self, namespace_id: &str) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let namespace_id = namespace_id.to_string();
+
+        Python::with_gil(|py| {
+            let result = self
+                .runtime
+                .block_on(async move { inner.get_namespace_account(&namespace_id).await });
+            Self::to_python(py, result)
+        })
+    }
+
+    /// Mint a device on this node for an account that already exists elsewhere —
+    /// the first half of pairing.
+    ///
+    /// Publishes nothing and needs no scope key. Returns the device id, both
+    /// public keys, a signature over them, and a confirmation code; hand all of
+    /// them to [`Self::pair_device_complete`] on the node that holds the account.
+    pub fn pair_device_init(
+        &self,
+        namespace_id: &str,
+        account_root_key: &str,
+        account_nonce: &str,
+    ) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let namespace_id = namespace_id.to_string();
+        let request = admin::PairDeviceInitApiRequest {
+            account_root_key: account_root_key.to_string(),
+            account_nonce: account_nonce.to_string(),
+        };
+
+        Python::with_gil(|py| {
+            let result = self
+                .runtime
+                .block_on(async move { inner.pair_device_init(&namespace_id, request).await });
+            Self::to_python(py, result)
+        })
+    }
+
+    /// Certify a device another node minted, link it, and deliver the scope key —
+    /// the second half of pairing.
+    ///
+    /// Run on the node holding the account. `statement` is not optional: without
+    /// it the keys above are only claims by the sender, and certifying them would
+    /// make attacker-supplied keys a trusted device of this account.
+    /// `confirmation_code` is checked against the keys that actually arrived, so
+    /// the comparison a human is meant to make cannot be skipped.
+    #[pyo3(signature = (
+        namespace_id,
+        device_id,
+        kem_public_key,
+        sign_public_key,
+        statement,
+        confirmation_code,
+    ))]
+    pub fn pair_device_complete(
+        &self,
+        namespace_id: &str,
+        device_id: &str,
+        kem_public_key: &str,
+        sign_public_key: &str,
+        statement: &str,
+        confirmation_code: &str,
+    ) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let namespace_id = namespace_id.to_string();
+        let request = admin::PairDeviceCompleteApiRequest {
+            device_id: device_id.to_string(),
+            kem_public_key: kem_public_key.to_string(),
+            sign_public_key: sign_public_key.to_string(),
+            statement: statement.to_string(),
+            confirmation_code: confirmation_code.to_string(),
+        };
+
+        Python::with_gil(|py| {
+            let result = self
+                .runtime
+                .block_on(async move { inner.pair_device_complete(&namespace_id, request).await });
+            Self::to_python(py, result)
+        })
+    }
+
+    /// Withdraw a device from its account, terminally.
+    ///
+    /// An admin may revoke any device and rotates the scope key in the same op.
+    /// The account holder may revoke its own with a root-signed proof but cannot
+    /// rotate, so that device stops writing at once and keeps reading until an
+    /// admin rotates.
+    pub fn revoke_device(&self, namespace_id: &str, device_id: &str) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let namespace_id = namespace_id.to_string();
+        let request = admin::RevokeDeviceApiRequest {
+            device_id: device_id.to_string(),
+        };
+
+        Python::with_gil(|py| {
+            let result = self
+                .runtime
+                .block_on(async move { inner.revoke_device(&namespace_id, request).await });
+            Self::to_python(py, result)
+        })
+    }
+
     pub fn get_namespace_identity(&self, namespace_id: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let namespace_id = namespace_id.to_string();
@@ -2954,6 +3109,12 @@ impl PyClient {
                     .upgrade_group(
                         &group_id,
                         admin::UpgradeGroupApiRequest {
+                            // Default (false): a target build with no embedded ABI
+                            // refuses the upgrade rather than proceeding code-only.
+                            // Exposing an override belongs with a caller that can
+                            // assert layout-compatibility; the binding should not
+                            // decide that silently.
+                            force_code_only: false,
                             target_application_id,
                             requester: None,
                             cascade,

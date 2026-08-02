@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.20
+
+- feat(client): add the five account-identity bindings — `create_account(namespace_id)`, `get_namespace_account(namespace_id)`, `pair_device_init(namespace_id, account_root_key, account_nonce)`, `pair_device_complete(namespace_id, device_id, kem_public_key, sign_public_key, statement, confirmation_code)`, and `revoke_device(namespace_id, device_id)`. The Rust client already wrapped all five endpoints (meroctl's `account` subcommands drive them); only the Python bindings were missing, which pushed callers like merobox into hand-rolled `requests` calls against `admin-api/` — bypassing the token cache, the error mapping, and everything else this layer exists to provide
+- fix: compile against current core master, which had drifted from the pinned commit — `ConnectionInfo::api_url`/`node_name` became accessors, `JwtToken` gained a `Drop` impl (so its fields are cloned rather than moved out), `ClientError` gained an `Http { status, message }` variant (surfaced as `error_type: "Http<status>"` so a caller can classify without parsing prose), and `UpgradeGroupApiRequest` gained `force_code_only` (passed `false`, the refuse-without-ABI default)
+
 ## 0.6.19
 
 - feat(client): add `resync_context(context_id, force=False)` binding — recover a stranded context by discarding local DAG heads and adopting a peer's full-state snapshot. Wraps `POST admin-api/contexts/{context_id}/resync` (depends on calimero-network/core#2768)
