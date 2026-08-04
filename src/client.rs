@@ -1874,15 +1874,34 @@ impl PyClient {
 
     /// Withdraw a device from its account, terminally.
     ///
-    /// An admin may revoke any device and rotates the scope key in the same op.
-    /// The account holder may revoke its own with a root-signed proof but cannot
-    /// rotate, so that device stops writing at once and keeps reading until an
-    /// admin rotates.
-    pub fn revoke_device(&self, namespace_id: &str, device_id: &str) -> PyResult<PyObject> {
+    /// Three ways this is authorized, and `proof` is the third:
+    ///
+    /// - the calling node is a group **admin**, which also rotates the scope key
+    ///   in the same op;
+    /// - it holds the **account root** that owns the device, so it mints a proof
+    ///   itself — that path cannot rotate, so the device stops writing at once and
+    ///   keeps reading until an admin rotates;
+    /// - `proof` carries one minted **elsewhere** (`merod account revoke-proof`),
+    ///   which is the lost-device case: the root never reaches a node and the node
+    ///   publishing needs no authority of its own.
+    ///
+    /// `proof` is hex-encoded and not a secret — it authorises exactly one
+    /// revocation of one device, and only alongside a stored binding that already
+    /// names the same account.
+    #[pyo3(signature = (namespace_id, device_id, proof=None))]
+    pub fn revoke_device(
+        &self,
+        namespace_id: &str,
+        device_id: &str,
+        proof: Option<&str>,
+    ) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let namespace_id = namespace_id.to_string();
         let request = admin::RevokeDeviceApiRequest {
             device_id: device_id.to_string(),
+            // Trimmed because the proof normally arrives from a file or captured
+            // command output, and hex with a trailing newline is not hex.
+            proof: proof.map(|p| p.trim().to_owned()),
         };
 
         Python::with_gil(|py| {
