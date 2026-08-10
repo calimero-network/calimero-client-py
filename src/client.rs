@@ -2444,22 +2444,29 @@ impl PyClient {
         let members: Vec<serde_json::Value> = serde_json::from_str(members_json).map_err(|e| {
             PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Invalid members JSON: {}", e))
         })?;
+        // Adding names a signing KEY, unlike removing, which names an account:
+        // the node binds the key to an account as it admits it, and before that
+        // there is no account to name.
         let api_members: Vec<admin::GroupMemberApiInput> = members
             .iter()
             .map(|m| {
                 let identity_str = m.get("identity").and_then(|v| v.as_str()).unwrap_or("");
                 let role_str = m.get("role").and_then(|v| v.as_str()).unwrap_or("Member");
-                let identity = identity_str
-                    .parse::<identity::PublicKey>()
-                    .expect("invalid identity");
+                // Raised, not panicked: this is caller input, and a panic here
+                // unwinds into CPython and takes the interpreter with it.
+                let identity = identity_str.parse::<identity::PublicKey>().map_err(|e| {
+                    PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                        "'{identity_str}' is not a signing key ({e})"
+                    ))
+                })?;
                 let role = match role_str {
                     "Admin" => GroupMemberRole::Admin,
                     "ReadOnly" => GroupMemberRole::ReadOnly,
                     _ => GroupMemberRole::Member,
                 };
-                admin::GroupMemberApiInput { identity, role }
+                Ok(admin::GroupMemberApiInput { identity, role })
             })
-            .collect();
+            .collect::<PyResult<_>>()?;
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
                 let request = admin::AddGroupMembersApiRequest {
@@ -2487,19 +2494,29 @@ impl PyClient {
     }
 
     /// Remove members from a group
+    ///
+    /// Members are named by ACCOUNT — 64 hex characters, the same ids
+    /// `list_group_members` returns. That is deliberately not the bs58 a signing
+    /// key renders as: both are 32 bytes, so a key accepted here would name a
+    /// principal that exists nowhere and silently remove nobody.
     pub fn remove_group_members(&self, group_id: &str, members_json: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let group_id = group_id.to_string();
         let member_strs: Vec<String> = serde_json::from_str(members_json).map_err(|e| {
             PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Invalid members JSON: {}", e))
         })?;
-        let members: Vec<identity::PublicKey> = member_strs
+        let members: Vec<calimero_primitives::identity::AccountId> = member_strs
             .iter()
             .map(|s| {
-                s.parse::<identity::PublicKey>()
-                    .expect("invalid public key")
+                s.parse::<calimero_primitives::identity::AccountId>()
+                    .map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                            "'{s}' is not an account id ({e}); accounts are 64 hex characters — \
+                             a bs58 signing key is not one"
+                        ))
+                    })
             })
-            .collect();
+            .collect::<PyResult<_>>()?;
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
                 let request = admin::RemoveGroupMembersApiRequest {
