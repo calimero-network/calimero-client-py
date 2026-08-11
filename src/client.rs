@@ -9,7 +9,7 @@ use calimero_client::CliAuthenticator;
 use calimero_primitives::alias::Alias;
 use calimero_primitives::application::ApplicationId;
 use calimero_primitives::blobs;
-use calimero_primitives::context::{ContextId, GroupMemberRole, UpgradePolicy};
+use calimero_primitives::context::{ContextId, GroupMemberRole};
 use calimero_primitives::hash::Hash;
 use calimero_primitives::identity;
 use calimero_primitives::identity::PublicKey;
@@ -28,21 +28,6 @@ pub struct PyClient {
     inner: Arc<Client<CliAuthenticator, MeroboxFileStorage>>,
     connection: Arc<ConnectionInfo<CliAuthenticator, MeroboxFileStorage>>,
     runtime: Arc<Runtime>,
-}
-
-fn parse_upgrade_policy(policy: &str) -> PyResult<UpgradePolicy> {
-    match policy.to_ascii_lowercase().as_str() {
-        "automatic" => Ok(UpgradePolicy::Automatic),
-        "lazyonaccess" | "lazy_on_access" | "lazy-on-access" | "lazy" => {
-            Ok(UpgradePolicy::LazyOnAccess)
-        }
-        // `Coordinated` was removed upstream (calimero-network/core: deadline was
-        // inert; migrate only converges under LazyOnAccess). Reject it explicitly.
-        _ => Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-            "Invalid upgrade policy '{}'. Expected one of: automatic, lazy-on-access",
-            policy
-        ))),
-    }
 }
 
 fn parse_group_member_role(role: &str) -> PyResult<GroupMemberRole> {
@@ -1613,11 +1598,10 @@ impl PyClient {
     }
     // ---- Namespace and Group Management ----
 
-    #[pyo3(signature = (application_id, upgrade_policy=None, name=None, app_key=None))]
+    #[pyo3(signature = (application_id, name=None, app_key=None))]
     pub fn create_namespace(
         &self,
         application_id: &str,
-        upgrade_policy: Option<&str>,
         name: Option<&str>,
         app_key: Option<&str>,
     ) -> PyResult<PyObject> {
@@ -1628,10 +1612,6 @@ impl PyClient {
                 application_id, e
             ))
         })?;
-        let upgrade_policy = match upgrade_policy {
-            Some(value) => parse_upgrade_policy(value)?,
-            None => UpgradePolicy::LazyOnAccess,
-        };
         let name = name.map(str::to_owned);
         // Hex-encoded 32-byte blob id that pins the namespace to a specific
         // installed bytecode version; `None` lets the node use the app row's
@@ -1643,7 +1623,6 @@ impl PyClient {
                 inner
                     .create_namespace(admin::CreateNamespaceApiRequest {
                         application_id,
-                        upgrade_policy,
                         name,
                         app_key,
                     })
@@ -2629,46 +2608,6 @@ impl PyClient {
             let result = self.runtime.block_on(async move {
                 inner.get_member_capabilities(&group_id, &member_id).await
             });
-            match result {
-                Ok(data) => {
-                    let json_data = serde_json::to_value(data).map_err(|e| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                            "Failed to serialize response: {}",
-                            e
-                        ))
-                    })?;
-                    Ok(json_to_python(py, &json_data))
-                }
-                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Client error: {}",
-                    e
-                ))),
-            }
-        })
-    }
-
-    pub fn update_group_settings(
-        &self,
-        group_id: &str,
-        upgrade_policy: &str,
-    ) -> PyResult<PyObject> {
-        let inner = self.inner.clone();
-        let group_id = group_id.to_string();
-        let upgrade_policy = parse_upgrade_policy(upgrade_policy)?;
-
-        Python::with_gil(|py| {
-            let result = self.runtime.block_on(async move {
-                inner
-                    .update_group_settings(
-                        &group_id,
-                        admin::UpdateGroupSettingsApiRequest {
-                            requester: None,
-                            upgrade_policy,
-                        },
-                    )
-                    .await
-            });
-
             match result {
                 Ok(data) => {
                     let json_data = serde_json::to_value(data).map_err(|e| {

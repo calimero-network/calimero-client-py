@@ -1,6 +1,6 @@
 [package]
 name = "calimero-client-py"
-version = "0.6.21"
+version = "0.6.22"
 edition = "2021"
 authors = ["Calimero Limited <info@calimero.network>"]
 description = "Python client library for Calimero Network"
@@ -26,11 +26,12 @@ name = "calimero_client_py"
 crate-type = ["cdylib"]
 
 [dependencies]
-# Core Calimero crates
-calimero-client = { git = "https://github.com/calimero-network/core", branch = "master" }
-calimero-primitives = { git = "https://github.com/calimero-network/core", branch = "master" }
-calimero-server-primitives = { git = "https://github.com/calimero-network/core", branch = "master" }
-calimero-context-config = { git = "https://github.com/calimero-network/core", branch = "master" }
+# Core Calimero crates. Temporarily pinned to `refactor/drop-upgrade-policy`
+# while that branch is in review; flip back to `master` immediately after it merges.
+calimero-client = { git = "https://github.com/calimero-network/core", branch = "refactor/drop-upgrade-policy" }
+calimero-primitives = { git = "https://github.com/calimero-network/core", branch = "refactor/drop-upgrade-policy" }
+calimero-server-primitives = { git = "https://github.com/calimero-network/core", branch = "refactor/drop-upgrade-policy" }
+calimero-context-config = { git = "https://github.com/calimero-network/core", branch = "refactor/drop-upgrade-policy" }
 
 # Python bindings
 pyo3 = { version = "0.22", features = ["extension-module"] }
