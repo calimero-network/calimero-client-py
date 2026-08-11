@@ -26,8 +26,7 @@ name = "calimero_client_py"
 crate-type = ["cdylib"]
 
 [dependencies]
-# Core Calimero crates. Temporarily pinned to `refactor/drop-upgrade-policy`
-# while that branch is in review; flip back to `master` immediately after it merges.
+# Core Calimero crates, tracking master.
 calimero-client = { git = "https://github.com/calimero-network/core", branch = "master" }
 calimero-primitives = { git = "https://github.com/calimero-network/core", branch = "master" }
 calimero-server-primitives = { git = "https://github.com/calimero-network/core", branch = "master" }
