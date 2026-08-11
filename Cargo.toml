@@ -28,10 +28,10 @@ crate-type = ["cdylib"]
 [dependencies]
 # Core Calimero crates. Temporarily pinned to `refactor/drop-upgrade-policy`
 # while that branch is in review; flip back to `master` immediately after it merges.
-calimero-client = { git = "https://github.com/calimero-network/core", branch = "refactor/drop-upgrade-policy" }
-calimero-primitives = { git = "https://github.com/calimero-network/core", branch = "refactor/drop-upgrade-policy" }
-calimero-server-primitives = { git = "https://github.com/calimero-network/core", branch = "refactor/drop-upgrade-policy" }
-calimero-context-config = { git = "https://github.com/calimero-network/core", branch = "refactor/drop-upgrade-policy" }
+calimero-client = { git = "https://github.com/calimero-network/core", branch = "master" }
+calimero-primitives = { git = "https://github.com/calimero-network/core", branch = "master" }
+calimero-server-primitives = { git = "https://github.com/calimero-network/core", branch = "master" }
+calimero-context-config = { git = "https://github.com/calimero-network/core", branch = "master" }
 
 # Python bindings
 pyo3 = { version = "0.22", features = ["extension-module"] }
