@@ -1891,25 +1891,30 @@ impl PyClient {
         })
     }
 
+    /// Decoded as raw JSON rather than through `NamespaceIdentityApiResponse`.
+    ///
+    /// A node answers here with the ids it knows about itself, and which ids
+    /// those are has changed with the server: the response gained an `account`
+    /// beside the `publicKey`. Deserializing into a struct compiled from one
+    /// version of the server silently drops whatever a newer one added, so the
+    /// caller cannot see a field until this package is rebuilt and released.
+    /// Passing the object through leaves that decision where it belongs — with
+    /// the node — and makes this binding version-agnostic.
     pub fn get_namespace_identity(&self, namespace_id: &str) -> PyResult<PyObject> {
-        let inner = self.inner.clone();
+        let connection = self.connection.clone();
         let namespace_id = namespace_id.to_string();
 
         Python::with_gil(|py| {
-            let result = self
-                .runtime
-                .block_on(async move { inner.get_namespace_identity(&namespace_id).await });
+            let result = self.runtime.block_on(async move {
+                connection
+                    .get::<serde_json::Value>(&format!(
+                        "admin-api/namespaces/{namespace_id}/identity"
+                    ))
+                    .await
+            });
 
             match result {
-                Ok(data) => {
-                    let json_data = serde_json::to_value(data).map_err(|e| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                            "Failed to serialize response: {}",
-                            e
-                        ))
-                    })?;
-                    Ok(json_to_python(py, &json_data))
-                }
+                Ok(json_data) => Ok(json_to_python(py, &json_data)),
                 Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
                     "Client error: {}",
                     e
@@ -1984,8 +1989,15 @@ impl PyClient {
         })
     }
 
+    /// Response decoded as raw JSON — see [`Self::get_namespace_identity`]. The
+    /// joiner learns which principal it joined as from here, and a newer server
+    /// names one this package's structs do not know about yet.
+    ///
+    /// The request stays typed: the invitation is a signed object this package
+    /// forwards verbatim, so parsing it here catches a malformed one before a
+    /// round trip.
     pub fn join_namespace(&self, namespace_id: &str, invitation_json: &str) -> PyResult<PyObject> {
-        let inner = self.inner.clone();
+        let connection = self.connection.clone();
         let namespace_id = namespace_id.to_string();
         let invitation: calimero_context_config::types::SignedGroupOpenInvitation =
             serde_json::from_str(invitation_json).map_err(|e| {
@@ -1997,9 +2009,9 @@ impl PyClient {
 
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
-                inner
-                    .join_namespace(
-                        &namespace_id,
+                connection
+                    .post::<_, serde_json::Value>(
+                        &format!("admin-api/namespaces/{namespace_id}/join"),
                         admin::JoinGroupApiRequest {
                             invitation,
                             group_name: None,
@@ -2008,15 +2020,7 @@ impl PyClient {
                     .await
             });
             match result {
-                Ok(data) => {
-                    let json_data = serde_json::to_value(data).map_err(|e| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                            "Failed to serialize response: {}",
-                            e
-                        ))
-                    })?;
-                    Ok(json_to_python(py, &json_data))
-                }
+                Ok(json_data) => Ok(json_to_python(py, &json_data)),
                 Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
                     "Client error: {}",
                     e
@@ -2365,23 +2369,27 @@ impl PyClient {
     }
 
     /// List members of a group
+    /// Decoded as raw JSON, which here is a correctness fix and not only
+    /// forward-compatibility.
+    ///
+    /// A member id is whatever the node says it is. `GroupMemberApiEntry`
+    /// declares it a `PublicKey`, so the id is parsed as bs58 on the way in —
+    /// and a server that names members by account sends 64 hex, which is not
+    /// valid bs58. The whole listing then fails to deserialize and the caller
+    /// sees a transport-shaped error for what is really a version skew. Handing
+    /// the ids over as strings lets one build of this package talk to nodes on
+    /// either side of that change.
     pub fn list_group_members(&self, group_id: &str) -> PyResult<PyObject> {
-        let inner = self.inner.clone();
+        let connection = self.connection.clone();
         let group_id = group_id.to_string();
         Python::with_gil(|py| {
-            let result = self
-                .runtime
-                .block_on(async move { inner.list_group_members(&group_id).await });
+            let result = self.runtime.block_on(async move {
+                connection
+                    .get::<serde_json::Value>(&format!("admin-api/groups/{group_id}/members"))
+                    .await
+            });
             match result {
-                Ok(data) => {
-                    let json_data = serde_json::to_value(data).map_err(|e| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                            "Failed to serialize response: {}",
-                            e
-                        ))
-                    })?;
-                    Ok(json_to_python(py, &json_data))
-                }
+                Ok(json_data) => Ok(json_to_python(py, &json_data)),
                 Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
                     "Client error: {}",
                     e
@@ -2466,37 +2474,34 @@ impl PyClient {
     }
 
     /// Remove members from a group
+    /// Member ids are forwarded as the caller wrote them, and the node decides
+    /// whether they name anyone.
+    ///
+    /// Parsing them here as bs58 keys did two bad things. It panicked the
+    /// interpreter on anything that did not parse (`expect("invalid public
+    /// key")`), turning a typo into a crash with no traceback into the caller's
+    /// own code. And it hard-coded which id space names a member — a server that
+    /// removes members by account takes 64 hex, which no amount of bs58 parsing
+    /// will produce, so this binding refused ids the node would have accepted.
+    /// The node validates either way and its error names the id space it wants;
+    /// this is the layer that should have no opinion.
     pub fn remove_group_members(&self, group_id: &str, members_json: &str) -> PyResult<PyObject> {
-        let inner = self.inner.clone();
+        let connection = self.connection.clone();
         let group_id = group_id.to_string();
-        let member_strs: Vec<String> = serde_json::from_str(members_json).map_err(|e| {
+        let members: Vec<String> = serde_json::from_str(members_json).map_err(|e| {
             PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Invalid members JSON: {}", e))
         })?;
-        let members: Vec<identity::PublicKey> = member_strs
-            .iter()
-            .map(|s| {
-                s.parse::<identity::PublicKey>()
-                    .expect("invalid public key")
-            })
-            .collect();
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
-                let request = admin::RemoveGroupMembersApiRequest {
-                    members,
-                    requester: None,
-                };
-                inner.remove_group_members(&group_id, request).await
+                connection
+                    .post::<_, serde_json::Value>(
+                        &format!("admin-api/groups/{group_id}/members/remove"),
+                        serde_json::json!({ "members": members }),
+                    )
+                    .await
             });
             match result {
-                Ok(data) => {
-                    let json_data = serde_json::to_value(data).map_err(|e| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                            "Failed to serialize response: {}",
-                            e
-                        ))
-                    })?;
-                    Ok(json_to_python(py, &json_data))
-                }
+                Ok(json_data) => Ok(json_to_python(py, &json_data)),
                 Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
                     "Client error: {}",
                     e
