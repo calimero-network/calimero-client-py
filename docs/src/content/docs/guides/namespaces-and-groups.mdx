@@ -22,15 +22,13 @@ signing key it holds.
 ```python
 result = client.create_namespace(
     application_id="<application-id>",
-    upgrade_policy="lazy-on-access",   # or "automatic"; default: lazy-on-access
-    name="my-namespace",                # optional
-    app_key=None,                       # optional: hex blob id pinning a version
+    name="my-namespace",   # optional
+    app_key=None,          # optional: hex blob id pinning a version
 )
 ```
 
-`upgrade_policy` accepts `"automatic"` or `"lazy-on-access"` (an unknown value
-raises `ValueError`). `app_key` pins the namespace to a specific installed
-bytecode version — the `blobId` from
+`app_key` pins the namespace to a specific installed bytecode version - the
+`blobId` from
 [`list_application_versions`](/guides/applications-and-blobs/#listing-and-inspecting).
 
 Inspect and remove namespaces:
@@ -132,8 +130,7 @@ client.set_member_auto_follow("<group-id>", "<member-id>",
 ## Settings, visibility, and metadata
 
 ```python
-client.update_group_settings("<group-id>", "automatic")   # change upgrade policy
-client.set_subgroup_visibility("<group-id>", "open")       # subgroup visibility
+client.set_subgroup_visibility("<group-id>", "open")   # subgroup visibility
 
 # metadata: setters take a JSON body; getters return the stored metadata
 client.set_group_metadata("<group-id>", '{"key": "value"}')

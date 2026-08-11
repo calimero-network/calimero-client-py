@@ -186,9 +186,7 @@ Context, context-identity, and application aliases:
 
 **Namespaces**
 
-- `create_namespace(application_id, upgrade_policy=None, name=None, app_key=None)`
-  — `upgrade_policy` is `"automatic"` or `"lazy-on-access"` (default
-  `"lazy-on-access"`).
+- `create_namespace(application_id, name=None, app_key=None)`
 - `get_namespace(namespace_id)`
 - `list_namespaces()`
 - `delete_namespace(namespace_id, requester=None)`
@@ -231,7 +229,6 @@ Context, context-identity, and application aliases:
 
 **Settings, visibility, and metadata**
 
-- `update_group_settings(group_id, upgrade_policy)`
 - `set_subgroup_visibility(group_id, visibility)`
 - `set_default_visibility(group_id, visibility)` — deprecated alias for
   `set_subgroup_visibility`.
