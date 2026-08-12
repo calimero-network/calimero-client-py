@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.24
+
+- fix(namespaces): keep sending `upgradePolicy` on `create_namespace`. The concept was deleted server-side, but only on master — every RELEASED node still requires the field and rejects a request without it, so 0.6.22 and 0.6.23 can create a namespace on no released node at all (merobox's whole suite went red on exactly this). A node that has dropped the field ignores the extra key, since the request type does not deny unknown fields, so sending it is the one shape that works against both. The body is built by hand because the typed request no longer has the field. Remove once no supported release predates the removal
+
 ## 0.6.23
 
 - fix(groups)!: decode member ids as the node writes them, in `list_group_members`, `remove_group_members`, `get_namespace_identity`, and `join_namespace`. These deserialized through structs compiled from one version of the server, which decided for this package what a member id looks like. `GroupMemberApiEntry` declares it a `PublicKey`, so ids were parsed as bs58 — and a server that names members by account sends 64 hex, so the *entire listing* failed to deserialize and surfaced as a transport-shaped error rather than version skew. `remove_group_members` had the mirror problem outbound and parsed with `.expect("invalid public key")`, taking the interpreter down on a typo with no traceback into the caller's own code. The two identity calls dropped newly added ids silently, serde discarding unknown fields, so a caller could not see one until this package was rebuilt and released. All four now pass the JSON through: the node validates, and its error names the id space it wants
