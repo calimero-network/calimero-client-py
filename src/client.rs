@@ -1605,7 +1605,7 @@ impl PyClient {
         name: Option<&str>,
         app_key: Option<&str>,
     ) -> PyResult<PyObject> {
-        let inner = self.inner.clone();
+        let connection = self.connection.clone();
         let application_id = application_id.parse::<ApplicationId>().map_err(|e| {
             PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
                 "Invalid application ID '{}': {}",
@@ -1620,25 +1620,35 @@ impl PyClient {
 
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
-                inner
-                    .create_namespace(admin::CreateNamespaceApiRequest {
-                        application_id,
-                        name,
-                        app_key,
-                    })
+                // Body built by hand so it can carry `upgradePolicy`, which the
+                // request type no longer has a field for.
+                //
+                // The concept was deleted server-side, but only on master —
+                // every RELEASED node still requires the field and rejects a
+                // request without it, so a client that stopped sending it can
+                // create a namespace on no released node at all. A node that has
+                // dropped it ignores the extra key (the request type does not
+                // deny unknown fields), so sending it is the one shape that
+                // works against both.
+                //
+                // Remove once no supported release predates the removal.
+                let mut body = serde_json::json!({
+                    "applicationId": application_id,
+                    "upgradePolicy": "LazyOnAccess",
+                });
+                if let Some(name) = name {
+                    body["name"] = serde_json::Value::String(name);
+                }
+                if let Some(app_key) = app_key {
+                    body["appKey"] = serde_json::Value::String(app_key);
+                }
+                connection
+                    .post::<_, serde_json::Value>("admin-api/namespaces", body)
                     .await
             });
 
             match result {
-                Ok(data) => {
-                    let json_data = serde_json::to_value(data).map_err(|e| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                            "Failed to serialize response: {}",
-                            e
-                        ))
-                    })?;
-                    Ok(json_to_python(py, &json_data))
-                }
+                Ok(json_data) => Ok(json_to_python(py, &json_data)),
                 Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
                     "Client error: {}",
                     e
