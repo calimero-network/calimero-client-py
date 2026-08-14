@@ -12,6 +12,7 @@ use calimero_primitives::blobs;
 use calimero_primitives::context::{ContextId, GroupMemberRole};
 use calimero_primitives::hash::Hash;
 use calimero_primitives::identity;
+use calimero_primitives::identity::AccountId;
 use calimero_primitives::identity::PublicKey;
 use calimero_server_primitives::admin;
 use calimero_server_primitives::jsonrpc;
@@ -1900,36 +1901,17 @@ impl PyClient {
             Self::to_python(py, result)
         })
     }
-
-    /// Decoded as raw JSON rather than through `NamespaceIdentityApiResponse`.
-    ///
-    /// A node answers here with the ids it knows about itself, and which ids
-    /// those are has changed with the server: the response gained an `account`
-    /// beside the `publicKey`. Deserializing into a struct compiled from one
-    /// version of the server silently drops whatever a newer one added, so the
-    /// caller cannot see a field until this package is rebuilt and released.
-    /// Passing the object through leaves that decision where it belongs — with
-    /// the node — and makes this binding version-agnostic.
+    /// This node's identity in `namespace_id`: the key it signs with, and the
+    /// account that key writes as.
     pub fn get_namespace_identity(&self, namespace_id: &str) -> PyResult<PyObject> {
-        let connection = self.connection.clone();
+        let inner = self.inner.clone();
         let namespace_id = namespace_id.to_string();
 
         Python::with_gil(|py| {
-            let result = self.runtime.block_on(async move {
-                connection
-                    .get::<serde_json::Value>(&format!(
-                        "admin-api/namespaces/{namespace_id}/identity"
-                    ))
-                    .await
-            });
-
-            match result {
-                Ok(json_data) => Ok(json_to_python(py, &json_data)),
-                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Client error: {}",
-                    e
-                ))),
-            }
+            let result = self
+                .runtime
+                .block_on(async move { inner.get_namespace_identity(&namespace_id).await });
+            Self::to_python(py, result)
         })
     }
 
@@ -1998,16 +1980,8 @@ impl PyClient {
             }
         })
     }
-
-    /// Response decoded as raw JSON — see [`Self::get_namespace_identity`]. The
-    /// joiner learns which principal it joined as from here, and a newer server
-    /// names one this package's structs do not know about yet.
-    ///
-    /// The request stays typed: the invitation is a signed object this package
-    /// forwards verbatim, so parsing it here catches a malformed one before a
-    /// round trip.
     pub fn join_namespace(&self, namespace_id: &str, invitation_json: &str) -> PyResult<PyObject> {
-        let connection = self.connection.clone();
+        let inner = self.inner.clone();
         let namespace_id = namespace_id.to_string();
         let invitation: calimero_context_config::types::SignedGroupOpenInvitation =
             serde_json::from_str(invitation_json).map_err(|e| {
@@ -2019,9 +1993,9 @@ impl PyClient {
 
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
-                connection
-                    .post::<_, serde_json::Value>(
-                        &format!("admin-api/namespaces/{namespace_id}/join"),
+                inner
+                    .join_namespace(
+                        &namespace_id,
                         admin::JoinGroupApiRequest {
                             invitation,
                             group_name: None,
@@ -2029,13 +2003,7 @@ impl PyClient {
                     )
                     .await
             });
-            match result {
-                Ok(json_data) => Ok(json_to_python(py, &json_data)),
-                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Client error: {}",
-                    e
-                ))),
-            }
+            Self::to_python(py, result)
         })
     }
 
@@ -2377,34 +2345,16 @@ impl PyClient {
             }
         })
     }
-
-    /// List members of a group
-    /// Decoded as raw JSON, which here is a correctness fix and not only
-    /// forward-compatibility.
-    ///
-    /// A member id is whatever the node says it is. `GroupMemberApiEntry`
-    /// declares it a `PublicKey`, so the id is parsed as bs58 on the way in —
-    /// and a server that names members by account sends 64 hex, which is not
-    /// valid bs58. The whole listing then fails to deserialize and the caller
-    /// sees a transport-shaped error for what is really a version skew. Handing
-    /// the ids over as strings lets one build of this package talk to nodes on
-    /// either side of that change.
+    /// The node names members by account; this returns whatever it sends.
     pub fn list_group_members(&self, group_id: &str) -> PyResult<PyObject> {
-        let connection = self.connection.clone();
+        let inner = self.inner.clone();
         let group_id = group_id.to_string();
+
         Python::with_gil(|py| {
-            let result = self.runtime.block_on(async move {
-                connection
-                    .get::<serde_json::Value>(&format!("admin-api/groups/{group_id}/members"))
-                    .await
-            });
-            match result {
-                Ok(json_data) => Ok(json_to_python(py, &json_data)),
-                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Client error: {}",
-                    e
-                ))),
-            }
+            let result = self
+                .runtime
+                .block_on(async move { inner.list_group_members(&group_id).await });
+            Self::to_python(py, result)
         })
     }
 
@@ -2482,41 +2432,35 @@ impl PyClient {
             }
         })
     }
-
-    /// Remove members from a group
-    /// Member ids are forwarded as the caller wrote them, and the node decides
-    /// whether they name anyone.
+    /// Members are named by ACCOUNT — 64 hex, the ids `list_group_members`
+    /// returns and the ids the membership rows are keyed by.
     ///
-    /// Parsing them here as bs58 keys did two bad things. It panicked the
-    /// interpreter on anything that did not parse (`expect("invalid public
-    /// key")`), turning a typo into a crash with no traceback into the caller's
-    /// own code. And it hard-coded which id space names a member — a server that
-    /// removes members by account takes 64 hex, which no amount of bs58 parsing
-    /// will produce, so this binding refused ids the node would have accepted.
-    /// The node validates either way and its error names the id space it wants;
-    /// this is the layer that should have no opinion.
+    /// Parsed rather than passed through as text: `RemoveGroupMembersApiRequest`
+    /// declares `Vec<AccountId>`, so a malformed id fails here with the caller's
+    /// traceback intact instead of as a rejection from the node.
     pub fn remove_group_members(&self, group_id: &str, members_json: &str) -> PyResult<PyObject> {
-        let connection = self.connection.clone();
+        let inner = self.inner.clone();
         let group_id = group_id.to_string();
-        let members: Vec<String> = serde_json::from_str(members_json).map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Invalid members JSON: {}", e))
+        let members: Vec<AccountId> = serde_json::from_str(members_json).map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Invalid members JSON — members are accounts, 64 hex characters: {}",
+                e
+            ))
         })?;
+
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
-                connection
-                    .post::<_, serde_json::Value>(
-                        &format!("admin-api/groups/{group_id}/members/remove"),
-                        serde_json::json!({ "members": members }),
+                inner
+                    .remove_group_members(
+                        &group_id,
+                        admin::RemoveGroupMembersApiRequest {
+                            members,
+                            requester: None,
+                        },
                     )
                     .await
             });
-            match result {
-                Ok(json_data) => Ok(json_to_python(py, &json_data)),
-                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Client error: {}",
-                    e
-                ))),
-            }
+            Self::to_python(py, result)
         })
     }
 
