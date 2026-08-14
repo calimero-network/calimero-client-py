@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.25
+
+- fix(account)!: pass the five account responses through as JSON instead of deserializing them into the server's structs. `create_account`, `get_namespace_account`, `pair_device_init`, `pair_device_complete` and `revoke_device` decoded into types compiled from one version of the server, so this package decided for its callers what those responses contain — and a field the server later dropped became a hard parse failure here. It surfaced as merobox reporting a bare "account create failed" with **nothing in the node logs**, because the node answered correctly and the client could not read the answer. The direction is what makes this easy to miss: an unknown field in a REQUEST is ignored, since the request types do not deny unknown fields, but a missing field in a RESPONSE is fatal to a typed client. This is the same fix `list_group_members` and the identity readers already got in 0.6.23, applied to the account bindings — and it retires the last callers of the typed-response helper, which is removed
+- fix(account): `pair_device_init`'s `account_nonce` is optional and omitted when absent. The account genesis no longer carries a nonce, so callers should stop threading one; a node that still requires it gets it when supplied, and one that has dropped it ignores the key. Positional callers are unaffected
+
 ## 0.6.24
 
 - fix(namespaces): keep sending `upgradePolicy` on `create_namespace`. The concept was deleted server-side, but only on master — every RELEASED node still requires the field and rejects a request without it, so 0.6.22 and 0.6.23 can create a namespace on no released node at all (merobox's whole suite went red on exactly this). A node that has dropped the field ignores the extra key, since the request type does not deny unknown fields, so sending it is the one shape that works against both. The body is built by hand because the typed request no longer has the field. Remove once no supported release predates the removal

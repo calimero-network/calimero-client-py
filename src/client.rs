@@ -42,34 +42,6 @@ fn parse_group_member_role(role: &str) -> PyResult<GroupMemberRole> {
     }
 }
 
-/// Response conversion shared by the account methods.
-///
-/// The older methods each inline this match; sharing it here keeps the five
-/// account bindings from repeating twenty lines of boilerplate five times. It
-/// lives in a plain `impl` because `#[pymethods]` may only contain methods
-/// exposed to Python.
-impl PyClient {
-    fn to_python<T: serde::Serialize, E: std::fmt::Display>(
-        py: Python<'_>,
-        result: Result<T, E>,
-    ) -> PyResult<PyObject> {
-        match result {
-            Ok(data) => {
-                let json_data = serde_json::to_value(data).map_err(|e| {
-                    PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                        "Failed to serialize response: {}",
-                        e
-                    ))
-                })?;
-                Ok(json_to_python(py, &json_data))
-            }
-            Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                "Client error: {}",
-                e
-            ))),
-        }
-    }
-}
 
 #[pymethods]
 impl PyClient {
@@ -1762,14 +1734,25 @@ impl PyClient {
     /// node must already hold the namespace scope key. Called before joining, it
     /// deadlocks.
     pub fn create_account(&self, namespace_id: &str) -> PyResult<PyObject> {
-        let inner = self.inner.clone();
+        let connection = self.connection.clone();
         let namespace_id = namespace_id.to_string();
 
         Python::with_gil(|py| {
-            let result = self
-                .runtime
-                .block_on(async move { inner.create_account(&namespace_id).await });
-            Self::to_python(py, result)
+            let result = self.runtime.block_on(async move {
+                connection
+                    .post::<_, serde_json::Value>(
+                        &format!("admin-api/namespaces/{namespace_id}/account"),
+                        serde_json::json!({}),
+                    )
+                    .await
+            });
+            match result {
+                Ok(json_data) => Ok(json_to_python(py, &json_data)),
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
         })
     }
 
@@ -1780,14 +1763,24 @@ impl PyClient {
     /// root, so it exists before any device is enrolled. A `deviceId` of `None` is
     /// a real answer — "this node holds no device here" — not missing data.
     pub fn get_namespace_account(&self, namespace_id: &str) -> PyResult<PyObject> {
-        let inner = self.inner.clone();
+        let connection = self.connection.clone();
         let namespace_id = namespace_id.to_string();
 
         Python::with_gil(|py| {
-            let result = self
-                .runtime
-                .block_on(async move { inner.get_namespace_account(&namespace_id).await });
-            Self::to_python(py, result)
+            let result = self.runtime.block_on(async move {
+                connection
+                    .get::<serde_json::Value>(&format!(
+                        "admin-api/namespaces/{namespace_id}/account"
+                    ))
+                    .await
+            });
+            match result {
+                Ok(json_data) => Ok(json_to_python(py, &json_data)),
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
         })
     }
 
@@ -1797,24 +1790,41 @@ impl PyClient {
     /// Publishes nothing and needs no scope key. Returns the device id, both
     /// public keys, a signature over them, and a confirmation code; hand all of
     /// them to [`Self::pair_device_complete`] on the node that holds the account.
+    #[pyo3(signature = (namespace_id, account_root_key, account_nonce = None))]
     pub fn pair_device_init(
         &self,
         namespace_id: &str,
         account_root_key: &str,
-        account_nonce: &str,
+        account_nonce: Option<&str>,
     ) -> PyResult<PyObject> {
-        let inner = self.inner.clone();
+        let connection = self.connection.clone();
         let namespace_id = namespace_id.to_string();
-        let request = admin::PairDeviceInitApiRequest {
-            account_root_key: account_root_key.to_string(),
-            account_nonce: account_nonce.to_string(),
-        };
+        // `accountNonce` is sent when the caller supplies one and omitted
+        // otherwise. A node that still requires it needs it; one that has dropped
+        // it ignores the extra key, since the request type does not deny unknown
+        // fields. Optional rather than required so callers can stop threading a
+        // value the account model no longer has.
+        let mut body = serde_json::json!({ "accountRootKey": account_root_key });
+        if let Some(nonce) = account_nonce {
+            body["accountNonce"] = serde_json::Value::String(nonce.to_owned());
+        }
 
         Python::with_gil(|py| {
-            let result = self
-                .runtime
-                .block_on(async move { inner.pair_device_init(&namespace_id, request).await });
-            Self::to_python(py, result)
+            let result = self.runtime.block_on(async move {
+                connection
+                    .post::<_, serde_json::Value>(
+                        &format!("admin-api/namespaces/{namespace_id}/account/pair-init"),
+                        body,
+                    )
+                    .await
+            });
+            match result {
+                Ok(json_data) => Ok(json_to_python(py, &json_data)),
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
         })
     }
 
@@ -1843,21 +1853,32 @@ impl PyClient {
         statement: &str,
         confirmation_code: &str,
     ) -> PyResult<PyObject> {
-        let inner = self.inner.clone();
+        let connection = self.connection.clone();
         let namespace_id = namespace_id.to_string();
-        let request = admin::PairDeviceCompleteApiRequest {
-            device_id: device_id.to_string(),
-            kem_public_key: kem_public_key.to_string(),
-            sign_public_key: sign_public_key.to_string(),
-            statement: statement.to_string(),
-            confirmation_code: confirmation_code.to_string(),
-        };
+        let body = serde_json::json!({
+            "deviceId": device_id,
+            "kemPublicKey": kem_public_key,
+            "signPublicKey": sign_public_key,
+            "statement": statement,
+            "confirmationCode": confirmation_code,
+        });
 
         Python::with_gil(|py| {
-            let result = self
-                .runtime
-                .block_on(async move { inner.pair_device_complete(&namespace_id, request).await });
-            Self::to_python(py, result)
+            let result = self.runtime.block_on(async move {
+                connection
+                    .post::<_, serde_json::Value>(
+                        &format!("admin-api/namespaces/{namespace_id}/account/pair-complete"),
+                        body,
+                    )
+                    .await
+            });
+            match result {
+                Ok(json_data) => Ok(json_to_python(py, &json_data)),
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
         })
     }
 
@@ -1884,20 +1905,31 @@ impl PyClient {
         device_id: &str,
         proof: Option<&str>,
     ) -> PyResult<PyObject> {
-        let inner = self.inner.clone();
+        let connection = self.connection.clone();
         let namespace_id = namespace_id.to_string();
-        let request = admin::RevokeDeviceApiRequest {
-            device_id: device_id.to_string(),
+        let mut body = serde_json::json!({ "deviceId": device_id });
+        if let Some(proof) = proof {
             // Trimmed because the proof normally arrives from a file or captured
             // command output, and hex with a trailing newline is not hex.
-            proof: proof.map(|p| p.trim().to_owned()),
-        };
+            body["proof"] = serde_json::Value::String(proof.trim().to_owned());
+        }
 
         Python::with_gil(|py| {
-            let result = self
-                .runtime
-                .block_on(async move { inner.revoke_device(&namespace_id, request).await });
-            Self::to_python(py, result)
+            let result = self.runtime.block_on(async move {
+                connection
+                    .post::<_, serde_json::Value>(
+                        &format!("admin-api/namespaces/{namespace_id}/account/revoke"),
+                        body,
+                    )
+                    .await
+            });
+            match result {
+                Ok(json_data) => Ok(json_to_python(py, &json_data)),
+                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Client error: {}",
+                    e
+                ))),
+            }
         })
     }
 
