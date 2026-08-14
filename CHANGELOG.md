@@ -2,9 +2,10 @@
 
 ## 0.6.26
 
-- build(deps)!: bump the core dependency from `fc4babde2` to current master. The lock was the reason four bindings could not use the typed path: at the old revision `RemoveGroupMembersApiRequest::members` was still `Vec<PublicKey>` and `AccountId` did not exist in `calimero-primitives` at all, so the structs genuinely could not express the ids the node uses. **This also picks up the removal of `selfIdentity` from `list_group_members`** — a caller looking for itself in a member list now asks `get_namespace_identity` and matches its `account` against `members[].identity`, one id space on both sides
+- build(deps)!: bump the core dependency from `fc4babde2` to `2d05a70e`, which includes the account-identity collapse (calimero-network/core#3431). The lock was the reason four bindings could not use the typed path: at the old revision `RemoveGroupMembersApiRequest::members` was still `Vec<PublicKey>` and `AccountId` did not exist in `calimero-primitives` at all, so the structs genuinely could not express the ids the node uses. **This also picks up the removal of `selfIdentity` from `list_group_members`** — a caller looking for itself in a member list now asks `get_namespace_identity` and matches its `account` against `members[].identity`, one id space on both sides
 - refactor(groups): retire the 0.6.23 pass-throughs now that the types can express what the node sends. `list_group_members`, `remove_group_members`, `get_namespace_identity` and `join_namespace` go back through `calimero-client`. `remove_group_members` parses into `Vec<AccountId>`, so a malformed id fails with the caller's traceback rather than as a rejection from the node — the thing the original bs58 parsing got wrong was the id *space*, not the parsing
-- `create_namespace` still builds its body by hand. That shim is about released **nodes** still requiring `upgradePolicy`, which no dependency bump changes
+- fix(account)!: `pair_device_init` no longer takes an account nonce. An account is the content address of its root key, so the root key is the whole of what has to travel between the two devices. The parameter is accepted and discarded for this release so a caller still passing it positionally gets a no-op rather than a `TypeError`; it goes in the next one
+- `create_namespace` still builds its body by hand. That shim is about released **nodes** still requiring `upgradePolicy`, and the latest release (`0.11.0-rc.20`) predates the removal — so it stays until a release carries it
 
 ## 0.6.25
 

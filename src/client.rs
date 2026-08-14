@@ -1798,17 +1798,25 @@ impl PyClient {
     /// Publishes nothing and needs no scope key. Returns the device id, both
     /// public keys, a signature over them, and a confirmation code; hand all of
     /// them to [`Self::pair_device_complete`] on the node that holds the account.
+    ///
+    /// The root key is the whole of what has to travel. An account is the content
+    /// address of its root, so there is no nonce to carry alongside it — the
+    /// parameter this used to take is gone rather than ignored, because a caller
+    /// passing one was passing something that had stopped meaning anything.
+    #[pyo3(signature = (namespace_id, account_root_key, account_nonce = None))]
     pub fn pair_device_init(
         &self,
         namespace_id: &str,
         account_root_key: &str,
-        account_nonce: &str,
+        account_nonce: Option<&str>,
     ) -> PyResult<PyObject> {
+        // Accepted and discarded for one release, so a caller still passing the
+        // old positional argument gets a no-op rather than a TypeError.
+        let _ = account_nonce;
         let inner = self.inner.clone();
         let namespace_id = namespace_id.to_string();
         let request = admin::PairDeviceInitApiRequest {
             account_root_key: account_root_key.to_string(),
-            account_nonce: account_nonce.to_string(),
         };
 
         Python::with_gil(|py| {
