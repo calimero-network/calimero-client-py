@@ -2852,43 +2852,6 @@ impl PyClient {
         })
     }
 
-    pub fn register_group_signing_key(
-        &self,
-        group_id: &str,
-        signing_key: &str,
-    ) -> PyResult<PyObject> {
-        let inner = self.inner.clone();
-        let group_id = group_id.to_string();
-        let signing_key = signing_key.to_string();
-
-        Python::with_gil(|py| {
-            let result = self.runtime.block_on(async move {
-                inner
-                    .register_group_signing_key(
-                        &group_id,
-                        admin::RegisterGroupSigningKeyApiRequest { signing_key },
-                    )
-                    .await
-            });
-
-            match result {
-                Ok(data) => {
-                    let json_data = serde_json::to_value(data).map_err(|e| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                            "Failed to serialize response: {}",
-                            e
-                        ))
-                    })?;
-                    Ok(json_to_python(py, &json_data))
-                }
-                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Client error: {}",
-                    e
-                ))),
-            }
-        })
-    }
-
     /// Initiate a target-application upgrade for a group.
     ///
     /// When `cascade=False` (default), upgrades only `group_id` — the
