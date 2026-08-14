@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.26
+
+- build(deps)!: bump the core dependency from `fc4babde2` to current master. The lock was the reason four bindings could not use the typed path: at the old revision `RemoveGroupMembersApiRequest::members` was still `Vec<PublicKey>` and `AccountId` did not exist in `calimero-primitives` at all, so the structs genuinely could not express the ids the node uses. **This also picks up the removal of `selfIdentity` from `list_group_members`** — a caller looking for itself in a member list now asks `get_namespace_identity` and matches its `account` against `members[].identity`, one id space on both sides
+- refactor(groups): retire the 0.6.23 pass-throughs now that the types can express what the node sends. `list_group_members`, `remove_group_members`, `get_namespace_identity` and `join_namespace` go back through `calimero-client`. `remove_group_members` parses into `Vec<AccountId>`, so a malformed id fails with the caller's traceback rather than as a rejection from the node — the thing the original bs58 parsing got wrong was the id *space*, not the parsing
+- `create_namespace` still builds its body by hand. That shim is about released **nodes** still requiring `upgradePolicy`, which no dependency bump changes
+
 ## 0.6.25
 
 - refactor(metadata): route the six metadata bindings through `calimero-client` instead of hand-rolling their HTTP. `get_group_metadata`, `set_group_metadata`, `get_member_metadata`, `set_member_metadata`, `get_context_metadata` and `set_context_metadata` each re-declared the endpoint path and verb that the client crate already owns, so a route change there would have left these six silently pointing at the old URL — and each repeated twenty lines of response-conversion the shared helper exists for. They were already using the typed request/response structs; what was duplicated was the routing. Net 113 lines removed, no behaviour change
