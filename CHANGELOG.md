@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.25
+
+- refactor(metadata): route the six metadata bindings through `calimero-client` instead of hand-rolling their HTTP. `get_group_metadata`, `set_group_metadata`, `get_member_metadata`, `set_member_metadata`, `get_context_metadata` and `set_context_metadata` each re-declared the endpoint path and verb that the client crate already owns, so a route change there would have left these six silently pointing at the old URL — and each repeated twenty lines of response-conversion the shared helper exists for. They were already using the typed request/response structs; what was duplicated was the routing. Net 113 lines removed, no behaviour change
+
 ## 0.6.24
 
 - fix(namespaces): keep sending `upgradePolicy` on `create_namespace`. The concept was deleted server-side, but only on master — every RELEASED node still requires the field and rejects a request without it, so 0.6.22 and 0.6.23 can create a namespace on no released node at all (merobox's whole suite went red on exactly this). A node that has dropped the field ignores the extra key, since the request type does not deny unknown fields, so sending it is the one shape that works against both. The body is built by hand because the typed request no longer has the field. Remove once no supported release predates the removal

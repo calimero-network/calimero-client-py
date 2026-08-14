@@ -2642,37 +2642,21 @@ impl PyClient {
     }
 
     pub fn set_group_metadata(&self, group_id: &str, body_json: &str) -> PyResult<PyObject> {
-        let connection = self.connection.clone();
+        let inner = self.inner.clone();
         let group_id = group_id.to_string();
-        let req: admin::SetMetadataApiRequest = serde_json::from_str(body_json).map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Invalid metadata JSON: {}", e))
-        })?;
+        let request: admin::SetMetadataApiRequest =
+            serde_json::from_str(body_json).map_err(|e| {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "Invalid metadata JSON: {}",
+                    e
+                ))
+            })?;
 
         Python::with_gil(|py| {
-            let result = self.runtime.block_on(async move {
-                connection
-                    .put_json::<_, admin::SetMetadataApiResponse>(
-                        &format!("admin-api/groups/{group_id}/metadata"),
-                        req,
-                    )
-                    .await
-            });
-
-            match result {
-                Ok(data) => {
-                    let json_data = serde_json::to_value(data).map_err(|e| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                            "Failed to serialize response: {}",
-                            e
-                        ))
-                    })?;
-                    Ok(json_to_python(py, &json_data))
-                }
-                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Client error: {}",
-                    e
-                ))),
-            }
+            let result = self
+                .runtime
+                .block_on(async move { inner.set_group_metadata(&group_id, request).await });
+            Self::to_python(py, result)
         })
     }
 
@@ -2682,38 +2666,24 @@ impl PyClient {
         member_id: &str,
         body_json: &str,
     ) -> PyResult<PyObject> {
-        let connection = self.connection.clone();
+        let inner = self.inner.clone();
         let group_id = group_id.to_string();
         let member_id = member_id.to_string();
-        let req: admin::SetMetadataApiRequest = serde_json::from_str(body_json).map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Invalid metadata JSON: {}", e))
-        })?;
+        let request: admin::SetMetadataApiRequest =
+            serde_json::from_str(body_json).map_err(|e| {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "Invalid metadata JSON: {}",
+                    e
+                ))
+            })?;
 
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
-                connection
-                    .put_json::<_, admin::SetMetadataApiResponse>(
-                        &format!("admin-api/groups/{group_id}/members/{member_id}/metadata"),
-                        req,
-                    )
+                inner
+                    .set_member_metadata(&group_id, &member_id, request)
                     .await
             });
-
-            match result {
-                Ok(data) => {
-                    let json_data = serde_json::to_value(data).map_err(|e| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                            "Failed to serialize response: {}",
-                            e
-                        ))
-                    })?;
-                    Ok(json_to_python(py, &json_data))
-                }
-                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Client error: {}",
-                    e
-                ))),
-            }
+            Self::to_python(py, result)
         })
     }
 
@@ -2723,133 +2693,62 @@ impl PyClient {
         context_id: &str,
         body_json: &str,
     ) -> PyResult<PyObject> {
-        let connection = self.connection.clone();
+        let inner = self.inner.clone();
         let group_id = group_id.to_string();
         let context_id = context_id.to_string();
-        let req: admin::SetMetadataApiRequest = serde_json::from_str(body_json).map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Invalid metadata JSON: {}", e))
-        })?;
+        let request: admin::SetMetadataApiRequest =
+            serde_json::from_str(body_json).map_err(|e| {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "Invalid metadata JSON: {}",
+                    e
+                ))
+            })?;
 
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
-                connection
-                    .put_json::<_, admin::SetMetadataApiResponse>(
-                        &format!("admin-api/groups/{group_id}/contexts/{context_id}/metadata"),
-                        req,
-                    )
+                inner
+                    .set_context_metadata(&group_id, &context_id, request)
                     .await
             });
-
-            match result {
-                Ok(data) => {
-                    let json_data = serde_json::to_value(data).map_err(|e| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                            "Failed to serialize response: {}",
-                            e
-                        ))
-                    })?;
-                    Ok(json_to_python(py, &json_data))
-                }
-                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Client error: {}",
-                    e
-                ))),
-            }
+            Self::to_python(py, result)
         })
     }
 
     pub fn get_group_metadata(&self, group_id: &str) -> PyResult<PyObject> {
-        let connection = self.connection.clone();
+        let inner = self.inner.clone();
         let group_id = group_id.to_string();
 
         Python::with_gil(|py| {
-            let result = self.runtime.block_on(async move {
-                connection
-                    .get::<admin::GetMetadataApiResponse>(&format!(
-                        "admin-api/groups/{group_id}/metadata"
-                    ))
-                    .await
-            });
-
-            match result {
-                Ok(data) => {
-                    let json_data = serde_json::to_value(data).map_err(|e| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                            "Failed to serialize response: {}",
-                            e
-                        ))
-                    })?;
-                    Ok(json_to_python(py, &json_data))
-                }
-                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Client error: {}",
-                    e
-                ))),
-            }
+            let result = self
+                .runtime
+                .block_on(async move { inner.get_group_metadata(&group_id).await });
+            Self::to_python(py, result)
         })
     }
 
     pub fn get_member_metadata(&self, group_id: &str, member_id: &str) -> PyResult<PyObject> {
-        let connection = self.connection.clone();
+        let inner = self.inner.clone();
         let group_id = group_id.to_string();
         let member_id = member_id.to_string();
 
         Python::with_gil(|py| {
-            let result = self.runtime.block_on(async move {
-                connection
-                    .get::<admin::GetMetadataApiResponse>(&format!(
-                        "admin-api/groups/{group_id}/members/{member_id}/metadata"
-                    ))
-                    .await
-            });
-
-            match result {
-                Ok(data) => {
-                    let json_data = serde_json::to_value(data).map_err(|e| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                            "Failed to serialize response: {}",
-                            e
-                        ))
-                    })?;
-                    Ok(json_to_python(py, &json_data))
-                }
-                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Client error: {}",
-                    e
-                ))),
-            }
+            let result = self
+                .runtime
+                .block_on(async move { inner.get_member_metadata(&group_id, &member_id).await });
+            Self::to_python(py, result)
         })
     }
 
     pub fn get_context_metadata(&self, group_id: &str, context_id: &str) -> PyResult<PyObject> {
-        let connection = self.connection.clone();
+        let inner = self.inner.clone();
         let group_id = group_id.to_string();
         let context_id = context_id.to_string();
 
         Python::with_gil(|py| {
-            let result = self.runtime.block_on(async move {
-                connection
-                    .get::<admin::GetMetadataApiResponse>(&format!(
-                        "admin-api/groups/{group_id}/contexts/{context_id}/metadata"
-                    ))
-                    .await
-            });
-
-            match result {
-                Ok(data) => {
-                    let json_data = serde_json::to_value(data).map_err(|e| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                            "Failed to serialize response: {}",
-                            e
-                        ))
-                    })?;
-                    Ok(json_to_python(py, &json_data))
-                }
-                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Client error: {}",
-                    e
-                ))),
-            }
+            let result = self
+                .runtime
+                .block_on(async move { inner.get_context_metadata(&group_id, &context_id).await });
+            Self::to_python(py, result)
         })
     }
 
