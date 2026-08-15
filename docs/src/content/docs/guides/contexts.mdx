@@ -42,7 +42,6 @@ client.list_contexts()                       # all contexts on the node
 client.get_context("<context-id>")           # one context's metadata
 client.get_context_storage("<context-id>")   # storage/state info
 client.get_context_identities("<context-id>")   # identities in the context
-client.get_context_client_keys("<context-id>")  # client keys
 ```
 
 Context IDs are validated: an invalid ID raises `ValueError`.
@@ -113,7 +112,6 @@ Give a context (or a context identity) a human-friendly alias:
 
 ```python
 client.create_context_alias("my-context", "<context-id>")
-client.create_context_identity_alias("<context-id>", "alice", "<public-key>")
 
 client.lookup_context_alias("my-context")     # resolve without side effects
 client.resolve_context_alias("my-context")    # resolve to the value

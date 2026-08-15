@@ -144,7 +144,6 @@ Constructed via `create_client(connection)` or `Client(connection)`.
 - `delete_context(context_id, requester=None)`
 - `get_context_storage(context_id)`
 - `get_context_identities(context_id)`
-- `get_context_client_keys(context_id)`
 - `sync_context(context_id)`
 - `sync_all_contexts()`
 - `resync_context(context_id, force=False)` — adopt a peer's full-state snapshot;
@@ -165,7 +164,6 @@ Constructed via `create_client(connection)` or `Client(connection)`.
 Context, context-identity, and application aliases:
 
 - `create_context_alias(alias, context_id)`
-- `create_context_identity_alias(context_id, alias, public_key)`
 - `create_application_alias(alias, application_id)`
 - `create_alias_generic(alias, value, scope=None)` — backward-compatible generic
   helper (treats `value` as a context id).
