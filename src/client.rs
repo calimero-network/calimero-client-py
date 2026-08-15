@@ -783,39 +783,6 @@ impl PyClient {
         })
     }
 
-    /// Get context client keys
-    pub fn get_context_client_keys(&self, context_id: &str) -> PyResult<PyObject> {
-        let inner = self.inner.clone();
-        let context_id = context_id.parse::<ContextId>().map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid context ID '{}': {}",
-                context_id, e
-            ))
-        })?;
-
-        Python::with_gil(|py| {
-            let result = self
-                .runtime
-                .block_on(async move { inner.get_context_client_keys(&context_id).await });
-
-            match result {
-                Ok(data) => {
-                    let json_data = serde_json::to_value(data).map_err(|e| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                            "Failed to serialize response: {}",
-                            e
-                        ))
-                    })?;
-                    Ok(json_to_python(py, &json_data))
-                }
-                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Client error: {}",
-                    e
-                ))),
-            }
-        })
-    }
-
     /// Sync context
     pub fn sync_context(&self, context_id: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
@@ -877,12 +844,8 @@ impl PyClient {
                 let args_value: serde_json::Value = serde_json::from_str(args)
                     .map_err(|e| eyre::eyre!("Invalid JSON args: {}", e))?;
 
-                let execution_request = jsonrpc::ExecutionRequest::new(
-                    context_id,
-                    method.to_string(),
-                    args_value,
-                    vec![], // substitute aliases
-                );
+                let execution_request =
+                    jsonrpc::ExecutionRequest::new(context_id, method.to_string(), args_value);
 
                 let request = jsonrpc::Request::new(
                     jsonrpc::Version::TwoPointZero,
@@ -1011,60 +974,6 @@ impl PyClient {
             let result = self.runtime.block_on(async move {
                 inner
                     .resync_context(&context_id, admin::ResyncContextApiRequest { force })
-                    .await
-            });
-
-            match result {
-                Ok(data) => {
-                    let json_data = serde_json::to_value(data).map_err(|e| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                            "Failed to serialize response: {}",
-                            e
-                        ))
-                    })?;
-                    Ok(json_to_python(py, &json_data))
-                }
-                Err(e) => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Client error: {}",
-                    e
-                ))),
-            }
-        })
-    }
-
-    /// Create context identity alias
-    pub fn create_context_identity_alias(
-        &self,
-        context_id: &str,
-        alias: &str,
-        public_key: &str,
-    ) -> PyResult<PyObject> {
-        let inner = self.inner.clone();
-        let context_id = context_id.parse::<ContextId>().map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid context ID '{}': {}",
-                context_id, e
-            ))
-        })?;
-        let public_key = public_key.parse::<identity::PublicKey>().map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid public key '{}': {}",
-                public_key, e
-            ))
-        })?;
-
-        Python::with_gil(|py| {
-            let result = self.runtime.block_on(async move {
-                let alias_obj = Alias::<identity::PublicKey>::from_str(alias)
-                    .map_err(|e| eyre::eyre!("Invalid alias: {}", e))?;
-                let request = admin::CreateAliasRequest {
-                    alias: alias_obj,
-                    value: admin::CreateContextIdentityAlias {
-                        identity: public_key,
-                    },
-                };
-                inner
-                    .create_context_identity_alias(&context_id, request)
                     .await
             });
 
@@ -1774,20 +1683,28 @@ impl PyClient {
         })
     }
 
-    /// Which account this node speaks for in `namespace_id`, and the device it
-    /// holds there.
+    /// Who this node is, without naming a namespace.
     ///
-    /// Read-only and always answerable: the account is derived from this node's
-    /// root, so it exists before any device is enrolled. A `deviceId` of `None` is
-    /// a real answer — "this node holds no device here" — not missing data.
-    pub fn get_namespace_account(&self, namespace_id: &str) -> PyResult<PyObject> {
+    /// A node has one account, one device and one signing key, so none of them
+    /// varies by namespace and the question needs no scope. Replaces
+    /// `get_namespace_account`, which took a namespace it could not use.
+    ///
+    /// Returns `accountId`, `deviceId`, `publicKey` — the DEVICE's signing key,
+    /// which is what op signatures verify against, not the account root — and
+    /// `accountRootPublicKey`, the public half a second device needs in order to
+    /// pair into this account. The private root is reachable from no endpoint
+    /// at all; it leaves a node only via `merod account export`, as a mnemonic.
+    ///
+    /// 404s when the node holds no account root yet: one is minted the first
+    /// time it enrols in a namespace, and reporting an empty account would be
+    /// worse than saying there is none.
+    pub fn get_node_identity(&self) -> PyResult<PyObject> {
         let inner = self.inner.clone();
-        let namespace_id = namespace_id.to_string();
 
         Python::with_gil(|py| {
             let result = self
                 .runtime
-                .block_on(async move { inner.get_namespace_account(&namespace_id).await });
+                .block_on(async move { inner.get_node_identity().await });
             Self::to_python(py, result)
         })
     }
@@ -1801,14 +1718,18 @@ impl PyClient {
     pub fn pair_device_init(
         &self,
         namespace_id: &str,
-        account_root_key: &str,
-        account_nonce: &str,
+        account_root_public_key: &str,
+        // Accepted and ignored. The genesis carries no nonce any more, so there
+        // is nothing to send — but the released merobox `account_pair` step
+        // calls this with three positional arguments, and dropping the
+        // parameter turns every one of those calls into a TypeError. Remove it
+        // once a merobox release stops passing it.
+        _account_nonce: &str,
     ) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let namespace_id = namespace_id.to_string();
         let request = admin::PairDeviceInitApiRequest {
-            account_root_key: account_root_key.to_string(),
-            account_nonce: account_nonce.to_string(),
+            account_root_public_key: account_root_public_key.to_string(),
         };
 
         Python::with_gil(|py| {
