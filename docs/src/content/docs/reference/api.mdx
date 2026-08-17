@@ -191,8 +191,6 @@ Context, context-identity, and application aliases:
 - `get_node_identity()` — who this node is: `accountId`, `deviceId`,
   `publicKey` (the device's signing key) and `accountRootPublicKey`. Takes no
   namespace, because none of it varies by one.
-- `get_namespace_identity(namespace_id)` — **deprecated**, use
-  `get_node_identity()`. The namespace cannot change the answer.
 - `list_namespaces_for_application(application_id)`
 - `create_namespace_invitation(namespace_id, recursive=None, expiration_timestamp=None)`
 - `join_namespace(namespace_id, invitation_json)` — `invitation_json` is a JSON
