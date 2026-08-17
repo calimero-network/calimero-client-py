@@ -1793,6 +1793,21 @@ impl PyClient {
     }
     /// This node's identity in `namespace_id`: the key it signs with, and the
     /// account that key writes as.
+    ///
+    /// **Deprecated — use [`get_node_identity`](Self::get_node_identity).** The
+    /// namespace cannot change the answer: a node has one root key, therefore one
+    /// account, and one signing key, so every field this returns is node-level.
+    /// The node-level call also reports `deviceId` and `accountRootPublicKey`,
+    /// which this one cannot.
+    ///
+    /// Kept, rather than delegated or removed, because it is what merobox's
+    /// `get_namespace_identity` step calls and core's e2e scenarios still drive
+    /// that step. It retires from the bottom up: the scenarios move first, then
+    /// core's route, then merobox's step, then this.
+    ///
+    /// The one thing it does that the node-level call does not: it gates on
+    /// participation, answering 404 for a namespace this node never joined. If
+    /// that is what you want, ask `list_namespaces` — it is the honest question.
     pub fn get_namespace_identity(&self, namespace_id: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let namespace_id = namespace_id.to_string();
