@@ -12,10 +12,9 @@ subgroups, and contexts. This guide walks the governance surface the client
 exposes. It is broad — the [API reference](/reference/api/#namespaces-and-groups)
 lists every method and signature; this page shows the common flows.
 
-Governance responses are returned as plain Python `dict`/`list` values. Several
-methods take a `requester` argument (a public-key string) to act on behalf of a
-specific identity registered on the node; when omitted, the node resolves a
-signing key it holds.
+Governance responses are returned as plain Python `dict`/`list` values. None of
+these methods name the acting identity: the node resolves it from the
+authenticated session.
 
 ## Creating a namespace
 
@@ -38,7 +37,7 @@ client.list_namespaces()
 client.get_namespace("<namespace-id>")
 client.get_node_identity()                           # who this node is
 client.list_namespaces_for_application("<application-id>")
-client.delete_namespace("<namespace-id>")            # requester optional
+client.delete_namespace("<namespace-id>")
 ```
 
 ## Invitations and joining
@@ -69,7 +68,7 @@ client.create_group_in_namespace("<namespace-id>", group_name="engineering")
 client.list_namespace_groups("<namespace-id>")   # groups in a namespace
 client.list_subgroups("<group-id>")              # direct subgroups of a group
 client.get_group_info("<group-id>")
-client.delete_group("<group-id>")                # requester optional
+client.delete_group("<group-id>")
 ```
 
 Move a subgroup under a new parent in one atomic edge swap:
