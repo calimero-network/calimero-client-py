@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.29
+
+- build(deps)!: bump the core dependency from `da787d2b9` to `ee344bb7a`, 41 commits of drift. The lock pinned an exact revision despite `branch = "master"` in `Cargo.toml`, so the sdist compiled against rc.21 no matter how far master moved — the reason a released merobox refuses a join response from a current node with `missing field \`governanceOp\``. Picks up `#[serde(default)]` on that field (calimero-network/core#3530), so this build tolerates its removal in core#3485
+- refactor(api)!: drop the `requester` keyword from `delete_context`, `delete_namespace`, `delete_group` and `set_member_auto_follow`. core#3492 deleted the field from every admin request DTO — the node resolves the acting identity from the authenticated session — so the binding was parsing a public key it had nowhere to send. Callers passing it now get a `TypeError` naming the kwarg rather than having it silently dropped. Positional calls are unaffected
+- refactor(account)!: delete the `create_account` binding. core#3470 removed the endpoint behind it ("enrolment is implicit, so it created nothing"); the binding had no route to call
+
 ## 0.6.26
 
 - build(deps)!: bump the core dependency from `fc4babde2` to current master. The lock was the reason four bindings could not use the typed path: at the old revision `RemoveGroupMembersApiRequest::members` was still `Vec<PublicKey>` and `AccountId` did not exist in `calimero-primitives` at all, so the structs genuinely could not express the ids the node uses. **This also picks up the removal of `selfIdentity` from `list_group_members`** — a caller looking for itself in a member list now asks `get_namespace_identity` and matches its `account` against `members[].identity`, one id space on both sides

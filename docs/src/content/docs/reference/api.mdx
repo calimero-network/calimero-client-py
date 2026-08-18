@@ -141,7 +141,7 @@ Constructed via `create_client(connection)` or `Client(connection)`.
 - `create_context(application_id, group_id, params=None, service_name=None)`
 - `get_context(context_id)`
 - `list_contexts()`
-- `delete_context(context_id, requester=None)`
+- `delete_context(context_id)`
 - `get_context_storage(context_id)`
 - `get_context_identities(context_id)`
 - `sync_context(context_id)`
@@ -187,7 +187,7 @@ Context, context-identity, and application aliases:
 - `create_namespace(application_id, name=None, app_key=None)`
 - `get_namespace(namespace_id)`
 - `list_namespaces()`
-- `delete_namespace(namespace_id, requester=None)`
+- `delete_namespace(namespace_id)`
 - `get_node_identity()` — who this node is: `accountId`, `deviceId`,
   `publicKey` (the device's signing key) and `accountRootPublicKey`. Takes no
   namespace, because none of it varies by one.
@@ -204,7 +204,7 @@ Context, context-identity, and application aliases:
 - `reparent_group(group_id, new_parent_id)`
 - `list_subgroups(group_id)`
 - `get_group_info(group_id)`
-- `delete_group(group_id, requester=None)`
+- `delete_group(group_id)`
 - `join_subgroup_inheritance(group_id)`
 - `leave_group(group_id)`
 - `list_group_members(group_id)`
@@ -224,7 +224,7 @@ Context, context-identity, and application aliases:
   is an `int` bitmask.
 - `get_member_capabilities(group_id, member_id)`
 - `set_default_capabilities(group_id, capabilities)`
-- `set_member_auto_follow(group_id, member_id, auto_follow_contexts, auto_follow_subgroups, requester=None)`
+- `set_member_auto_follow(group_id, member_id, auto_follow_contexts, auto_follow_subgroups)`
 
 **Settings, visibility, and metadata**
 
