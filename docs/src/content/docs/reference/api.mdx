@@ -216,7 +216,9 @@ Context, context-identity, and application aliases:
 
 - `add_group_members(group_id, members_json)` — JSON array of
   `{"identity", "role"}` (roles `"Admin"`, `"Member"`, `"ReadOnly"`).
-- `remove_group_members(group_id, members_json)` — JSON array of public-key
+  `identity` is an account (64 hex, what `list_group_members` returns) or a
+  bs58 signing key, for a subject the node holds no account for yet.
+- `remove_group_members(group_id, members_json)` — JSON array of account
   strings.
 - `update_member_role(group_id, member_id, role)` — `role` is `"admin"`,
   `"member"`, or `"read-only"` (case-insensitive).

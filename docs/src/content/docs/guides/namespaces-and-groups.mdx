@@ -86,18 +86,23 @@ client.join_subgroup_inheritance("<group-id>")
 
 ## Members
 
-List, add, and remove members. `add_group_members` takes a JSON array of
+List, add, and remove members. Members are named by ACCOUNT - the ids
+`list_group_members` returns. `add_group_members` takes a JSON array of
 `{identity, role}` objects (roles here are `"Admin"`, `"Member"`, or
-`"ReadOnly"`); `remove_group_members` takes a JSON array of public-key strings:
+`"ReadOnly"`); `remove_group_members` takes a JSON array of account strings:
 
 ```python
 client.list_group_members("<group-id>")
 
 client.add_group_members("<group-id>",
-    '[{"identity": "<public-key>", "role": "Member"}]')
+    '[{"identity": "<account>", "role": "Member"}]')
 
-client.remove_group_members("<group-id>", '["<public-key>"]')
+client.remove_group_members("<group-id>", '["<account>"]')
 ```
+
+`add_group_members` also accepts a bs58 signing key in `identity`, for a
+subject this node holds no account for yet. The node resolves it to the
+account the membership row is keyed by, and refuses if it is bound to none.
 
 Change a member's role (case-insensitive `"admin"`, `"member"`, `"read-only"`):
 

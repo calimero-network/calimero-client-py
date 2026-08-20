@@ -2196,7 +2196,11 @@ impl PyClient {
         })
     }
 
-    /// Add members to a group
+    /// Add members to a group.
+    ///
+    /// Each member is named by ACCOUNT - 64 hex, the ids `list_group_members`
+    /// returns - or by a bs58 signing key, for a subject this node holds no
+    /// account for yet. `MemberIdentity` reads whichever it is given.
     pub fn add_group_members(&self, group_id: &str, members_json: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let group_id = group_id.to_string();
@@ -2209,16 +2213,21 @@ impl PyClient {
                 let identity_str = m.get("identity").and_then(|v| v.as_str()).unwrap_or("");
                 let role_str = m.get("role").and_then(|v| v.as_str()).unwrap_or("Member");
                 let identity = identity_str
-                    .parse::<identity::PublicKey>()
-                    .expect("invalid identity");
+                    .parse::<identity::MemberIdentity>()
+                    .map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                            "Invalid member identity '{}': {}",
+                            identity_str, e
+                        ))
+                    })?;
                 let role = match role_str {
                     "Admin" => GroupMemberRole::Admin,
                     "ReadOnly" => GroupMemberRole::ReadOnly,
                     _ => GroupMemberRole::Member,
                 };
-                admin::GroupMemberApiInput { identity, role }
+                Ok(admin::GroupMemberApiInput { identity, role })
             })
-            .collect();
+            .collect::<PyResult<Vec<_>>>()?;
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
                 let request = admin::AddGroupMembersApiRequest {

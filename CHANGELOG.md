@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.30
+
+- fix(groups)!: `add_group_members` accepts an ACCOUNT in `identity`, and no longer takes the interpreter down on one. It parsed with `.parse::<PublicKey>().expect("invalid identity")`, so an account - the only id a caller gets from `list_group_members`, and what every other verb on that resource takes - panicked the extension module before any request was sent. A nested-membership app therefore could not add somebody it had just read back: no path through this binding could express the call. `identity` now parses as `MemberIdentity` (calimero-network/core#3573), which reads either encoding, and a malformed one raises `ValueError` naming the offending string instead of aborting
+- build(deps): bump the core dependency from `ee344bb7a` to `808dbcdbc`, which is where `MemberIdentity` lands
+- docs(groups): `remove_group_members` takes accounts, not public keys. It has parsed `Vec<AccountId>` since 0.6.26; the reference and the guide still said public-key strings
+
 ## 0.6.29
 
 - build(deps)!: bump the core dependency from `da787d2b9` to `ee344bb7a`, 41 commits of drift. The lock pinned an exact revision despite `branch = "master"` in `Cargo.toml`, so the sdist compiled against rc.21 no matter how far master moved — the reason a released merobox refuses a join response from a current node with `missing field \`governanceOp\``. Picks up `#[serde(default)]` on that field (calimero-network/core#3530), so this build tolerates its removal in core#3485
