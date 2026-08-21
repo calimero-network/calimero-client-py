@@ -1,11 +1,16 @@
-"""The three places this package states its version must agree.
+"""The version is declared once, in `Cargo.toml`, and nowhere else.
 
-`pyproject.toml` is the one that matters operationally: the publish workflow
-compares it against the previous commit's and skips PyPI when it has not changed.
-So a release that bumps `Cargo.toml` and `calimero/__init__.py` but not this one
-builds, passes CI, reports success — and publishes nothing. That happened to
-0.6.20, and a stale `__version__` (0.3.0 against a 0.6.x package) had to be fixed
-in 0.6.19 for the same reason: nothing was checking.
+It used to be stated in three files kept in step by a test. That test caught
+drift only after it happened, and twice it did not: 0.6.20 bumped `Cargo.toml`
+and `calimero/__init__.py` but not `pyproject.toml`, so the publish gate saw no
+change and shipped nothing while every check stayed green; 0.6.19 shipped a
+`__version__` reading 0.3.0. Both were possible only because the number was
+written down more than once.
+
+`pyproject.toml` now declares `dynamic = ["version"]`, so maturin takes it from
+`Cargo.toml`, and `calimero/__init__.py` reads it back from the installed
+distribution. This guards the shape rather than the values: there is nothing
+left to disagree.
 """
 
 import pathlib
@@ -14,38 +19,28 @@ import re
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 
-def _pyproject_version() -> str:
-    text = (ROOT / "pyproject.toml").read_text()
-    # The FIRST top-level `version = ` under [project]; dependency pins and the
-    # [tool.*] sections carry their own and must not be picked up.
-    match = re.search(r"^version = \"([^\"]+)\"", text, re.M)
-    assert match, "no top-level version in pyproject.toml"
-    return match.group(1)
-
-
-def _cargo_version() -> str:
+def test_cargo_declares_the_version():
     text = (ROOT / "Cargo.toml").read_text()
-    match = re.search(r"^version = \"([^\"]+)\"", text, re.M)
-    assert match, "no top-level version in Cargo.toml"
-    return match.group(1)
+    assert re.search(
+        r'^version = "[^"]+"', text, re.M
+    ), "no top-level version in Cargo.toml"
 
 
-def _dunder_version() -> str:
-    text = (ROOT / "calimero" / "__init__.py").read_text()
-    match = re.search(r"^__version__ = \"([^\"]+)\"", text, re.M)
-    assert match, "no __version__ in calimero/__init__.py"
-    return match.group(1)
-
-
-def test_all_three_version_declarations_agree():
-    pyproject, cargo, dunder = (
-        _pyproject_version(),
-        _cargo_version(),
-        _dunder_version(),
+def test_pyproject_takes_the_version_from_cargo():
+    text = (ROOT / "pyproject.toml").read_text()
+    assert re.search(r'^dynamic = \[.*"version".*\]', text, re.M), (
+        "pyproject.toml must declare version as dynamic so maturin reads it from "
+        "Cargo.toml; a literal here is a second copy that can drift"
     )
-    assert pyproject == cargo == dunder, (
-        "version drift: "
-        f"pyproject.toml={pyproject}, Cargo.toml={cargo}, __init__.py={dunder}. "
-        "The publish workflow gates on pyproject.toml, so a bump that misses it "
-        "ships nothing while every check stays green."
+    assert not re.search(r'^version = "', text, re.M), (
+        "pyproject.toml states a version of its own - the publish gate and the "
+        "wheel would then disagree with Cargo.toml"
+    )
+
+
+def test_the_package_reads_its_version_back():
+    text = (ROOT / "calimero" / "__init__.py").read_text()
+    assert not re.search(r'^__version__ = "', text, re.M), (
+        "calimero/__init__.py hardcodes a version - it must read the installed "
+        "distribution's, or it can report one the wheel does not carry"
     )

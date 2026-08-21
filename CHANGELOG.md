@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- fix(build): declare the version once, in `Cargo.toml`. It was written in three files — `Cargo.toml`, `pyproject.toml` and `calimero/__init__.py` — kept in step by a test that could only report drift after it happened, and twice it did not stop the drift landing: 0.6.20 missed `pyproject.toml`, so the publish gate saw no change and shipped nothing while every check passed, and 0.6.19 shipped a `__version__` reading `0.3.0`. 0.6.31 missed it again, in the other direction. `pyproject.toml` now declares `dynamic = ["version"]` so maturin reads `Cargo.toml`, `calimero/__init__.py` reads the installed distribution's metadata, and the publish gate compares `Cargo.toml` against the previous commit's. The test now guards the shape — that no second copy exists — instead of comparing values
+
 ## 0.6.31
 
 - build(deps)!: bump the core dependency from `808dbcdbc` to `c2ea737af`, 16 commits of drift. Picks up calimero-network/core#3598, which names the id `POST /admin-api/namespaces/:namespace_id/join` returns `namespaceId` rather than `groupId` — a namespace is a root group internally, and the endpoint had been sharing its response DTO with `POST /admin-api/groups/join`, so it leaked that noun. No source here changes: `join_namespace` forwards the response DTO generically. What changes is the dict a caller gets back, and what a build made *before* this can do with the response — it deserializes into the old struct, so it rejects a current node outright with `missing field \`groupId\``, the same version-skew shape as the `governanceOp` failure 0.6.29 fixed. `POST /admin-api/groups/join` is untouched and still returns `groupId`

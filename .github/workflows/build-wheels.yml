@@ -67,12 +67,11 @@ jobs:
     - name: Check version changes
       id: check
       run: |
-        # Get current version from pyproject.toml
-        CURRENT_VERSION=$(grep '^version = ' pyproject.toml | cut -d'"' -f2)
+        CURRENT_VERSION=$(grep '^version = ' Cargo.toml | cut -d'"' -f2)
         echo "Current version: $CURRENT_VERSION"
-        
+
         # Get previous version from git history
-        PREVIOUS_VERSION=$(git show HEAD~1:pyproject.toml | grep '^version = ' | cut -d'"' -f2 || echo "0.0.0")
+        PREVIOUS_VERSION=$(git show HEAD~1:Cargo.toml | grep '^version = ' | cut -d'"' -f2 || echo "0.0.0")
         echo "Previous version: $PREVIOUS_VERSION"
         
         # Check if version was bumped
