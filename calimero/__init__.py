@@ -5,7 +5,10 @@ A comprehensive Python client library for Calimero Network APIs,
 built with PyO3 for high performance and native integration.
 """
 
-__version__ = "0.6.30"
+from importlib.metadata import version as _installed_version
+
+# Declared once, in Cargo.toml.
+__version__ = _installed_version("calimero-client-py")
 __author__ = "Calimero Network"
 __email__ = "team@calimero.network"
 
