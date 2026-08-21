@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.31
+
+- build(deps)!: bump the core dependency from `808dbcdbc` to `c2ea737af`, 16 commits of drift. Picks up calimero-network/core#3598, which names the id `POST /admin-api/namespaces/:namespace_id/join` returns `namespaceId` rather than `groupId` — a namespace is a root group internally, and the endpoint had been sharing its response DTO with `POST /admin-api/groups/join`, so it leaked that noun. No source here changes: `join_namespace` forwards the response DTO generically. What changes is the dict a caller gets back, and what a build made *before* this can do with the response — it deserializes into the old struct, so it rejects a current node outright with `missing field \`groupId\``, the same version-skew shape as the `governanceOp` failure 0.6.29 fixed. `POST /admin-api/groups/join` is untouched and still returns `groupId`
+
 ## 0.6.30
 
 - fix(groups)!: `add_group_members` accepts an ACCOUNT in `identity`, and no longer takes the interpreter down on one. It parsed with `.parse::<PublicKey>().expect("invalid identity")`, so an account - the only id a caller gets from `list_group_members`, and what every other verb on that resource takes - panicked the extension module before any request was sent. A nested-membership app therefore could not add somebody it had just read back: no path through this binding could express the call. `identity` now parses as `MemberIdentity` (calimero-network/core#3573), which reads either encoding, and a malformed one raises `ValueError` naming the offending string instead of aborting
