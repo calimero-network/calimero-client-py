@@ -26,11 +26,24 @@ name = "calimero_client_py"
 crate-type = ["cdylib"]
 
 [dependencies]
-# Core Calimero crates, tracking master.
-calimero-client = { git = "https://github.com/calimero-network/core", branch = "master" }
-calimero-primitives = { git = "https://github.com/calimero-network/core", branch = "master" }
-calimero-server-primitives = { git = "https://github.com/calimero-network/core", branch = "master" }
-calimero-context-config = { git = "https://github.com/calimero-network/core", branch = "master" }
+# Core Calimero crates.
+#
+# TEMPORARILY on `feat/warrant-credential` rather than master: the warrant types
+# and the `perform_intent` client method this crate now binds live on core#3636,
+# which has not landed. Every line below must go back to `branch = "master"`
+# before this merges — see the PR description. Pinning the branch rather than
+# faking the types is deliberate: it means the bindings here are compiled and
+# tested against the real definitions, so the flip to master is a one-line
+# change with nothing left to discover.
+calimero-client = { git = "https://github.com/calimero-network/core", branch = "feat/warrant-credential" }
+calimero-primitives = { git = "https://github.com/calimero-network/core", branch = "feat/warrant-credential" }
+calimero-server-primitives = { git = "https://github.com/calimero-network/core", branch = "feat/warrant-credential" }
+calimero-context-config = { git = "https://github.com/calimero-network/core", branch = "feat/warrant-credential" }
+# New here, and the reason warrant minting belongs in this crate rather than in
+# a JS client: `Warrant::sign` is already written, so binding it costs a call
+# instead of an ed25519-plus-borsh reimplementation.
+calimero-account = { git = "https://github.com/calimero-network/core", branch = "feat/warrant-credential" }
+borsh = "1.5"
 
 # Python bindings
 # `extension-module` is enabled by the `python` feature below, not here.
