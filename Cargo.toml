@@ -1,6 +1,6 @@
 [package]
 name = "calimero-client-py"
-version = "0.6.31"
+version = "0.6.32"
 edition = "2021"
 authors = ["Calimero Limited <info@calimero.network>"]
 description = "Python client library for Calimero Network"
@@ -31,9 +31,22 @@ calimero-client = { git = "https://github.com/calimero-network/core", branch = "
 calimero-primitives = { git = "https://github.com/calimero-network/core", branch = "master" }
 calimero-server-primitives = { git = "https://github.com/calimero-network/core", branch = "master" }
 calimero-context-config = { git = "https://github.com/calimero-network/core", branch = "master" }
+# Warrant minting lives here rather than in a JS client because `Warrant::sign`
+# is already written: binding it costs a call instead of an ed25519-plus-borsh
+# reimplementation that would have to stay byte-identical with the node forever.
+calimero-account = { git = "https://github.com/calimero-network/core", branch = "master" }
+borsh = "1.5"
 
 # Python bindings
-pyo3 = { version = "0.22", features = ["extension-module"] }
+# `extension-module` is enabled by the `python` feature below, not here.
+#
+# With it always on, pyo3 deliberately does not link libpython — correct for the
+# shared object a wheel ships, and fatal for a test binary, which has no
+# interpreter to borrow those symbols from. macOS hides this (its linker resolves
+# them lazily); Linux does not, so `cargo test` fails there and only there. The
+# `python` feature already existed and was empty, which is this recipe left
+# half-wired.
+pyo3 = { version = "0.22" }
 
 # Additional dependencies that might be needed
 serde = { version = "1.0", features = ["derive"] }
@@ -53,7 +66,8 @@ tokio-test = "0.4"
 
 [features]
 default = []
-python = []
+# What maturin builds with (see `[tool.maturin] features` in pyproject.toml).
+python = ["pyo3/extension-module"]
 
 [profile.release]
 strip = "symbols"

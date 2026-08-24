@@ -63,6 +63,15 @@ A few shapes are stable enough to document here (keys as returned):
   node name.
 - `get_token_cache_dir() -> str` — the base token-cache directory
   (`~/.merobox/auth_cache`).
+- `sign_warrant(context_id, executor, method, args, nonce, device_secret,
+  credential, valid_for=300) -> dict` — mint a warrant authorising `executor` to
+  run `method(args)` on the signer's behalf. Contacts nothing: it signs with
+  `device_secret` and returns bytes, which is the point — the key that signs a
+  warrant must never reach the node that runs the request. Returns `warrant`
+  (hex, ready for `perform_intent`), plus `authorAccount`, `authorDeviceKey`,
+  `intentHash`, `nonce` and `notAfter`. `context_id` is base58 and `executor` is
+  hex; the author's account is read out of `credential` rather than taken as an
+  argument, so it cannot disagree with the key that signs.
 
 ## `ConnectionInfo`
 
@@ -158,6 +167,22 @@ Constructed via `create_client(connection)` or `Client(connection)`.
 - `execute_function(context_id, method, args, executor_public_key="")` — call an
   app method over JSON-RPC. `args` is a JSON string. `executor_public_key` is
   accepted for backward compatibility but ignored.
+
+### Delegated authorship
+
+- `perform_intent(context_id, method, args, warrant, author_proof)` — ask this
+  node to run one method on a member's behalf, under a warrant that member
+  signed. Supply only the author's half: the warrant and the proof that its
+  signing key is a device of the account it names. The node attaches its own
+  credential, so a caller never learns which of its processes runs the intent,
+  and the node re-keying does not void a warrant already issued.
+
+  Mint the warrant with `sign_warrant`, which needs no connection. A warrant is
+  single-use — presenting a spent one is refused with a `403` — and the write is
+  attributed to the author's account, not to the node that ran it. The node must
+  hold the `CAN_AUTHOR_ON_BEHALF` capability on the group owning the context;
+  without it the request is refused before anything executes, and that grant is
+  implied by neither membership nor admin.
 
 ### Aliases
 

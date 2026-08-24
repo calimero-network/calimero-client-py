@@ -31,7 +31,21 @@ jobs:
     - name: Check code formatting with Black
       run: |
         black --check .
-    
+
+    # This crate is mostly Rust, and until now nothing ran its Rust tests: the
+    # step below builds the extension, so a compile error was caught but a wrong
+    # answer was not. The warrant helpers are the first logic here with
+    # properties worth asserting directly — that reformatting an intent's
+    # arguments cannot change what the signature commits to, above all, since
+    # getting that wrong produces warrants the node reads as forged.
+    # Without `--features python`, deliberately: that feature turns on pyo3's
+    # `extension-module`, which leaves libpython unlinked — right for a wheel's
+    # shared object, fatal for a test binary that has no interpreter to borrow
+    # those symbols from.
+    - name: Run Rust tests
+      run: |
+        cargo test
+
     - name: Run tests
       run: |
         pytest tests/ -v --tb=short

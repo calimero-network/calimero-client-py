@@ -1744,6 +1744,58 @@ impl PyClient {
             Self::to_python(py, result)
         })
     }
+    /// Ask this node to run one method on a member's behalf, under a warrant
+    /// that member signed.
+    ///
+    /// The caller supplies only the author's half — the warrant and the proof
+    /// that the signing key is a device of the account it names. The node
+    /// attaches its own credential, so a client never learns which of the node's
+    /// processes runs the intent, and the node re-keying does not void a warrant
+    /// already issued to it.
+    ///
+    /// Mint the `warrant` with `sign_warrant`, which needs no connection.
+    #[pyo3(signature = (context_id, method, args, warrant, author_proof))]
+    pub fn perform_intent(
+        &self,
+        context_id: &str,
+        method: &str,
+        args: &str,
+        warrant: &str,
+        author_proof: &str,
+    ) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        // Validated as a ContextId even though the route takes a string, so a
+        // bad id fails here naming itself rather than as a 400 from the node.
+        let _ = context_id.trim().parse::<ContextId>().map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Invalid context ID '{}': {}",
+                context_id, e
+            ))
+        })?;
+        let context_id = context_id.trim().to_owned();
+
+        let args_value: serde_json::Value = serde_json::from_str(args).map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Invalid JSON args: {}", e))
+        })?;
+
+        // Trimmed for the same reason `revoke_device` trims its proof: both
+        // normally arrive from captured command output, and hex with a trailing
+        // newline is not hex.
+        let request = admin::PerformIntentApiRequest {
+            method: method.to_owned(),
+            args_json: args_value,
+            warrant: warrant.trim().to_owned(),
+            author_proof: author_proof.trim().to_owned(),
+        };
+
+        Python::with_gil(|py| {
+            let result = self
+                .runtime
+                .block_on(async move { inner.perform_intent(&context_id, request).await });
+            Self::to_python(py, result)
+        })
+    }
+
     pub fn list_namespaces_for_application(&self, application_id: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let application_id = application_id.parse::<ApplicationId>().map_err(|e| {
