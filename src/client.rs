@@ -1513,7 +1513,11 @@ impl PyClient {
         let request = admin::CreateNamespaceApiRequest {
             application_id,
             name: name.map(str::to_owned),
-            app_key: app_key.map(str::to_owned),
+            // The Rust field is `bytecode_id` since core renamed it; the wire
+            // name stayed `appKey` (see its serde attrs), and so does this
+            // binding's Python keyword — renaming that would break every caller
+            // for a change no caller can observe.
+            bytecode_id: app_key.map(str::to_owned),
         };
 
         Python::with_gil(|py| {
