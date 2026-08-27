@@ -1621,9 +1621,9 @@ impl PyClient {
     /// pair into this account. The private root is reachable from no endpoint
     /// at all; it leaves a node only via `merod account export`, as a mnemonic.
     ///
-    /// 404s when the node holds no account root yet: one is minted the first
-    /// time it enrols in a namespace, and reporting an empty account would be
-    /// worse than saying there is none.
+    /// 404s when the node holds neither a device nor an account root. `merod
+    /// init` provisions the root, so that means a node initialized with
+    /// `--no-account-root` and never paired.
     pub fn get_node_identity(&self) -> PyResult<PyObject> {
         let inner = self.inner.clone();
 
@@ -1635,76 +1635,78 @@ impl PyClient {
         })
     }
 
-    /// Mint a device on this node for an account that already exists elsewhere —
+    /// Mint a device on this node for an account that already exists elsewhere -
     /// the first half of pairing.
+    ///
+    /// `namespaces` must not be empty: this node is a member of nothing yet, so
+    /// it can neither read the account's namespace set off a DAG nor derive it.
+    /// One device covers the whole set.
     ///
     /// Publishes nothing and needs no scope key. Returns the device id, both
     /// public keys, a signature over them, and a confirmation code; hand all of
     /// them to [`Self::pair_device_complete`] on the node that holds the account.
     pub fn pair_device_init(
         &self,
-        namespace_id: &str,
         account_root_public_key: &str,
-        // Accepted and ignored. The genesis carries no nonce any more, so there
-        // is nothing to send — but the released merobox `account_pair` step
-        // calls this with three positional arguments, and dropping the
-        // parameter turns every one of those calls into a TypeError. Remove it
-        // once a merobox release stops passing it.
-        _account_nonce: &str,
+        namespaces: Vec<String>,
     ) -> PyResult<PyObject> {
         let inner = self.inner.clone();
-        let namespace_id = namespace_id.to_string();
-        let request = admin::PairDeviceInitApiRequest {
+        let request = admin::AccountPairInitApiRequest {
             account_root_public_key: account_root_public_key.to_string(),
+            namespaces,
         };
 
         Python::with_gil(|py| {
             let result = self
                 .runtime
-                .block_on(async move { inner.pair_device_init(&namespace_id, request).await });
+                .block_on(async move { inner.pair_device_init(request).await });
             Self::to_python(py, result)
         })
     }
 
-    /// Certify a device another node minted, link it, and deliver the scope key —
+    /// Certify a device another node minted, link it, and deliver the scope keys -
     /// the second half of pairing.
     ///
-    /// Run on the node holding the account. `statement` is not optional: without
-    /// it the keys above are only claims by the sender, and certifying them would
-    /// make attacker-supplied keys a trusted device of this account.
-    /// `confirmation_code` is checked against the keys that actually arrived, so
-    /// the comparison a human is meant to make cannot be skipped.
+    /// Run on the node holding the account. `applications` scopes the device by
+    /// application rather than by namespace, because that is the question a person
+    /// can answer; naming none means every namespace this node takes part in.
+    ///
+    /// `statement` is not optional: without it the keys above are only claims by
+    /// the sender, and certifying them would make attacker-supplied keys a trusted
+    /// device of this account. `confirmation_code` is checked against the keys that
+    /// actually arrived, so the comparison a human is meant to make cannot be
+    /// skipped.
     #[pyo3(signature = (
-        namespace_id,
         device_id,
         kem_public_key,
         sign_public_key,
         statement,
         confirmation_code,
+        applications=None,
     ))]
     pub fn pair_device_complete(
         &self,
-        namespace_id: &str,
         device_id: &str,
         kem_public_key: &str,
         sign_public_key: &str,
         statement: &str,
         confirmation_code: &str,
+        applications: Option<Vec<String>>,
     ) -> PyResult<PyObject> {
         let inner = self.inner.clone();
-        let namespace_id = namespace_id.to_string();
-        let request = admin::PairDeviceCompleteApiRequest {
+        let request = admin::AccountPairCompleteApiRequest {
             device_id: device_id.to_string(),
             kem_public_key: kem_public_key.to_string(),
             sign_public_key: sign_public_key.to_string(),
             statement: statement.to_string(),
             confirmation_code: confirmation_code.to_string(),
+            applications: applications.unwrap_or_default(),
         };
 
         Python::with_gil(|py| {
             let result = self
                 .runtime
-                .block_on(async move { inner.pair_device_complete(&namespace_id, request).await });
+                .block_on(async move { inner.pair_device_complete(request).await });
             Self::to_python(py, result)
         })
     }
