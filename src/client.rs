@@ -1712,16 +1712,7 @@ impl PyClient {
     }
 
     /// Repair or widen the reach of a device this account already certified.
-    ///
-    /// Re-runs pairing's fan-out against the namespaces this node takes part in
-    /// now, closing the drift a namespace gained after pairing leaves behind. No
-    /// handshake and no confirmation code, and the device need not be online.
-    ///
-    /// `applications` here means the opposite of what it means on
-    /// `pair_device_complete`: naming none repairs WITHOUT widening, rather than
-    /// meaning every application, so the accidental request is not the widest one.
-    /// Returns the device's scope after the request and what the repair did in
-    /// each namespace, since publication is per-DAG.
+    /// Naming no application repairs WITHOUT widening, not every one of them.
     #[pyo3(signature = (device_id, applications=None))]
     pub fn relink_device(
         &self,
@@ -1742,11 +1733,8 @@ impl PyClient {
         })
     }
 
-    /// Every device of this account, with the scope and bindings this node sees.
-    ///
-    /// Joined from the node-local certificate cache and the live bindings of
-    /// every namespace this node takes part in, so a device certified elsewhere
-    /// is reported too, with no scope this node can know.
+    /// Every device of this account. Reports devices certified elsewhere too,
+    /// which carry no scope this node can know.
     pub fn list_account_devices(&self) -> PyResult<PyObject> {
         let inner = self.inner.clone();
 
@@ -1759,9 +1747,7 @@ impl PyClient {
     }
 
     /// The applications this account speaks in, and the namespaces serving each.
-    ///
-    /// The only route by which a paired device can learn them: it is a member of
-    /// nothing, and a namespace summary is withheld from non-members.
+    /// The only route that answers for a paired device, a member of nothing.
     pub fn list_account_applications(&self) -> PyResult<PyObject> {
         let inner = self.inner.clone();
 
