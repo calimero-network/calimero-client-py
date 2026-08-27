@@ -1711,6 +1711,54 @@ impl PyClient {
         })
     }
 
+    /// Repair or widen the reach of a device this account already certified.
+    /// Naming no application repairs WITHOUT widening, not every one of them.
+    #[pyo3(signature = (device_id, applications=None))]
+    pub fn relink_device(
+        &self,
+        device_id: &str,
+        applications: Option<Vec<String>>,
+    ) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let device_id = device_id.to_string();
+        let request = admin::RelinkDeviceApiRequest {
+            applications: applications.unwrap_or_default(),
+        };
+
+        Python::with_gil(|py| {
+            let result = self
+                .runtime
+                .block_on(async move { inner.relink_device(&device_id, request).await });
+            Self::to_python(py, result)
+        })
+    }
+
+    /// Every device of this account. Reports devices certified elsewhere too,
+    /// which carry no scope this node can know.
+    pub fn list_account_devices(&self) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+
+        Python::with_gil(|py| {
+            let result = self
+                .runtime
+                .block_on(async move { inner.list_account_devices().await });
+            Self::to_python(py, result)
+        })
+    }
+
+    /// The applications this account speaks in, and the namespaces serving each.
+    /// The only route that answers for a paired device, a member of nothing.
+    pub fn list_account_applications(&self) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+
+        Python::with_gil(|py| {
+            let result = self
+                .runtime
+                .block_on(async move { inner.list_account_applications().await });
+            Self::to_python(py, result)
+        })
+    }
+
     /// Withdraw a device from its account, terminally.
     ///
     /// Three ways this is authorized, and `proof` is the third:
