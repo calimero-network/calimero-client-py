@@ -1711,6 +1711,68 @@ impl PyClient {
         })
     }
 
+    /// Repair or widen the reach of a device this account already certified.
+    ///
+    /// Re-runs pairing's fan-out against the namespaces this node takes part in
+    /// now, closing the drift a namespace gained after pairing leaves behind. No
+    /// handshake and no confirmation code, and the device need not be online.
+    ///
+    /// `applications` here means the opposite of what it means on
+    /// `pair_device_complete`: naming none repairs WITHOUT widening, rather than
+    /// meaning every application, so the accidental request is not the widest one.
+    /// Returns the device's scope after the request and what the repair did in
+    /// each namespace, since publication is per-DAG.
+    #[pyo3(signature = (device_id, applications=None))]
+    pub fn relink_device(
+        &self,
+        device_id: &str,
+        applications: Option<Vec<String>>,
+    ) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let device_id = device_id.to_string();
+        let request = admin::RelinkDeviceApiRequest {
+            applications: applications.unwrap_or_default(),
+        };
+
+        Python::with_gil(|py| {
+            let result = self
+                .runtime
+                .block_on(async move { inner.relink_device(&device_id, request).await });
+            Self::to_python(py, result)
+        })
+    }
+
+    /// Every device of this account, with the scope and bindings this node sees.
+    ///
+    /// Joined from the node-local certificate cache and the live bindings of
+    /// every namespace this node takes part in, so a device certified elsewhere
+    /// is reported too, with no scope this node can know.
+    pub fn list_account_devices(&self) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+
+        Python::with_gil(|py| {
+            let result = self
+                .runtime
+                .block_on(async move { inner.list_account_devices().await });
+            Self::to_python(py, result)
+        })
+    }
+
+    /// The applications this account speaks in, and the namespaces serving each.
+    ///
+    /// The only route by which a paired device can learn them: it is a member of
+    /// nothing, and a namespace summary is withheld from non-members.
+    pub fn list_account_applications(&self) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+
+        Python::with_gil(|py| {
+            let result = self
+                .runtime
+                .block_on(async move { inner.list_account_applications().await });
+            Self::to_python(py, result)
+        })
+    }
+
     /// Withdraw a device from its account, terminally.
     ///
     /// Three ways this is authorized, and `proof` is the third:
