@@ -27,8 +27,11 @@ CREDENTIAL = (
 )
 SECRET = "4987ccd0fb7ef36bf7f61e8f99fd150d33e6adac47649f23bfd7109c2e36a3ba"
 ACCOUNT = "0e2cd2d3dc84e1db5088e32510ca45bc491e4033bbb0f6bbb733bc0c7b7f5e30"
-# Base58, because a context id is one. An account id, above, is hex.
-CONTEXT = "1thX6LZfHDZZKUs92febYZhYRcXddmzfzF2NvTkPNE"
+# Hex, as every id is now. The same 32 bytes (`00 01 .. 1f`) this was base58 for,
+# so the signatures below are unchanged.
+CONTEXT = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+# The old base58 spelling of those bytes, kept only to assert it is refused.
+CONTEXT_B58 = "1thX6LZfHDZZKUs92febYZhYRcXddmzfzF2NvTkPNE"
 
 
 def mint(args='{"key":"k","value":"v"}', nonce=1, **kwargs):
@@ -106,17 +109,20 @@ def test_a_credential_certifying_another_key_is_refused():
         mint(device_secret="11" * 32)
 
 
-def test_a_context_is_base58_and_an_executor_is_hex():
-    """Not interchangeable, though both are 32 bytes.
+def test_both_ids_are_hex_and_base58_is_refused():
+    """Base58 is refused for either id.
 
-    This confusion cost a CI cycle in core when a CLI flag parsed one as the
-    other, so both directions are pinned here.
+    This inverts `test_a_context_is_base58_and_an_executor_is_hex`, which pinned
+    a context and an account as not interchangeable "though both are 32 bytes".
+    They are interchangeable now — both are 64 hex — so nothing at this layer can
+    tell a caller they swapped them. What still holds is that the old spelling
+    does not slip through, in either position.
     """
     with pytest.raises(ValueError, match="context_id"):
-        mint(context_id="00" * 32)
+        mint(context_id=CONTEXT_B58)
 
     with pytest.raises(ValueError, match="executor"):
-        mint(executor=CONTEXT)
+        mint(executor=CONTEXT_B58)
 
 
 @pytest.mark.parametrize("bad_args", ["not json", "[1,2", ""])

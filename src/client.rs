@@ -2305,8 +2305,10 @@ impl PyClient {
     /// Add members to a group.
     ///
     /// Each member is named by ACCOUNT - 64 hex, the ids `list_group_members`
-    /// returns - or by a bs58 signing key, for a subject this node holds no
-    /// account for yet. `MemberIdentity` reads whichever it is given.
+    /// returns - or by a signing key, which is spelled identically. The node
+    /// resolves which it was from its own bindings: bytes matching a key bound in
+    /// the namespace name that key's account, anything else is taken as an
+    /// account as given.
     pub fn add_group_members(&self, group_id: &str, members_json: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let group_id = group_id.to_string();
