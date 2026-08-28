@@ -52,9 +52,10 @@ fn parse_secret(raw: &str) -> Result<PrivateKey, String> {
 /// out of the credential rather than taken as arguments, because a caller
 /// passing them separately is a caller that can pass them inconsistently.
 ///
-/// `context_id` is base58 and `executor` is hex. That asymmetry is core's, not
-/// this binding's: an account id is a content address written in hex, a context
-/// id is written in base58 like a key.
+/// Both `context_id` and `executor` are 64 hex characters. There used to be an
+/// asymmetry here — base58 for the context, hex for the account — and it was
+/// core's rather than this binding's; core removed it, so this follows. Nothing
+/// in the shape of either argument distinguishes them any more.
 #[pyfunction]
 #[pyo3(signature = (
     context_id,
@@ -198,8 +199,9 @@ mod tests {
     const CREDENTIAL: &str = "02b2a942ff4c98718bed76e255987f6d59b1a72d3b2cd2510003e6170ac63a9ffb000000000e2cd2d3dc84e1db5088e32510ca45bc491e4033bbb0f6bbb733bc0c7b7f5e304d0774b93e8028899a745dbe03d7727fa31fc2f060945b5789cb36c23cba380366245580f7aa816a35d1ff324a714355995ef44a72bcd2341e21d9587d16efce973135e50bc7280f06bb32a53a566983cf0f0c8428be4b461df54264f07319540000000000000000e0c3743677508f5cfbe245f043f2d7bc3ba6c88c001464cae581e2e9ec8cb63780f1f5c2a393521a0038b357fffe63092403fa6e0e2ec12da5e96d50692d400f";
     const SECRET: &str = "4987ccd0fb7ef36bf7f61e8f99fd150d33e6adac47649f23bfd7109c2e36a3ba";
     const ACCOUNT: &str = "0e2cd2d3dc84e1db5088e32510ca45bc491e4033bbb0f6bbb733bc0c7b7f5e30";
-    /// Base58, because a context id is. The 32 bytes are `00 01 02 .. 1f`.
-    const CONTEXT: &str = "1thX6LZfHDZZKUs92febYZhYRcXddmzfzF2NvTkPNE";
+    /// Hex, as every id is now. The 32 bytes are `00 01 02 .. 1f`, unchanged —
+    /// this was base58 for the same bytes, so every signature below is identical.
+    const CONTEXT: &str = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
 
     fn mint(args: &str, nonce: u64) -> serde_json::Value {
         build_warrant(
@@ -251,14 +253,24 @@ mod tests {
         assert!(err.contains("certifies a different key"), "{err}");
     }
 
-    /// A context id is base58 and an account id is hex, and the two are not
-    /// interchangeable. This is the confusion that cost a CI cycle in core when
-    /// a CLI flag parsed one as the other, so both directions are pinned.
+    /// Both ids are hex, and base58 is refused for either.
+    ///
+    /// This inverts `a_context_id_is_base58_and_an_executor_is_hex`, which pinned
+    /// the opposite in both directions and cited "the confusion that cost a CI
+    /// cycle in core when a CLI flag parsed one as the other". That confusion is
+    /// gone because the distinction is: a context and an account are now spelled
+    /// the same way, so passing one where the other belongs is no longer a parse
+    /// error here and nothing at this layer can catch it.
+    ///
+    /// What is still worth pinning is that base58 does not sneak through, which
+    /// is what the two halves below check.
     #[test]
-    fn a_context_id_is_base58_and_an_executor_is_hex() {
-        let hex_context = "00".repeat(32);
+    fn both_ids_are_hex_and_base58_is_refused() {
+        // The old base58 spelling of CONTEXT's own bytes.
+        const CONTEXT_B58: &str = "1thX6LZfHDZZKUs92febYZhYRcXddmzfzF2NvTkPNE";
+
         let err = build_warrant(
-            &hex_context,
+            CONTEXT_B58,
             ACCOUNT,
             "set",
             "{}",
@@ -267,10 +279,10 @@ mod tests {
             CREDENTIAL,
             300,
         )
-        .expect_err("hex must not pass as a context id");
+        .expect_err("base58 must not pass as a context id");
         assert!(err.contains("context_id"), "{err}");
 
-        let err = build_warrant(CONTEXT, CONTEXT, "set", "{}", 1, SECRET, CREDENTIAL, 300)
+        let err = build_warrant(CONTEXT, CONTEXT_B58, "set", "{}", 1, SECRET, CREDENTIAL, 300)
             .expect_err("base58 must not pass as an account id");
         assert!(err.contains("executor"), "{err}");
     }
