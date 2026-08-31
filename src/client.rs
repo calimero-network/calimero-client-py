@@ -1883,15 +1883,21 @@ impl PyClient {
         })
     }
 
-    #[pyo3(signature = (namespace_id, recursive=None, expiration_timestamp=None))]
+    /// `admitters` names the accounts (64 hex each) permitted to admit a claim
+    /// of this invitation. Omit it and the node fills in the group's admins and
+    /// TEE nodes — an empty list would leave the invitation claimable by
+    /// broadcast, which publishes it to every subscriber of the namespace topic.
+    #[pyo3(signature = (namespace_id, recursive=None, expiration_timestamp=None, admitters=None))]
     pub fn create_namespace_invitation(
         &self,
         namespace_id: &str,
         recursive: Option<bool>,
         expiration_timestamp: Option<u64>,
+        admitters: Option<Vec<String>>,
     ) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let namespace_id = namespace_id.to_string();
+        let admitters = admitters.unwrap_or_default();
 
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
@@ -1901,6 +1907,7 @@ impl PyClient {
                         admin::CreateGroupInvitationApiRequest {
                             expiration_timestamp,
                             recursive,
+                            admitters,
                         },
                     )
                     .await
@@ -1933,6 +1940,60 @@ impl PyClient {
                         admin::JoinGroupApiRequest {
                             invitation,
                             group_name: None,
+                        },
+                    )
+                    .await
+            });
+            Self::to_python(py, result)
+        })
+    }
+
+    /// Present a join this caller already signed to a node the inviter named as
+    /// an admitter, for that node to publish.
+    ///
+    /// The counterpart to `join_namespace`, which publishes from the node
+    /// serving the call. A keyholder has no such node, so it signs the
+    /// membership op itself and hands it to an admitter.
+    ///
+    /// `invitation_json` is deserialised into core's type and re-serialised on
+    /// the way out, which makes this binding **version-locked to the signer**.
+    /// The invitation carries the inviter's signature over its own contents,
+    /// `admitters` included, so a field this crate's pinned core does not know is
+    /// silently dropped and the re-serialised invitation no longer verifies.
+    ///
+    /// That is not hypothetical: it broke 93 scenarios the first time `admitters`
+    /// was populated. Whenever a signed structure gains a field, this crate's
+    /// core pin has to move with it — the round trip here is not lossless.
+    ///
+    /// `signed_op` is the joiner's borsh-encoded `SignedNamespaceOp`, hex. It
+    /// must be signed by the device key in the credential it carries: every peer
+    /// checks that when applying a join, so an admitter can carry the claim but
+    /// never author one.
+    pub fn admit_join(
+        &self,
+        namespace_id: &str,
+        invitation_json: &str,
+        signed_op: &str,
+    ) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let namespace_id = namespace_id.to_string();
+        let signed_op = signed_op.to_string();
+        let invitation: calimero_context_config::types::SignedGroupOpenInvitation =
+            serde_json::from_str(invitation_json).map_err(|e| {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "Invalid invitation JSON: {}",
+                    e
+                ))
+            })?;
+
+        Python::with_gil(|py| {
+            let result = self.runtime.block_on(async move {
+                inner
+                    .admit_join(
+                        &namespace_id,
+                        admin::AdmitJoinApiRequest {
+                            invitation,
+                            signed_op,
                         },
                     )
                     .await
