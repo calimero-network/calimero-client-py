@@ -282,8 +282,17 @@ mod tests {
         .expect_err("base58 must not pass as a context id");
         assert!(err.contains("context_id"), "{err}");
 
-        let err = build_warrant(CONTEXT, CONTEXT_B58, "set", "{}", 1, SECRET, CREDENTIAL, 300)
-            .expect_err("base58 must not pass as an account id");
+        let err = build_warrant(
+            CONTEXT,
+            CONTEXT_B58,
+            "set",
+            "{}",
+            1,
+            SECRET,
+            CREDENTIAL,
+            300,
+        )
+        .expect_err("base58 must not pass as an account id");
         assert!(err.contains("executor"), "{err}");
     }
 

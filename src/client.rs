@@ -9,7 +9,6 @@ use calimero_primitives::alias::Alias;
 use calimero_primitives::application::ApplicationId;
 use calimero_primitives::blobs;
 use calimero_primitives::context::{ContextId, GroupMemberRole};
-use calimero_primitives::hash::Hash;
 use calimero_primitives::identity;
 use calimero_primitives::identity::AccountId;
 use calimero_server_primitives::admin;
@@ -260,36 +259,16 @@ impl PyClient {
         })
     }
 
-    /// Install application from URL
-    #[pyo3(signature = (url, hash=None, metadata=None))]
-    pub fn install_application(
-        &self,
-        url: &str,
-        hash: Option<&str>,
-        metadata: Option<&[u8]>,
-    ) -> PyResult<PyObject> {
+    /// Install an application by the registry coordinates it is published at
+    #[pyo3(signature = (package, version))]
+    pub fn install_application(&self, package: &str, version: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
-        let url = url.to_string();
-        let hash = hash.map(|h| h.to_string());
-        let metadata = metadata.unwrap_or(b"{}").to_vec();
+        let package = package.to_string();
+        let version = version.to_string();
 
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
-                let url = url::Url::parse(&url).map_err(|e| eyre::eyre!("Invalid URL: {}", e))?;
-
-                let hash = if let Some(hash_str) = hash {
-                    let hash_bytes =
-                        hex::decode(hash_str).map_err(|e| eyre::eyre!("Invalid hash: {}", e))?;
-                    let hash_array: [u8; 32] = hash_bytes
-                        .try_into()
-                        .map_err(|_| eyre::eyre!("Hash must be 32 bytes"))?;
-                    Some(Hash::from(hash_array))
-                } else {
-                    None
-                };
-
-                let request =
-                    admin::InstallApplicationRequest::new(url, hash, metadata, None, None);
+                let request = admin::InstallApplicationRequest::new(package, version);
 
                 inner.install_application(request).await
             });
@@ -314,22 +293,15 @@ impl PyClient {
     }
 
     /// Install development application from local path
-    #[pyo3(signature = (path, metadata=None))]
-    pub fn install_dev_application(
-        &self,
-        path: &str,
-        metadata: Option<&[u8]>,
-    ) -> PyResult<PyObject> {
+    #[pyo3(signature = (path))]
+    pub fn install_dev_application(&self, path: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let path = path.to_string();
-        let metadata = metadata.unwrap_or(b"{}").to_vec();
 
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
-                let path = camino::Utf8PathBuf::from(path);
-                let metadata = metadata;
-
-                let request = admin::InstallDevApplicationRequest::new(path, metadata, None, None);
+                let request =
+                    admin::InstallDevApplicationRequest::new(camino::Utf8PathBuf::from(path));
 
                 inner.install_dev_application(request).await
             });
