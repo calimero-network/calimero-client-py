@@ -12,26 +12,27 @@ Applications are the WASM programs a context runs. Blobs are the binary objects
 
 ## Installing an application
 
-Install from a URL. The optional `hash` (a hex-encoded 32-byte digest) pins the
-download, and `metadata` is optional `bytes`:
+Install by the coordinates the application is published at. The node fetches the
+bundle from the registry it is configured with:
 
 ```python
 result = client.install_application(
-    url="https://example.com/app.wasm",
-    hash=None,                 # optional hex-encoded 32-byte hash
-    metadata=None,             # optional bytes
+    package="com.example.app",
+    version="1.0.0",
 )
 ```
 
-For local development, install straight from a path on the node's filesystem:
+For local development, install straight from a bundle on the node's filesystem:
 
 ```python
-client.install_dev_application("/path/to/app.wasm", metadata=None)
+client.install_dev_application("/path/to/app.mpk")
 ```
 
 :::note
-`hash` must be a hex string that decodes to exactly 32 bytes, or the call raises
-an error. Leave it `None` to skip integrity pinning.
+Neither call takes `metadata`: the node reads it from the bundle's own manifest,
+so an application's metadata is whatever it was packaged with. If the node's
+configured source has nothing published at those coordinates, the call fails
+with `502`.
 :::
 
 ## Listing and inspecting

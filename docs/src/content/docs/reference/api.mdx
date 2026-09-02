@@ -132,9 +132,9 @@ Constructed via `create_client(connection)` or `Client(connection)`.
 - `list_applications()`
 - `list_application_versions(application_id)` — retained bytecode versions; each
   row's `blobId` doubles as the `app_key` for `create_namespace`.
-- `install_application(url, hash=None, metadata=None)` — `hash` is a hex-encoded
-  32-byte digest; `metadata` is `bytes`.
-- `install_dev_application(path, metadata=None)` — install from a local path.
+- `install_application(package, version)` installs from the node's configured
+  registry.
+- `install_dev_application(path)` installs from a local bundle path.
 - `uninstall_application(app_id)`
 
 ### Blobs
