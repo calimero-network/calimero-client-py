@@ -32,6 +32,12 @@ jobs:
       run: |
         black --check .
 
+    # Black gated the Python and nothing gated the Rust, so `src/` had already
+    # drifted from rustfmt by the time this was added.
+    - name: Check Rust formatting
+      run: |
+        cargo fmt --check
+
     # This crate is mostly Rust, and until now nothing ran its Rust tests: the
     # step below builds the extension, so a compile error was caught but a wrong
     # answer was not. The warrant helpers are the first logic here with
