@@ -47,6 +47,51 @@ jobs:
         path: dist/*.tar.gz
         retention-days: 1
 
+  # Windows has never built this crate. That is not a gap in coverage so much as
+  # a hard block downstream: merobox needs to `pip install` here to drive nodes
+  # on Windows, and with sdist-only publishing that means compiling a pyo3
+  # extension plus `ring` from source on a platform nothing has ever built it
+  # for. This job answers whether that works, and produces the wheel that makes
+  # it unnecessary if it does.
+  build-windows-wheel:
+    name: Build Windows wheel
+    runs-on: windows-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v7
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Install build tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install maturin
+
+    # `ring` assembles its x86_64 primitives with NASM on windows-msvc. Harmless
+    # if a future version stops needing it.
+    - name: Install NASM
+      uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b # v1.5.2
+
+    - name: Build the wheel
+      run: maturin build --release --out dist
+
+    - name: Show what was produced
+      shell: bash
+      run: ls -la dist/
+
+    - name: Upload the wheel
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-wheel
+        path: dist/*.whl
+        retention-days: 1
+
   check-version:
     name: Check if version was bumped
     runs-on: ubuntu-latest
