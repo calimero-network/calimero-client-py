@@ -1908,6 +1908,14 @@ impl PyClient {
                             expiration_timestamp,
                             recursive,
                             admitters,
+                            // Left empty so the node fills them in from the
+                            // addresses it already holds for each admitter,
+                            // which is the intended use. Not exposed as a
+                            // parameter because a caller here would have to
+                            // supply libp2p multiaddrs complete with peer ids,
+                            // and a caller that knows those is not reaching for
+                            // a Python binding to say so.
+                            admitter_addrs: Vec::new(),
                         },
                     )
                     .await
