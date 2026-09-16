@@ -47,6 +47,10 @@ A few shapes are stable enough to document here (keys as returned):
 | `get_cascade_status(namespace_id)` | `{"data": [{"groupId", "upgrade", "cascadeHlc"}]}` — one entry per descendant |
 | `get_migration_status(namespace_id)` | `{"targetVersion", "expectedMembers", "rollup", "members"}` |
 | `abort_migration(namespace_id)` | `{"namespaceId", "aborted"}` |
+| `get_node_identity()` | `{"data": {"accountId", "deviceId", "publicKey", "accountRootPublicKey", "deviceAgreementKey", "holdsAccountRoot", "deviceCertified", "accountNamespaceId"}}` |
+| `pair_device_init(...)` | `{"data": {"accountId", "deviceId", "kemPublicKey", "signPublicKey", "statement", "confirmationCode"}}` |
+| `list_account_devices()` | `{"devices": [{"deviceId", "isSelf", "revoked", "applications", "namespaces", ...}]}` - not wrapped in `data` |
+| `list_account_applications()` | `{"applications": [{"applicationId", "namespaces", ...}]}` - not wrapped in `data` |
 
 `download_blob` is the exception to the JSON rule — it returns raw `bytes`.
 
@@ -184,6 +188,33 @@ Constructed via `create_client(connection)` or `Client(connection)`.
   without it the request is refused before anything executes, and that grant is
   implied by neither membership nor admin.
 
+### Accounts and devices
+
+`get_node_identity`, `pair_device_init`, `pair_device_complete`,
+`relink_device` and `revoke_device` wrap their payload in `data`;
+`list_account_devices` and `list_account_applications` do not.
+
+- `get_node_identity()` - who this node is: `accountId`, `deviceId`, `publicKey`
+  (the device's signing key), `accountRootPublicKey`, and `accountNamespaceId`,
+  the id of the account's own namespace. Takes no namespace, because none of it
+  varies by one.
+- `pair_device_init(account_root_public_key, namespaces, account_namespace=None)` -
+  mint a device on this node for an account held elsewhere. Pass the holder's
+  `accountNamespaceId` as `account_namespace`: a device that follows it learns
+  every namespace the account gains or leaves, so `namespaces` may be `[]`. The
+  node refuses a request naming neither.
+- `pair_device_complete(device_id, kem_public_key, sign_public_key, statement, confirmation_code, applications=None)` -
+  run on the holder with everything `pair_device_init` returned. `applications`
+  scopes the device; `None` means every namespace the holder takes part in.
+- `relink_device(device_id, applications=None)` - repair or widen a certified
+  device. `None` repairs without widening.
+- `list_account_devices()` - every device of this node's account, including
+  revoked ones (`revoked: true`).
+- `list_account_applications()` - the applications the account speaks in, and
+  the namespaces serving each.
+- `revoke_device(namespace_id, device_id, proof=None)` - withdraw a device.
+  `proof` is a hex revocation minted elsewhere by `merod account revoke-proof`.
+
 ### Aliases
 
 Context, context-identity, and application aliases:
@@ -213,9 +244,6 @@ Context, context-identity, and application aliases:
 - `get_namespace(namespace_id)`
 - `list_namespaces()`
 - `delete_namespace(namespace_id)`
-- `get_node_identity()` — who this node is: `accountId`, `deviceId`,
-  `publicKey` (the device's signing key) and `accountRootPublicKey`. Takes no
-  namespace, because none of it varies by one.
 - `list_namespaces_for_application(application_id)`
 - `create_namespace_invitation(namespace_id, recursive=None, expiration_timestamp=None)`
 - `join_namespace(namespace_id, invitation_json)` — `invitation_json` is a JSON
