@@ -55,3 +55,19 @@ jobs:
     - name: Run tests
       run: |
         pytest tests/ -v --tb=short
+
+  # Cargo.lock pins core, so a field core adds to a request type breaks only the
+  # next lock update. This builds against core master as it is today.
+  core-master:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Check against core master
+      run: |
+        cargo update -p calimero-client
+        cargo check --all-targets
