@@ -215,3 +215,51 @@ def test_delete_group_still_takes_a_bare_group_id():
     assert not isinstance(
         exc_info.value, TypeError
     ), f"delete_group('id') raised TypeError (signature regression): {exc_info.value}"
+
+
+# merobox and scripts call the account bindings by keyword, so a renamed or
+# dropped keyword has to fail here rather than in a downstream scenario.
+ACCOUNT_CALLS = [
+    ("get_node_identity", (), {}),
+    ("pair_device_init", ("root", ["ns"]), {}),
+    (
+        "pair_device_init",
+        (),
+        {
+            "account_root_public_key": "root",
+            "namespaces": [],
+            "account_namespace": "account-ns",
+        },
+    ),
+    (
+        "pair_device_complete",
+        (),
+        {
+            "device_id": "d",
+            "kem_public_key": "k",
+            "sign_public_key": "s",
+            "statement": "st",
+            "confirmation_code": "000000",
+            "applications": ["app"],
+        },
+    ),
+    ("relink_device", (), {"device_id": "d", "applications": ["app"]}),
+    ("list_account_devices", (), {}),
+    ("list_account_applications", (), {}),
+    ("revoke_device", (), {"namespace_id": "ns", "device_id": "d", "proof": "00"}),
+]
+
+
+@pytest.mark.parametrize(
+    "method, args, kwargs",
+    ACCOUNT_CALLS,
+    ids=[f"{m}-{'kw' if kw else 'pos'}" for m, _, kw in ACCOUNT_CALLS],
+)
+def test_account_binding_takes_its_arguments(method, args, kwargs):
+    """Any failure past the signature is fine; a TypeError is not."""
+    try:
+        getattr(_client(), method)(*args, **kwargs)
+    except TypeError as e:
+        raise AssertionError(f"{method} signature regression: {e}") from e
+    except Exception:
+        pass
