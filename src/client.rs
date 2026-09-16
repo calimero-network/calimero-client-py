@@ -1610,33 +1610,26 @@ impl PyClient {
     /// Mint a device on this node for an account that already exists elsewhere -
     /// the first half of pairing.
     ///
-    /// `namespaces` must not be empty: this node is a member of nothing yet, so
-    /// it can neither read the account's namespace set off a DAG nor derive it.
-    /// One device covers the whole set.
+    /// `account_namespace` is the id the holder's `get_node_identity` reports as
+    /// `accountNamespaceId`. A device that follows it learns every namespace the
+    /// account gains or leaves, so a new caller sends it and may leave
+    /// `namespaces` empty. The node refuses only a request naming neither.
     ///
     /// Publishes nothing and needs no scope key. Returns the device id, both
     /// public keys, a signature over them, and a confirmation code; hand all of
     /// them to [`Self::pair_device_complete`] on the node that holds the account.
+    #[pyo3(signature = (account_root_public_key, namespaces, account_namespace=None))]
     pub fn pair_device_init(
         &self,
         account_root_public_key: &str,
         namespaces: Vec<String>,
+        account_namespace: Option<String>,
     ) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let request = admin::AccountPairInitApiRequest {
             account_root_public_key: account_root_public_key.to_string(),
             namespaces,
-            // core#3889 added this: a device can be enrolled into the account's
-            // own namespace as well as into application namespaces. Sent as
-            // `None` so this call behaves exactly as it did before the field
-            // existed -- the server's validator refuses only when `namespaces`
-            // is empty AND this is `None`, and this binding's caller always
-            // supplies `namespaces`.
-            //
-            // Not exposed as a parameter here, which is a real limitation
-            // rather than an oversight: a caller that wants the account
-            // namespace cannot ask for it through this binding yet.
-            account_namespace: None,
+            account_namespace,
         };
 
         Python::with_gil(|py| {
