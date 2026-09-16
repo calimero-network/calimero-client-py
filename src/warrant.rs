@@ -24,7 +24,8 @@
 //! string here would mint warrants that verify nowhere: a re-indented but
 //! semantically identical body would produce a different hash.
 
-use calimero_account::{AccountId, AccountProof, DeviceCert, Warrant};
+use calimero_account::{AccountId, AccountProof, DeviceCert, Warrant, WarrantTerms};
+use calimero_primitives::application::ApplicationId;
 use calimero_primitives::context::ContextId;
 use calimero_primitives::identity::PrivateKey;
 use pyo3::prelude::*;
@@ -158,14 +159,38 @@ fn build_warrant(
         .saturating_add(valid_for);
 
     let intent_hash = Warrant::intent_hash(method, &args_bytes);
+
+    // Warrant v2 (core#3933) added `app_version`, the plaintext `method` and two
+    // cited-head lists, and `sign` now takes them as a named struct rather than
+    // as positional arguments -- eleven of which four are `[u8; 32]`.
+    //
+    // Three of those fields are defaulted here, and each default is the honest
+    // answer for this binding rather than a placeholder:
+    //
+    // * `app_version` is all-zeros because `sign_warrant` is offline by
+    //   construction -- it takes a context id, not a connection, so it has
+    //   nothing to read the application's content address from. This is exactly
+    //   what `merod account warrant` does with no `--app-version`, so the two
+    //   produce identical bytes for identical inputs. Nothing enforces the field
+    //   yet; when pinning lands, a warrant minted with the default is refused,
+    //   and this binding will need a real value rather than a better default.
+    // * both head lists are empty because this binding tracks no log. An empty
+    //   list says "I cite nothing", which is true; fabricating a head would be a
+    //   claim about a view it never had.
     let warrant = Warrant::sign(
         &device_sk,
-        context,
-        proof.statement.account,
-        executor_account,
-        intent_hash,
-        nonce,
-        not_after,
+        WarrantTerms {
+            context,
+            author_account: proof.statement.account,
+            executor: executor_account,
+            app_version: ApplicationId::from([0; 32]),
+            method: method.to_owned(),
+            intent_hash,
+            account_heads: Vec::new(),
+            governance_floor: Vec::new(),
+            nonce,
+            not_after,
+        },
     )
     .map_err(|e| format!("could not sign the warrant: {e}"))?;
 
@@ -196,8 +221,9 @@ mod tests {
     /// key `SECRET` holds, and a generated pair would have to reimplement the
     /// certification to stay consistent — at which point the test would be
     /// exercising the fixture instead of the code.
-    const CREDENTIAL: &str = "02b2a942ff4c98718bed76e255987f6d59b1a72d3b2cd2510003e6170ac63a9ffb000000000e2cd2d3dc84e1db5088e32510ca45bc491e4033bbb0f6bbb733bc0c7b7f5e304d0774b93e8028899a745dbe03d7727fa31fc2f060945b5789cb36c23cba380366245580f7aa816a35d1ff324a714355995ef44a72bcd2341e21d9587d16efce973135e50bc7280f06bb32a53a566983cf0f0c8428be4b461df54264f07319540000000000000000e0c3743677508f5cfbe245f043f2d7bc3ba6c88c001464cae581e2e9ec8cb63780f1f5c2a393521a0038b357fffe63092403fa6e0e2ec12da5e96d50692d400f";
-    const SECRET: &str = "4987ccd0fb7ef36bf7f61e8f99fd150d33e6adac47649f23bfd7109c2e36a3ba";
+    pub(super) const CREDENTIAL: &str = "02b2a942ff4c98718bed76e255987f6d59b1a72d3b2cd2510003e6170ac63a9ffb000000000e2cd2d3dc84e1db5088e32510ca45bc491e4033bbb0f6bbb733bc0c7b7f5e304d0774b93e8028899a745dbe03d7727fa31fc2f060945b5789cb36c23cba380366245580f7aa816a35d1ff324a714355995ef44a72bcd2341e21d9587d16efce973135e50bc7280f06bb32a53a566983cf0f0c8428be4b461df54264f07319540000000000000000e0c3743677508f5cfbe245f043f2d7bc3ba6c88c001464cae581e2e9ec8cb63780f1f5c2a393521a0038b357fffe63092403fa6e0e2ec12da5e96d50692d400f";
+    pub(super) const SECRET: &str =
+        "4987ccd0fb7ef36bf7f61e8f99fd150d33e6adac47649f23bfd7109c2e36a3ba";
     const ACCOUNT: &str = "0e2cd2d3dc84e1db5088e32510ca45bc491e4033bbb0f6bbb733bc0c7b7f5e30";
     /// Hex, as every id is now. The 32 bytes are `00 01 02 .. 1f`, unchanged —
     /// this was base58 for the same bytes, so every signature below is identical.
@@ -338,6 +364,61 @@ mod tests {
         assert!(
             err.contains("credential is not a device credential"),
             "{err}"
+        );
+    }
+}
+
+#[cfg(test)]
+mod merod_parity {
+    use super::build_warrant;
+    use super::tests::{CREDENTIAL, SECRET};
+
+    /// The v2 layout, frozen against `merod account warrant`'s own output.
+    ///
+    /// This binding is a thin wrapper over `calimero_account::Warrant`, so it
+    /// tracks core's encoding by construction and cannot drift from it the way
+    /// a hand-mirrored signer can. What it *can* do — and did — is stop
+    /// compiling when core changes the call, and be fixed in a way that still
+    /// produces different bytes: the three fields v2 added are defaulted here,
+    /// and a wrong default is invisible to every other test in this file, all
+    /// of which assert relationships rather than bytes.
+    ///
+    /// So this pins the bytes. The vector below was produced by this function
+    /// and verified byte-for-byte against `merod account warrant` run on the
+    /// same inputs with `--not-after` pinned — 287 bytes, identical including
+    /// the signature. Everything up to `not_after` is time-independent, which
+    /// is where the pin stops; `not_after` comes from the clock and the
+    /// signature covers it.
+    ///
+    /// The frozen prefix reads, in order: context, author account, author
+    /// device key, executor, `app_version` (32 zero bytes — this binding is
+    /// offline and has nothing to read it from), the method's `u32` length and
+    /// its text in the clear, `intent_hash`, then a `u32` count for each cited
+    /// head list (both empty — this binding tracks no log), then the nonce.
+    const V2_PREFIX: &str = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0e2cd2d3dc84e1db5088e32510ca45bc491e4033bbb0f6bbb733bc0c7b7f5e3066245580f7aa816a35d1ff324a714355995ef44a72bcd2341e21d9587d16efce0e2cd2d3dc84e1db5088e32510ca45bc491e4033bbb0f6bbb733bc0c7b7f5e30000000000000000000000000000000000000000000000000000000000000000003000000736574dc066cc8524c74dc21714174009df536376e3151f5b92f0a676defde599dbae500000000000000000700000000000000";
+
+    #[test]
+    fn the_v2_layout_is_byte_frozen_against_merod() {
+        let v = build_warrant(
+            "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+            "0e2cd2d3dc84e1db5088e32510ca45bc491e4033bbb0f6bbb733bc0c7b7f5e30",
+            "set",
+            r#"{"key":"k","value":"v"}"#,
+            7,
+            SECRET,
+            CREDENTIAL,
+            300,
+        )
+        .expect("the warrant must mint");
+
+        let hex = v["warrant"].as_str().expect("warrant is a hex string");
+
+        // 287 for these inputs: v1 was 240 and fixed-width, v2 is variable
+        // because `method` is a string and each head list a vector.
+        assert_eq!(hex.len() / 2, 287, "wire length moved");
+        assert!(
+            hex.starts_with(V2_PREFIX),
+            "the v2 layout moved\n  expected prefix: {V2_PREFIX}\n  got:             {hex}"
         );
     }
 }

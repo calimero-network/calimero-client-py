@@ -1626,6 +1626,17 @@ impl PyClient {
         let request = admin::AccountPairInitApiRequest {
             account_root_public_key: account_root_public_key.to_string(),
             namespaces,
+            // core#3889 added this: a device can be enrolled into the account's
+            // own namespace as well as into application namespaces. Sent as
+            // `None` so this call behaves exactly as it did before the field
+            // existed -- the server's validator refuses only when `namespaces`
+            // is empty AND this is `None`, and this binding's caller always
+            // supplies `namespaces`.
+            //
+            // Not exposed as a parameter here, which is a real limitation
+            // rather than an oversight: a caller that wants the account
+            // namespace cannot ask for it through this binding yet.
+            account_namespace: None,
         };
 
         Python::with_gil(|py| {
