@@ -19,10 +19,11 @@ pub mod cache;
 pub mod client;
 pub mod connection;
 pub mod error;
+pub mod request;
 pub mod storage;
 pub mod token;
 pub mod utils;
-pub mod warrant;
+mod warrant;
 
 use pyo3::prelude::*;
 
@@ -43,6 +44,7 @@ fn calimero_client_py(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> 
     m.add_function(wrap_pyfunction!(cache::get_token_cache_dir, m)?)?;
     // Offline: mints a warrant from a device secret and contacts nothing.
     m.add_function(wrap_pyfunction!(warrant::sign_warrant, m)?)?;
+    m.add_function(wrap_pyfunction!(request::sign_request, m)?)?;
 
     // Add constants
     m.add("VERSION", env!("CARGO_PKG_VERSION"))?;

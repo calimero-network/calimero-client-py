@@ -26,15 +26,25 @@ name = "calimero_client_py"
 crate-type = ["cdylib"]
 
 [dependencies]
-# Core Calimero crates, tracking master.
-calimero-client = { git = "https://github.com/calimero-network/core", branch = "master" }
-calimero-primitives = { git = "https://github.com/calimero-network/core", branch = "master" }
-calimero-server-primitives = { git = "https://github.com/calimero-network/core", branch = "master" }
-calimero-context-config = { git = "https://github.com/calimero-network/core", branch = "master" }
+# Core Calimero crates.
+#
+# TEMPORARY: the whole block points at the branch carrying `RequestSig`
+# (core#4034) rather than at master. Flip it back before merge — the same dance
+# client-py#97 did for the warrant work, and for the same reason: this crate
+# cannot bind a type its dependency does not have yet.
+#
+# They move TOGETHER or not at all. Pointing only `calimero-account` at the
+# branch makes cargo resolve two copies of `calimero-primitives`, one per
+# source, and `expected PrivateKey, found a different PrivateKey` is what that
+# looks like from here — an error that names types rather than revisions.
+calimero-client = { git = "https://github.com/calimero-network/core", branch = "feat/request-sig" }
+calimero-primitives = { git = "https://github.com/calimero-network/core", branch = "feat/request-sig" }
+calimero-server-primitives = { git = "https://github.com/calimero-network/core", branch = "feat/request-sig" }
+calimero-context-config = { git = "https://github.com/calimero-network/core", branch = "feat/request-sig" }
 # Warrant minting lives here rather than in a JS client because `Warrant::sign`
 # is already written: binding it costs a call instead of an ed25519-plus-borsh
 # reimplementation that would have to stay byte-identical with the node forever.
-calimero-account = { git = "https://github.com/calimero-network/core", branch = "master" }
+calimero-account = { git = "https://github.com/calimero-network/core", branch = "feat/request-sig" }
 borsh = "1.5"
 
 # Python bindings
