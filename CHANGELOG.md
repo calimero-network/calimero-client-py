@@ -1,6 +1,38 @@
 # Changelog
 
-## Unreleased
+## 0.7.2
+
+Entries for 0.6.33 through 0.7.1 were not written. Those releases are described
+by their commits; these three are recorded because each changes what a Python
+caller can do.
+
+- **feat: a connection can sign every request with a device key.** `ConnectionInfo`
+  and `create_connection` take `device_credential`, `device_secret` and an
+  optional `device_session`. A session is a bearer token, obtained once and
+  presented many times; a request-carried proof commits to one method, one path
+  and one body, so it is minted per call and cannot be lifted onto another
+  request. That is what lets a Python caller drive a relay it has no account on
+  — nothing was ever issued to it. `device_session` decides which key
+  `device_secret` is: with it a session key, without it the device key itself.
+  Only the session link names a node, so a two-link chain is replayable at any
+  node serving delegated access until it expires. Half a pair is refused rather
+  than ignored, and so is a session that will not decode — silently falling back
+  to the two-link chain is a downgrade to no node binding that the caller never
+  asked for. The node honours any of this only when it runs with
+  `--delegated-access`; one that does not answers 403, distinct from the 401 a
+  bad proof gets (#118)
+- **fix(deps): point the core crates back at master.** #116 merged carrying a
+  temporary branch pin. All five core crates must move together or cargo
+  resolves two copies of `calimero-primitives` and the errors name *types*
+  rather than revisions; and the lock records a resolved revision, so a manifest
+  saying `master` with a lock naming a branch keeps building the branch — which
+  breaks every build, the publish job included, the moment that branch is
+  deleted (#117)
+- **feat(request): bind `RequestSig` so a Python caller can sign one request**
+  (#116)
+
+
+## 0.6.32
 
 - fix(build): declare the version once, in `Cargo.toml`. It was written in three files — `Cargo.toml`, `pyproject.toml` and `calimero/__init__.py` — kept in step by a test that could only report drift after it happened, and twice it did not stop the drift landing: 0.6.20 missed `pyproject.toml`, so the publish gate saw no change and shipped nothing while every check passed, and 0.6.19 shipped a `__version__` reading `0.3.0`. 0.6.31 missed it again, in the other direction. `pyproject.toml` now declares `dynamic = ["version"]` so maturin reads `Cargo.toml`, `calimero/__init__.py` reads the installed distribution's metadata, and the publish gate compares `Cargo.toml` against the previous commit's. The test now guards the shape — that no second copy exists — instead of comparing values
 
