@@ -72,6 +72,21 @@ again, through the same policy, before it resends.
 WebSockets cannot be sealed. A sealed connection is for the request/response
 API this client uses.
 
+### Nodes behind an auth proxy
+
+What a sealed request can reach depends on who checks requests. A node running
+embedded auth checks them itself, so everything this client calls can be
+sealed. A node whose auth is left to a proxy (`auth_mode = "proxy"`, which is
+how hosted TEE nodes run) cannot let an opened request reach a route the proxy
+guards: the proxy sees only `POST /sealed/v2`, never the route inside. So such a
+node serves, sealed, only what it serves without a credential: the health and
+TEE probes, and a context's `.../intents` where delegated execution is public.
+Anything else is refused inside the envelope with `403` and
+`sealed_route_unguarded`, and is never executed. Use `sealed=True` against
+embedded-auth nodes. Against a hosted node, the sealed path is delegated
+execution. See
+[how a client reaches a node](https://calimero-network.github.io/core/protocol/client-paths/#what-can-be-sealed-and-where).
+
 ## A key verified some other way
 
 If you verified a node's transport key yourself, pass it instead of a policy:
