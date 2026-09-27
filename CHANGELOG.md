@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+- **feat: sealed requests to a TEE node.** `create_connection` takes `tee` (a
+  new `TeePolicy`) and `sealed`. A node's quote proves what runs in its TD and
+  nothing about who reads the traffic, and TLS in front of a node usually ends
+  at a proxy outside it. With `sealed=True` every request, token refreshes
+  included, is encrypted to the node's attested transport key, exactly as
+  mero-js does, so only the TD reads it. Quotes are verified here, against
+  Intel's collateral, under a policy that must pin the image's MRTD; mock
+  quotes are never accepted. `transport_public_key` takes a key verified some
+  other way. Combinations that would protect nothing are refused rather than
+  ignored. Built on `calimero-client`'s `tee` feature (core#4105).
+- **fix: intent arguments are sorted explicitly.** Quote verification brings in
+  `dcap-qvl`, which turns on `serde_json`'s `preserve_order` for the whole
+  build, and features unify. The arguments `sign_warrant` hashes and
+  `perform_intent` sends were sorted only because nothing had turned that
+  feature on; they would have followed the caller's key order instead. Both now
+  sort keys at every depth (`canonical_args`), so a warrant still verifies
+  whatever order the caller wrote them in.
+
+
 ## 0.7.2
 
 Entries for 0.6.33 through 0.7.1 were not written. Those releases are described

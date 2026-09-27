@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use calimero_client::connection::ConnectionInfo;
 use calimero_client::proof::RequestProofSigner;
+use calimero_client::tee::sealed::SealedTransport;
 use calimero_client::CliAuthenticator;
 use calimero_primitives::identity::PrivateKey;
 use pyo3::prelude::*;
@@ -12,6 +13,7 @@ use url::Url;
 
 use crate::auth::PyAuthMode;
 use crate::storage::MeroboxFileStorage;
+use crate::tee::{decode_32, PyTeePolicy};
 use crate::utils::json_to_python;
 
 /// Decode one hex, borsh-encoded link of a proof chain.
@@ -81,6 +83,54 @@ fn request_proof_signer(
     }))
 }
 
+/// Seal `connection` to a TEE node's transport key, as asked.
+///
+/// Every combination that cannot do what it says is refused: a key given
+/// without `sealed` would be ignored, `sealed` with no source for its key
+/// cannot run, and a policy nothing uses verifies nothing. Each would leave the
+/// caller believing traffic is protected when it is not.
+fn sealed_transport(
+    connection: Connection,
+    tee: Option<&PyTeePolicy>,
+    sealed: bool,
+    transport_public_key: Option<&str>,
+) -> PyResult<Connection> {
+    let value_error =
+        |message: &str| PyErr::new::<pyo3::exceptions::PyValueError, _>(message.to_owned());
+    if !sealed {
+        if transport_public_key.is_some() {
+            return Err(value_error(
+                "transport_public_key is the key requests are sealed to, so it needs sealed=True",
+            ));
+        }
+        if tee.is_some() {
+            return Err(value_error(
+                "tee decides which node requests are sealed to, so it needs sealed=True",
+            ));
+        }
+        return Ok(connection);
+    }
+
+    let api_url = connection.api_url().clone();
+    let http = reqwest::Client::new();
+    let transport =
+        match (transport_public_key, tee) {
+            (Some(_), Some(_)) => return Err(value_error(
+                "give tee to attest the node's transport key, or transport_public_key, not both",
+            )),
+            (Some(key), None) => {
+                SealedTransport::with_key(api_url, http, decode_32(key, "transport_public_key")?)
+            }
+            (None, Some(tee)) => SealedTransport::attested(api_url, http, tee.attestor()),
+            (None, None) => return Err(value_error(
+                "sealed=True needs tee to attest the node's transport key, or transport_public_key",
+            )),
+        };
+    Ok(connection.with_sealed_transport(transport))
+}
+
+type Connection = ConnectionInfo<CliAuthenticator, MeroboxFileStorage>;
+
 /// Python wrapper for ConnectionInfo
 #[pyclass(name = "ConnectionInfo")]
 pub struct PyConnectionInfo {
@@ -105,6 +155,15 @@ impl PyConnectionInfo {
     ///
     /// The node must be running with `--delegated-access`. One that is not
     /// answers 403, which is distinct from the 401 a bad proof gets.
+    ///
+    /// For a TEE node, `sealed=True` encrypts every request, token refreshes
+    /// included, to the node's attested transport key, so only its TD reads
+    /// them, whatever proxy, load balancer or relay sits in front. The key
+    /// comes from the attestation `tee` (a `TeePolicy`) verifies, on the first
+    /// request and again whenever the node restarts, or from
+    /// `transport_public_key` (hex) verified some other way. A key or a policy
+    /// without `sealed`, or `sealed` with neither, is refused rather than
+    /// ignored.
     #[new]
     #[pyo3(signature = (
         api_url,
@@ -112,13 +171,24 @@ impl PyConnectionInfo {
         device_credential=None,
         device_secret=None,
         device_session=None,
+        *,
+        tee=None,
+        sealed=false,
+        transport_public_key=None,
     ))]
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "the Python constructor's keyword arguments, one each"
+    )]
     pub fn new(
         api_url: &str,
         node_name: Option<&str>,
         device_credential: Option<&str>,
         device_secret: Option<&str>,
         device_session: Option<&str>,
+        tee: Option<PyTeePolicy>,
+        sealed: bool,
+        transport_public_key: Option<&str>,
     ) -> PyResult<Self> {
         let runtime = Arc::new(
             Runtime::new()
@@ -144,6 +214,8 @@ impl PyConnectionInfo {
                 Some(signer) => connection.with_request_proof(signer),
                 None => connection,
             };
+
+        let connection = sealed_transport(connection, tee.as_ref(), sealed, transport_public_key)?;
 
         Ok(Self {
             inner: Arc::new(connection),
@@ -207,13 +279,24 @@ impl PyConnectionInfo {
     device_credential=None,
     device_secret=None,
     device_session=None,
+    *,
+    tee=None,
+    sealed=false,
+    transport_public_key=None,
 ))]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "mirrors ConnectionInfo's keyword arguments"
+)]
 pub fn create_connection(
     api_url: &str,
     node_name: Option<&str>,
     device_credential: Option<&str>,
     device_secret: Option<&str>,
     device_session: Option<&str>,
+    tee: Option<PyTeePolicy>,
+    sealed: bool,
+    transport_public_key: Option<&str>,
 ) -> PyResult<PyConnectionInfo> {
     PyConnectionInfo::new(
         api_url,
@@ -221,5 +304,8 @@ pub fn create_connection(
         device_credential,
         device_secret,
         device_session,
+        tee,
+        sealed,
+        transport_public_key,
     )
 }

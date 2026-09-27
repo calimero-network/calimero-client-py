@@ -11,6 +11,7 @@
 //! - `cache` - Token cache path utilities
 //! - `storage` - MeroboxFileStorage implementation
 //! - `connection` - PyConnectionInfo and create_connection()
+//! - `tee` - TeePolicy, for attested transports to a TEE node
 //! - `client` - PyClient and create_client()
 //! - `utils` - JSON to Python conversion helpers
 
@@ -21,6 +22,7 @@ pub mod connection;
 pub mod error;
 pub mod request;
 pub mod storage;
+pub mod tee;
 pub mod token;
 pub mod utils;
 mod warrant;
@@ -36,6 +38,7 @@ fn calimero_client_py(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> 
     m.add_class::<token::PyJwtToken>()?;
     m.add_class::<error::PyClientError>()?;
     m.add_class::<auth::PyAuthMode>()?;
+    m.add_class::<tee::PyTeePolicy>()?;
 
     // Register functions
     m.add_function(wrap_pyfunction!(connection::create_connection, m)?)?;

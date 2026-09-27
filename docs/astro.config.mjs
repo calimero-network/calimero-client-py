@@ -71,6 +71,7 @@ export default defineConfig({
             'guides/applications-and-blobs',
             'guides/namespaces-and-groups',
             'guides/concurrency',
+            'guides/tee-nodes',
           ],
         },
         {

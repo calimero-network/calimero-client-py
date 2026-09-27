@@ -60,8 +60,13 @@ A few shapes are stable enough to document here (keys as returned):
 
 ## Module functions
 
-- `create_connection(api_url, node_name=None) -> ConnectionInfo` — build a
-  connection to a node's API URL.
+- `create_connection(api_url, node_name=None, device_credential=None,
+  device_secret=None, device_session=None, *, tee=None, sealed=False,
+  transport_public_key=None) -> ConnectionInfo` — build a connection to a
+  node's API URL. The device arguments sign every request with a device key.
+  `sealed=True` encrypts every request to a TEE node's attested transport key,
+  attested under `tee` or given as `transport_public_key`; see
+  [TEE nodes](/guides/tee-nodes/).
 - `create_client(connection) -> Client` — build a client from a `ConnectionInfo`.
 - `get_token_cache_path(node_name) -> str` — path to the JWT cache file for a
   node name.
@@ -79,7 +84,7 @@ A few shapes are stable enough to document here (keys as returned):
 
 ## `ConnectionInfo`
 
-Constructed via `create_connection(...)` or `ConnectionInfo(api_url, node_name=None)`.
+Constructed via `create_connection(...)` or `ConnectionInfo(...)`, which take the same arguments.
 
 **Properties**
 
@@ -90,6 +95,22 @@ Constructed via `create_connection(...)` or `ConnectionInfo(api_url, node_name=N
 
 - `get(path) -> object` — issue an authenticated `GET` and return the JSON body.
 - `detect_auth_mode() -> AuthMode` — probe whether the node requires auth.
+
+## `TeePolicy`
+
+`TeePolicy(allowed_mrtd, *, allowed_rtmr0=None, allowed_rtmr1=None,
+allowed_rtmr2=None, allowed_rtmr3=None, allowed_tcb_statuses=None,
+application_id=None, application_hash=None)` — which TEE nodes a connection
+trusts. Quotes are verified locally against Intel's collateral. `allowed_mrtd`
+must name at least one image (48-byte hex measurements); the RTMR allowlists are
+unchecked when left out; `allowed_tcb_statuses` defaults to up-to-date platforms
+only; `application_id` and `application_hash` go together. Mock quotes are never
+accepted. Raises `ValueError` on a policy that could accept nothing or a value
+that is not a measurement.
+
+**Properties**
+
+- `allowed_mrtd: list[str]` — the images trusted.
 
 ## `AuthMode`
 
