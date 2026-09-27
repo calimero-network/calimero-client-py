@@ -34,14 +34,14 @@ crate-type = ["cdylib"]
 # error names types rather than revisions — `expected PrivateKey, found a
 # different PrivateKey` — which reads as a code problem rather than a
 # resolution one.
-calimero-client = { git = "https://github.com/calimero-network/core", branch = "master" }
-calimero-primitives = { git = "https://github.com/calimero-network/core", branch = "master" }
-calimero-server-primitives = { git = "https://github.com/calimero-network/core", branch = "master" }
-calimero-context-config = { git = "https://github.com/calimero-network/core", branch = "master" }
+calimero-client = { git = "https://github.com/calimero-network/core", branch = "claude/tee-traffic-encryption-ylyupq", features = ["tee"] }
+calimero-primitives = { git = "https://github.com/calimero-network/core", branch = "claude/tee-traffic-encryption-ylyupq" }
+calimero-server-primitives = { git = "https://github.com/calimero-network/core", branch = "claude/tee-traffic-encryption-ylyupq" }
+calimero-context-config = { git = "https://github.com/calimero-network/core", branch = "claude/tee-traffic-encryption-ylyupq" }
 # Warrant minting lives here rather than in a JS client because `Warrant::sign`
 # is already written: binding it costs a call instead of an ed25519-plus-borsh
 # reimplementation that would have to stay byte-identical with the node forever.
-calimero-account = { git = "https://github.com/calimero-network/core", branch = "master" }
+calimero-account = { git = "https://github.com/calimero-network/core", branch = "claude/tee-traffic-encryption-ylyupq" }
 borsh = "1.5"
 
 # Python bindings
@@ -60,6 +60,9 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1.0", features = ["full"] }
 url = "2.5"
+# The HTTP client sealed envelopes travel over when the TLS is not pinned. The
+# same crate `calimero-client` uses, so cargo resolves one copy.
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 hex = "0.4"
 eyre = "0.6"
 sha2 = "0.10"

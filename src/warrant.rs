@@ -18,9 +18,10 @@
 //!
 //! The warrant commits to `H(method ‖ args)`, and the node recomputes that hash
 //! from the `argsJson` it receives. So both sides have to agree on the bytes of
-//! `args`. They do, because both parse the JSON and re-serialize it
-//! (`serde_json::to_vec` of a parsed `Value`, which orders object keys), rather
-//! than hashing whatever text the caller happened to type. Hashing the raw
+//! `args`. They do, because both parse the JSON and re-serialize it, and this
+//! crate sorts every object's keys first ([`canonical_args`]) and sends
+//! `perform_intent` the same form, rather than hashing whatever text the caller
+//! happened to type. Hashing the raw
 //! string here would mint warrants that verify nowhere: a re-indented but
 //! semantically identical body would produce a different hash.
 
@@ -30,7 +31,7 @@ use calimero_primitives::context::ContextId;
 use calimero_primitives::identity::PrivateKey;
 use pyo3::prelude::*;
 
-use crate::utils::json_to_python;
+use crate::utils::{canonical_args, json_to_python};
 
 fn value_error(message: String) -> PyErr {
     PyErr::new::<pyo3::exceptions::PyValueError, _>(message)
@@ -147,8 +148,7 @@ fn build_warrant(
         );
     }
 
-    let args_value: serde_json::Value =
-        serde_json::from_str(args).map_err(|e| format!("args is not valid JSON: {e}"))?;
+    let args_value = canonical_args(args).map_err(|e| format!("args is not valid JSON: {e}"))?;
     let args_bytes = serde_json::to_vec(&args_value)
         .map_err(|e| format!("args could not be re-encoded: {e}"))?;
 

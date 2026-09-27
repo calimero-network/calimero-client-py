@@ -1804,7 +1804,10 @@ impl PyClient {
         })?;
         let context_id = context_id.trim().to_owned();
 
-        let args_value: serde_json::Value = serde_json::from_str(args).map_err(|e| {
+        // The same form `sign_warrant` hashed, keys sorted, so the node
+        // recomputes the hash the warrant commits to whatever order the caller
+        // wrote the keys in.
+        let args_value = crate::utils::canonical_args(args).map_err(|e| {
             PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Invalid JSON args: {}", e))
         })?;
 

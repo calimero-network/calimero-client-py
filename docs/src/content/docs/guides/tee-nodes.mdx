@@ -1,0 +1,119 @@
+---
+title: TEE nodes
+description: Make sure only a TEE node's attested TD reads your traffic, by pinning the TLS key it serves or sealing every request to its attested transport key.
+sidebar:
+  order: 7
+---
+
+import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+A TEE node proves what runs inside its trust domain (TD) with an attestation
+quote. The quote says nothing about who reads your traffic on the way there
+unless your client uses a key the quote commits to, and trusts that key only
+because the quote commits to it. `create_connection` does that in one of two
+ways, or both:
+
+| | `attested_tls=True` | `sealed=True` |
+| --- | --- | --- |
+| For a node whose TLS | terminates **inside** the TD (mero-tee's node image) | ends at a proxy, load balancer or relay **outside** it |
+| What it does | pins the TLS key the TD serves; accepts no other | encrypts every request, token refreshes included, to the node's transport key |
+| URL | must be `https` | any |
+| Node needs | `[server.attested_tls]` naming its certificate | nothing beyond sealed transport, which every current node serves |
+
+## Deciding which TDs you trust
+
+A `TeePolicy` says which TDs to trust. The quote is checked here, against
+Intel's collateral, and never by asking the node:
+
+```python
+from calimero_client_py import TeePolicy
+
+policy = TeePolicy(
+    allowed_mrtd=["<the MRTD of the image you trust, 96 hex characters>"],
+    # Optional: pin runtime measurements too, and which TCB statuses to accept
+    # (only up-to-date platforms, by default).
+    allowed_rtmr0=None,
+    allowed_tcb_statuses=None,
+)
+```
+
+`allowed_mrtd` is required. It names the image a TD booted. A quote that proves
+only "some genuine TD" proves nothing about which code reads your traffic. Mock
+quotes are never accepted.
+
+To also require that the node runs a particular application, name it with the
+bytecode hash it must have:
+
+```python
+policy = TeePolicy([mrtd], application_id=app_id, application_hash=bytecode_hash)
+```
+
+## Attested TLS
+
+```python
+from calimero_client_py import create_connection, create_client
+
+connection = create_connection(
+    "https://node.example",
+    node_name="my-tee-node",
+    tee=policy,
+    attested_tls=True,
+)
+client = create_client(connection)
+```
+
+The node attests while the connection is built: it binds the key of the TLS
+certificate it serves into a fresh quote, and `create_connection` raises
+`RuntimeError` unless the quote verifies under your policy. From then on the
+connection completes TLS only with a server holding exactly that key.
+Certificate authorities, names and expiry play no part. So a proxy that
+terminates TLS with its own certificate, even a valid one for the same domain,
+is refused, and a node is reachable by its bare IP address too.
+
+## Sealed requests
+
+```python
+connection = create_connection(
+    "https://relay.example/node",
+    node_name="my-tee-node",
+    tee=policy,
+    sealed=True,
+)
+```
+
+The node attests on the first request. Every request is then sealed in a
+session to the attested transport key, and so is its response, so a proxy
+carries traffic it cannot read, forge or replay. When the node restarts it has a
+new key, which the connection attests again, through the same policy, before
+resending.
+
+WebSockets cannot be sealed. A sealed connection is for the request/response API
+this client uses.
+
+## Both
+
+`attested_tls=True, sealed=True` sends sealed requests over pinned TLS. That is
+useful when you cannot tell where TLS terminates.
+
+## Keys verified some other way
+
+If you verified a node's keys yourself, pass them instead of a policy:
+
+```python
+create_connection(url, attested_tls=True, tls_spki_sha256="<hex>")
+create_connection(url, sealed=True, transport_public_key="<hex>")
+```
+
+`tls_spki_sha256` is the SHA-256 of the certificate's `SubjectPublicKeyInfo`, as
+`openssl x509 -pubkey -noout | openssl pkey -pubin -outform der | sha256sum`
+computes it. A connection given a fixed transport key cannot follow a restart:
+its requests then fail until you reconnect with the new key.
+
+`create_connection` refuses combinations that would not protect anything: a key
+without its transport, a transport with no way to get its key, or a policy used
+by neither.
+
+<CardGrid>
+  <LinkCard title="Sealed transport (core docs)" href="https://calimero-network.github.io/core/operate/security/#sealed-transport-encrypting-to-the-tee" />
+  <LinkCard title="Attested TLS (core docs)" href="https://calimero-network.github.io/core/operate/security/#attested-tls-pinning-the-tds-own-key" />
+</CardGrid>
