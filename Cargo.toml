@@ -34,14 +34,14 @@ crate-type = ["cdylib"]
 # error names types rather than revisions — `expected PrivateKey, found a
 # different PrivateKey` — which reads as a code problem rather than a
 # resolution one.
-calimero-client = { git = "https://github.com/calimero-network/core", branch = "claude/tee-traffic-encryption-ylyupq", features = ["tee"] }
-calimero-primitives = { git = "https://github.com/calimero-network/core", branch = "claude/tee-traffic-encryption-ylyupq" }
-calimero-server-primitives = { git = "https://github.com/calimero-network/core", branch = "claude/tee-traffic-encryption-ylyupq" }
-calimero-context-config = { git = "https://github.com/calimero-network/core", branch = "claude/tee-traffic-encryption-ylyupq" }
+calimero-client = { git = "https://github.com/calimero-network/core", branch = "master", features = ["tee"] }
+calimero-primitives = { git = "https://github.com/calimero-network/core", branch = "master" }
+calimero-server-primitives = { git = "https://github.com/calimero-network/core", branch = "master" }
+calimero-context-config = { git = "https://github.com/calimero-network/core", branch = "master" }
 # Warrant minting lives here rather than in a JS client because `Warrant::sign`
 # is already written: binding it costs a call instead of an ed25519-plus-borsh
 # reimplementation that would have to stay byte-identical with the node forever.
-calimero-account = { git = "https://github.com/calimero-network/core", branch = "claude/tee-traffic-encryption-ylyupq" }
+calimero-account = { git = "https://github.com/calimero-network/core", branch = "master" }
 borsh = "1.5"
 
 # Python bindings

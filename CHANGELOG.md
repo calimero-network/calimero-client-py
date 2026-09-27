@@ -11,8 +11,7 @@
   Intel's collateral, under a policy that must pin the image's MRTD; mock
   quotes are never accepted. `transport_public_key` takes a key verified some
   other way. Combinations that would protect nothing are refused rather than
-  ignored. Built on `calimero-client`'s `tee` feature, so the core crates point
-  at the core branch that adds it until that merges.
+  ignored. Built on `calimero-client`'s `tee` feature (core#4105).
 - **fix: intent arguments are sorted explicitly.** Quote verification brings in
   `dcap-qvl`, which turns on `serde_json`'s `preserve_order` for the whole
   build, and features unify. The arguments `sign_warrant` hashes and
