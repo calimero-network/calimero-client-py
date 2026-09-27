@@ -102,15 +102,25 @@ Constructed via `create_connection(...)` or `ConnectionInfo(...)`, which take th
 allowed_rtmr2=None, allowed_rtmr3=None, allowed_tcb_statuses=None,
 application_id=None, application_hash=None)` — which TEE nodes a connection
 trusts. Quotes are verified locally against Intel's collateral. `allowed_mrtd`
-must name at least one image (48-byte hex measurements); the RTMR allowlists are
-unchecked when left out; `allowed_tcb_statuses` defaults to up-to-date platforms
-only; `application_id` and `application_hash` go together. Mock quotes are never
-accepted. Raises `ValueError` on a policy that could accept nothing or a value
-that is not a measurement.
+and `allowed_rtmr1`–`3` are required (48-byte hex measurements): the MRTD
+measures the platform's firmware, which images share, and the image is in
+RTMR1–3. `allowed_rtmr0` is unchecked when left out; `allowed_tcb_statuses`
+defaults to up-to-date platforms only; `application_id` and `application_hash`
+go together. Mock quotes are never accepted. Raises `ValueError` on a policy that
+could accept nothing, leaves an image register out, or holds a value that is not
+a measurement.
+
+`TeePolicy.from_releases(releases, profile, *, application_id=None,
+application_hash=None)` — the policy trusting one profile of the given node
+releases, each the text of its `published-mrtds.json`, with only the TCB
+statuses all of them accept. Raises `ValueError` on no release, a profile a
+release lacks, a KMS manifest or a TCB status it does not know.
 
 **Properties**
 
-- `allowed_mrtd: list[str]` — the images trusted.
+- `allowed_mrtd: list[str]` — the MRTDs trusted.
+- `allowed_rtmr1: list[str]`, `allowed_rtmr3: list[str]` — image registers trusted.
+- `allowed_tcb_statuses: list[str]` — TCB statuses accepted.
 
 ## `AuthMode`
 

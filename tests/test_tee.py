@@ -12,6 +12,7 @@ the node's own sealed transport, restarts included, are covered by core's
 `calimero-client` tests, which this binds.
 """
 
+import json
 import subprocess
 import sys
 
@@ -19,33 +20,89 @@ import pytest
 from calimero_client_py import TeePolicy, create_connection
 
 MRTD = "aa" * 48
+RTMR = "bb" * 48
 KEY = "11" * 32
+# The registers that name an image, which a policy must pin besides the MRTD.
+IMAGE = {"allowed_rtmr1": [RTMR], "allowed_rtmr2": [RTMR], "allowed_rtmr3": [RTMR]}
+
+
+def policy(**kwargs):
+    """A policy trusting one image: its MRTD and RTMR1-3."""
+    return TeePolicy([MRTD], **{**IMAGE, **kwargs})
 
 
 # ---- TeePolicy ----
 
 
 def test_a_policy_pins_the_image_it_trusts():
-    assert TeePolicy([MRTD]).allowed_mrtd == [MRTD]
+    assert policy().allowed_mrtd == [MRTD]
+    assert policy().allowed_rtmr3 == [RTMR]
 
 
 def test_a_policy_that_could_accept_nothing_is_refused():
     with pytest.raises(ValueError, match="allowed_mrtd is empty"):
-        TeePolicy([])
+        TeePolicy([], **IMAGE)
+
+
+def test_an_mrtd_alone_pins_no_image():
+    """The MRTD measures the TD firmware, which every image on a platform shares."""
+    with pytest.raises(ValueError, match="allowed_rtmr1 is required"):
+        TeePolicy([MRTD])
+    with pytest.raises(ValueError, match="allowed_rtmr3 is required"):
+        policy(allowed_rtmr3=[])
 
 
 def test_a_measurement_that_is_not_one_is_refused():
     with pytest.raises(ValueError, match="allowed_mrtd"):
-        TeePolicy(["aabb"])
+        TeePolicy(["aabb"], **IMAGE)
     with pytest.raises(ValueError, match="allowed_rtmr1"):
-        TeePolicy([MRTD], allowed_rtmr1=["not hex"])
+        policy(allowed_rtmr1=["not hex"])
 
 
 def test_an_application_is_named_with_the_hash_it_must_run():
     app = "22" * 32
     with pytest.raises(ValueError, match="together"):
-        TeePolicy([MRTD], application_id=app)
-    TeePolicy([MRTD], application_id=app, application_hash="33" * 32)
+        policy(application_id=app)
+    policy(application_id=app, application_hash="33" * 32)
+
+
+def release(tag, rtmr3, statuses=("uptodate", "outofdate")):
+    """A release's published-mrtds.json, cut to what TeePolicy reads."""
+    image = {"mrtd": MRTD, "rtmr0": RTMR, "rtmr1": RTMR, "rtmr2": RTMR, "rtmr3": rtmr3}
+    return json.dumps(
+        {
+            "role": "node",
+            "tag": tag,
+            "profiles": {
+                "locked-read-only": {**image, "allowed_tcb_statuses": list(statuses)},
+                "debug": {**image, "rtmr3": "dd" * 48},
+            },
+        }
+    )
+
+
+def test_a_policy_is_built_from_the_releases_nodes_run():
+    old, new = "cc" * 48, "ee" * 48
+    trusted = TeePolicy.from_releases(
+        [release("2.3.76", old, ["uptodate"]), release("2.3.78", new)],
+        "locked-read-only",
+    )
+    assert trusted.allowed_mrtd == [MRTD]
+    assert trusted.allowed_rtmr3 == [old, new]
+    # Only what every release accepts.
+    assert trusted.allowed_tcb_statuses == ["UpToDate"]
+
+
+def test_what_is_not_a_node_release_is_refused():
+    good = release("2.3.78", "ee" * 48)
+    with pytest.raises(ValueError, match="no release"):
+        TeePolicy.from_releases([], "locked-read-only")
+    with pytest.raises(ValueError, match='no profile "prod"'):
+        TeePolicy.from_releases([good], "prod")
+    with pytest.raises(ValueError, match="not a published-mrtds.json"):
+        TeePolicy.from_releases(["{}"], "locked-read-only")
+    with pytest.raises(ValueError, match="not of a node image"):
+        TeePolicy.from_releases([good.replace('"node"', '"kms"')], "locked-read-only")
 
 
 # ---- combinations that cannot do what they say ----
@@ -55,10 +112,10 @@ def test_an_application_is_named_with_the_hash_it_must_run():
     "kwargs,message",
     [
         ({"transport_public_key": KEY}, "needs sealed=True"),
-        ({"tee": TeePolicy([MRTD])}, "needs sealed=True"),
+        ({"tee": policy()}, "needs sealed=True"),
         ({"sealed": True}, "sealed=True needs tee"),
         (
-            {"sealed": True, "tee": TeePolicy([MRTD]), "transport_public_key": KEY},
+            {"sealed": True, "tee": policy(), "transport_public_key": KEY},
             "not both",
         ),
     ],
@@ -79,7 +136,7 @@ def test_a_malformed_key_says_which_argument_it_was():
 
 def test_a_sealed_connection_with_a_policy_builds_without_contacting_the_node():
     """The node attests on the first request, not while the connection is built."""
-    conn = create_connection("http://127.0.0.1:9", tee=TeePolicy([MRTD]), sealed=True)
+    conn = create_connection("http://127.0.0.1:9", tee=policy(), sealed=True)
     assert conn.api_url.startswith("http://127.0.0.1:9")
 
 
@@ -146,7 +203,7 @@ def test_a_node_whose_quote_does_not_verify_gets_nothing(recorder):
     so nothing is sealed and nothing is sent.
     """
     url, seen = recorder
-    conn = create_connection(url, tee=TeePolicy([MRTD]), sealed=True)
+    conn = create_connection(url, tee=policy(), sealed=True)
     with pytest.raises(RuntimeError, match="attestation"):
         conn.get("admin-api/contexts")
     assert seen() == ["POST /admin-api/tee/attest"]
