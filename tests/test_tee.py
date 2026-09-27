@@ -84,7 +84,8 @@ def release(tag, rtmr3, statuses=("uptodate", "outofdate")):
 def test_a_policy_is_built_from_the_releases_nodes_run():
     old, new = "cc" * 48, "ee" * 48
     trusted = TeePolicy.from_releases(
-        [release("2.3.76", old, ["uptodate"]), release("2.3.78", new)], "locked-read-only"
+        [release("2.3.76", old, ["uptodate"]), release("2.3.78", new)],
+        "locked-read-only",
     )
     assert trusted.allowed_mrtd == [MRTD]
     assert trusted.allowed_rtmr3 == [old, new]
