@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- **fix!: a `TeePolicy` must pin the image, not just the MRTD.** On GCP the
+  MRTD measures the platform's TD firmware, which every mero-tee image,
+  profile and release shares; the image is in RTMR1–3. A policy pinning only
+  the MRTD accepted a TD running anything. `TeePolicy` now requires
+  `allowed_rtmr1`–`3`, and raises `ValueError` without them.
+- **feat: `TeePolicy.from_releases(releases, profile)`** builds the policy from
+  node releases' `published-mrtds.json`: one profile, every release given (for
+  rollouts spanning two), and only the TCB statuses they all accept.
+
 ## 0.7.3
 
 - **feat: sealed requests to a TEE node.** `create_connection` takes `tee` (a

@@ -21,26 +21,58 @@ A `TeePolicy` says which TDs to trust. The quote is checked here, against
 Intel's collateral, and never by asking the node:
 
 ```python
+from pathlib import Path
+
 from calimero_client_py import TeePolicy
 
-policy = TeePolicy(
-    allowed_mrtd=["<the MRTD of the image you trust, 96 hex characters>"],
-    # Optional: pin runtime measurements too, and which TCB statuses to accept
-    # (only up-to-date platforms, by default).
-    allowed_rtmr0=None,
-    allowed_tcb_statuses=None,
-)
+# The node release's published-mrtds.json, from a release you verified.
+release = Path("trusted/mero-tee-v2.3.78.published-mrtds.json").read_text()
+policy = TeePolicy.from_releases([release], "locked-read-only")
 ```
 
-`allowed_mrtd` is required. It names the image a TD booted. A quote that proves
-only "some genuine TD" proves nothing about which code reads your traffic. Mock
-quotes are never accepted.
+A policy names the image by all of its measurements: the MRTD and RTMR1–3,
+each required. **The MRTD alone names no image.** It measures the platform's TD
+firmware, which on GCP every mero-tee image, profile and release shares, and so
+does any other TD there, whatever it runs. The image is in RTMR1–3: the kernel,
+the command line with the root-filesystem hash, and the role and profile the
+image records at boot. A policy that leaves any of them out raises
+`ValueError`. Mock quotes are never accepted.
+
+`TeePolicy.from_releases(releases, profile)` reads each release's
+`published-mrtds.json`:
+
+- **one profile**: `locked-read-only` for production. A `debug` image of the
+  same release has other RTMRs and is refused;
+- **every release your nodes may run.** Each release has its own RTMRs, so
+  during a rollout pass the old and the new one, and drop the old one once no
+  node runs it;
+- **only the TCB statuses every one of them accepts**, which the release lists
+  (today `UpToDate` and `OutOfDate`: GCP's TDX hosts report `OutOfDate`).
+
+Registers are allowed one by one, so a policy of two releases accepts any mix of
+their registers. Trust only releases you would accept any mix of. Where the file
+comes from is the trust decision: take it from a release you verified
+(`cosign verify-blob` against its `.bundle.json`), not from the node.
+
+You can also give the lists yourself:
+
+```python
+policy = TeePolicy(
+    allowed_mrtd=[mrtd],
+    allowed_rtmr1=[rtmr1],
+    allowed_rtmr2=[rtmr2],
+    allowed_rtmr3=[rtmr3],
+    allowed_tcb_statuses=["UpToDate", "OutOfDate"],
+)
+```
 
 To also require that the node runs a particular application, name it with the
 bytecode hash it must have:
 
 ```python
-policy = TeePolicy([mrtd], application_id=app_id, application_hash=bytecode_hash)
+policy = TeePolicy.from_releases(
+    [release], "locked-read-only", application_id=app_id, application_hash=bytecode_hash
+)
 ```
 
 ## Sealed requests
