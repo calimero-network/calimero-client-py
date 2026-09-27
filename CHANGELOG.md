@@ -2,20 +2,25 @@
 
 ## Unreleased
 
-- **feat: attested transports to a TEE node.** `create_connection` takes `tee`
-  (a new `TeePolicy`), `sealed` and `attested_tls`. A node's quote proves what
-  runs in its TD and nothing about who reads the traffic, unless the client uses
-  a key the quote commits to. `attested_tls` pins the TLS key the TD serves, for
-  a node whose TLS terminates inside the TD; `sealed` encrypts every request,
-  token refreshes included, to the node's attested transport key, for a node
-  whose TLS ends at a proxy outside it. Quotes are verified here, against
-  Intel's collateral, under a policy that must pin the image's MRTD; mock quotes
-  are never accepted. `tls_spki_sha256` and `transport_public_key` take keys
-  verified some other way. Combinations that would protect nothing — a key
-  without its transport, a transport with no way to get its key, a policy
-  neither uses — are refused rather than ignored. Built on `calimero-client`'s
-  `tee` feature. The core crates point at the core branch that adds it until
-  that merges.
+- **feat: sealed requests to a TEE node.** `create_connection` takes `tee` (a
+  new `TeePolicy`) and `sealed`. A node's quote proves what runs in its TD and
+  nothing about who reads the traffic, and TLS in front of a node usually ends
+  at a proxy outside it. With `sealed=True` every request, token refreshes
+  included, is encrypted to the node's attested transport key, exactly as
+  mero-js does, so only the TD reads it. Quotes are verified here, against
+  Intel's collateral, under a policy that must pin the image's MRTD; mock
+  quotes are never accepted. `transport_public_key` takes a key verified some
+  other way. Combinations that would protect nothing are refused rather than
+  ignored. Built on `calimero-client`'s `tee` feature, so the core crates point
+  at the core branch that adds it until that merges.
+- **fix: intent arguments are sorted explicitly.** Quote verification brings in
+  `dcap-qvl`, which turns on `serde_json`'s `preserve_order` for the whole
+  build, and features unify. The arguments `sign_warrant` hashes and
+  `perform_intent` sends were sorted only because nothing had turned that
+  feature on; they would have followed the caller's key order instead. Both now
+  sort keys at every depth (`canonical_args`), so a warrant still verifies
+  whatever order the caller wrote them in.
+
 
 ## 0.7.2
 

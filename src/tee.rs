@@ -1,17 +1,14 @@
-//! Attested transports to a TEE node, for Python.
+//! Sealed requests to a TEE node, for Python.
 //!
 //! A node's quote proves what runs inside its TD. It says nothing about who
 //! reads the traffic on the way there unless the client also uses a key the
-//! quote commits to, and trusts that key only because it does. This module is
-//! the Python surface over `calimero_client::tee`, which does exactly that:
+//! quote commits to, and trusts that key only because it does. With
+//! `sealed=True`, `calimero_client::tee` asks the node to bind its transport
+//! key into a fresh quote, checks the quote against [`PyTeePolicy`], and seals
+//! every request to that key, so a proxy in front of the node reads nothing.
 //!
-//! * **attested TLS** pins the TLS key the TD serves, for a node whose TLS
-//!   terminates inside the TD;
-//! * **sealing** encrypts every request to the node's attested transport key,
-//!   for a node whose TLS ends at a proxy outside it.
-//!
-//! [`PyTeePolicy`] decides which TDs are trusted. The quote is verified here,
-//! against Intel's collateral, not by asking the node or anybody else.
+//! The quote is verified here, against Intel's collateral, not by asking the
+//! node or anybody else.
 
 use std::str::FromStr;
 
