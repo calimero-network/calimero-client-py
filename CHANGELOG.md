@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.7.3
 
 - **feat: sealed requests to a TEE node.** `create_connection` takes `tee` (a
   new `TeePolicy`) and `sealed`. A node's quote proves what runs in its TD and
