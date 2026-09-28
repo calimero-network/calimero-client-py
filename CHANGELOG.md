@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.8.0
 
 - **fix!: a `TeePolicy` must pin the image, not just the MRTD.** On GCP the
   MRTD measures the platform's TD firmware, which every mero-tee image,
