@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.8.1
+
+- **fix(deps): build on core 0.11.0-rc.79 (316e3835), so no request waits
+  forever.** The manifest still follows core `master`; this moves the lock,
+  which is what a release ships, from 5bd3ab40 to the rc.79 tag commit. The
+  change a Python caller notices is core#4455: every request is now bounded.
+  30 s by default; 5 min for calls the node answers only after network work
+  of its own (installing an application, creating, joining or syncing a
+  context, joining or syncing a group, upgrades, namespace joins, and
+  `execute_function`/JSON-RPC); 1 h for blob uploads and downloads; 10 s to
+  connect. Before, a node that accepted a request and never
+  answered held the caller indefinitely. A timeout raises `RuntimeError` like
+  any other transport failure; on a plain connection its message is
+  `Client error: error sending request for url (...)` and does not say it timed
+  out, on a sealed one it reads `the node did not answer within ...`. No
+  binding changed.
+
 ## 0.8.0
 
 - **fix!: a `TeePolicy` must pin the image, not just the MRTD.** On GCP the
