@@ -63,6 +63,8 @@ fn parse_secret(raw: &str) -> Result<PrivateKey, String> {
     context_id,
     executor,
     executor_key,
+    release_bytecode_id,
+    release_version,
     method,
     args,
     nonce,
@@ -80,6 +82,8 @@ pub fn sign_warrant(
     context_id: &str,
     executor: &str,
     executor_key: &str,
+    release_bytecode_id: &str,
+    release_version: &str,
     method: &str,
     args: &str,
     nonce: u64,
@@ -91,6 +95,8 @@ pub fn sign_warrant(
         context_id,
         executor,
         executor_key,
+        release_bytecode_id,
+        release_version,
         method,
         args,
         nonce,
@@ -116,6 +122,8 @@ fn build_warrant(
     context_id: &str,
     executor: &str,
     executor_key: &str,
+    _release_bytecode_id: &str,
+    _release_version: &str,
     method: &str,
     args: &str,
     nonce: u64,
@@ -240,12 +248,17 @@ mod tests {
     const CONTEXT: &str = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
     pub(super) const EXECUTOR_KEY: &str =
         "7777777777777777777777777777777777777777777777777777777777777777";
+    pub(super) const RELEASE_BYTECODE_ID: &str =
+        "4444444444444444444444444444444444444444444444444444444444444444";
+    pub(super) const RELEASE_VERSION: &str = "1.0.0";
 
     fn mint(args: &str, nonce: u64) -> serde_json::Value {
         build_warrant(
             CONTEXT,
             ACCOUNT,
             EXECUTOR_KEY,
+            RELEASE_BYTECODE_ID,
+            RELEASE_VERSION,
             "set",
             args,
             nonce,
@@ -298,6 +311,8 @@ mod tests {
             CONTEXT,
             ACCOUNT,
             EXECUTOR_KEY,
+            RELEASE_BYTECODE_ID,
+            RELEASE_VERSION,
             "set",
             "{}",
             1,
@@ -329,6 +344,8 @@ mod tests {
             CONTEXT_B58,
             ACCOUNT,
             EXECUTOR_KEY,
+            RELEASE_BYTECODE_ID,
+            RELEASE_VERSION,
             "set",
             "{}",
             1,
@@ -343,6 +360,8 @@ mod tests {
             CONTEXT,
             CONTEXT_B58,
             EXECUTOR_KEY,
+            RELEASE_BYTECODE_ID,
+            RELEASE_VERSION,
             "set",
             "{}",
             1,
@@ -386,6 +405,8 @@ mod tests {
                 CONTEXT,
                 ACCOUNT,
                 EXECUTOR_KEY,
+                RELEASE_BYTECODE_ID,
+                RELEASE_VERSION,
                 "set",
                 bad,
                 1,
@@ -401,6 +422,8 @@ mod tests {
             CONTEXT,
             ACCOUNT,
             EXECUTOR_KEY,
+            RELEASE_BYTECODE_ID,
+            RELEASE_VERSION,
             "set",
             "{}",
             1,
@@ -412,7 +435,17 @@ mod tests {
         assert!(err.contains("device_secret is not hex"), "{err}");
 
         let err = build_warrant(
-            CONTEXT, ACCOUNT, "abcd", "set", "{}", 1, SECRET, CREDENTIAL, 300,
+            CONTEXT,
+            ACCOUNT,
+            "abcd",
+            RELEASE_BYTECODE_ID,
+            RELEASE_VERSION,
+            "set",
+            "{}",
+            1,
+            SECRET,
+            CREDENTIAL,
+            300,
         )
         .expect_err("a malformed executor key must be refused");
         assert!(err.contains("executor_key"), "{err}");
@@ -421,6 +454,40 @@ mod tests {
             CONTEXT,
             ACCOUNT,
             EXECUTOR_KEY,
+            "abcd",
+            RELEASE_VERSION,
+            "set",
+            "{}",
+            1,
+            SECRET,
+            CREDENTIAL,
+            300,
+        )
+        .expect_err("a malformed release bytecode id must be refused");
+        assert!(err.contains("release_bytecode_id"), "{err}");
+
+        let err = build_warrant(
+            CONTEXT,
+            ACCOUNT,
+            EXECUTOR_KEY,
+            RELEASE_BYTECODE_ID,
+            &"1".repeat(257),
+            "set",
+            "{}",
+            1,
+            SECRET,
+            CREDENTIAL,
+            300,
+        )
+        .expect_err("a release version over the cap must be refused");
+        assert!(err.contains("release version"), "{err}");
+
+        let err = build_warrant(
+            CONTEXT,
+            ACCOUNT,
+            EXECUTOR_KEY,
+            RELEASE_BYTECODE_ID,
+            RELEASE_VERSION,
             "set",
             "{}",
             1,
@@ -438,39 +505,47 @@ mod tests {
 
 #[cfg(test)]
 mod merod_parity {
-    use super::build_warrant;
-    use super::tests::{CREDENTIAL, EXECUTOR_KEY, SECRET};
+    use calimero_account::Warrant;
 
-    /// The v2 layout, frozen against `merod account warrant`'s own output.
+    use super::build_warrant;
+    use super::tests::{CREDENTIAL, EXECUTOR_KEY, RELEASE_BYTECODE_ID, RELEASE_VERSION, SECRET};
+
+    /// The v2 layout this binding mints, byte-frozen.
     ///
     /// This binding is a thin wrapper over `calimero_account::Warrant`, so it
     /// tracks core's encoding by construction and cannot drift from it the way
     /// a hand-mirrored signer can. What it *can* do — and did — is stop
     /// compiling when core changes the call, and be fixed in a way that still
-    /// produces different bytes: the three fields v2 added are defaulted here,
-    /// and a wrong default is invisible to every other test in this file, all
-    /// of which assert relationships rather than bytes.
+    /// produces different bytes: a field defaulted or wired to the wrong
+    /// argument is invisible to every other test in this file, all of which
+    /// assert relationships rather than bytes.
     ///
-    /// So this pins the bytes. Every field but `executor_key` was checked
-    /// byte-for-byte against `merod account warrant` with `--not-after` pinned;
-    /// `executor_key` sits where core's own warrant wire vector puts it.
-    /// Everything up to `not_after` is time-independent, which is where the pin
-    /// stops; `not_after` comes from the clock and the signature covers it.
+    /// So this pins the bytes. Every field but the executor key and the release
+    /// was checked byte-for-byte against `merod account warrant` with
+    /// `--not-after` pinned; those sit where core's own warrant wire vector,
+    /// [`CORE_FIXTURE`], puts them. Everything up to `not_after` is
+    /// time-independent, which is where the pin stops; `not_after` comes from
+    /// the clock and the signature covers it.
     ///
     /// The frozen prefix reads, in order: context, author account, author
-    /// device key, executor, executor key, `app_version` (32 zero bytes - this
-    /// binding is offline and has nothing to read it from), the method's `u32`
-    /// length and its text in the clear, `intent_hash`, then a `u32` count for
-    /// each cited head list (both empty - this binding tracks no log), then the
-    /// nonce.
-    const V2_PREFIX: &str = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0e2cd2d3dc84e1db5088e32510ca45bc491e4033bbb0f6bbb733bc0c7b7f5e3066245580f7aa816a35d1ff324a714355995ef44a72bcd2341e21d9587d16efce0e2cd2d3dc84e1db5088e32510ca45bc491e4033bbb0f6bbb733bc0c7b7f5e307777777777777777777777777777777777777777777777777777777777777777000000000000000000000000000000000000000000000000000000000000000003000000736574dc066cc8524c74dc21714174009df536376e3151f5b92f0a676defde599dbae500000000000000000700000000000000";
+    /// device key, executor, executor key, release bytecode id, the release
+    /// version's `u32` length and its text, the method's `u32` length and its
+    /// text in the clear, `intent_hash`, then a `u32` count for each cited head
+    /// list (both empty - this binding tracks no log), then the nonce.
+    const V2_PREFIX: &str = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0e2cd2d3dc84e1db5088e32510ca45bc491e4033bbb0f6bbb733bc0c7b7f5e3066245580f7aa816a35d1ff324a714355995ef44a72bcd2341e21d9587d16efce0e2cd2d3dc84e1db5088e32510ca45bc491e4033bbb0f6bbb733bc0c7b7f5e307777777777777777777777777777777777777777777777777777777777777777444444444444444444444444444444444444444444444444444444444444444405000000312e302e3003000000736574dc066cc8524c74dc21714174009df536376e3151f5b92f0a676defde599dbae500000000000000000700000000000000";
+
+    /// Core's warrant wire vector (`crates/account/src/tests/warrant_wire_fixture.rs`),
+    /// so a core dependency minting another layout fails here and not at a relay.
+    const CORE_FIXTURE: &str = "11111111111111111111111111111111111111111111111111111111111111112222222222222222222222222222222222222222222222222222222222222222ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c33333333333333333333333333333333333333333333333333333333333333337777777777777777777777777777777777777777777777777777777777777777444444444444444444444444444444444444444444444444444444444444444405000000312e302e3003000000736574dc066cc8524c74dc21714174009df536376e3151f5b92f0a676defde599dbae50100000055555555555555555555555555555555555555555555555555555555555555550100000066666666666666666666666666666666666666666666666666666666666666662a0000000000000000f1536500000000e42f753e1a30657fe036b0c0a07030f3f6d92ea56749921c5a6ae07eb966cb501ed439f7a8007dfce0ccb6b5a8b94bdda9f48db9c84f181e9fbaa0d208726b02";
 
     #[test]
-    fn the_v2_layout_is_byte_frozen_against_merod() {
+    fn the_v2_layout_is_byte_frozen() {
         let v = build_warrant(
             "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
             "0e2cd2d3dc84e1db5088e32510ca45bc491e4033bbb0f6bbb733bc0c7b7f5e30",
             EXECUTOR_KEY,
+            RELEASE_BYTECODE_ID,
+            RELEASE_VERSION,
             "set",
             r#"{"key":"k","value":"v"}"#,
             7,
@@ -482,12 +557,25 @@ mod merod_parity {
 
         let hex = v["warrant"].as_str().expect("warrant is a hex string");
 
-        // 319 for these inputs: v1 was 240 and fixed-width, v2 is variable
-        // because `method` is a string and each head list a vector.
-        assert_eq!(hex.len() / 2, 319, "wire length moved");
+        // 328 for these inputs: 319 with `app_version`, which the release's
+        // 32-byte id replaced, plus the release version's 4-byte length and 5 bytes.
+        assert_eq!(hex.len() / 2, 328, "wire length moved");
         assert!(
             hex.starts_with(V2_PREFIX),
             "the v2 layout moved\n  expected prefix: {V2_PREFIX}\n  got:             {hex}"
         );
+    }
+
+    #[test]
+    fn cores_wire_fixture_decodes_and_verifies() {
+        let bytes = hex::decode(CORE_FIXTURE).expect("the fixture is hex");
+        assert_eq!(bytes.len(), 392);
+
+        let warrant: Warrant =
+            borsh::from_slice(&bytes).expect("core's fixture must decode in this layout");
+        warrant
+            .verify_signature()
+            .expect("core's fixture must verify against this preimage");
+        assert_eq!(borsh::to_vec(&warrant).expect("re-encodes"), bytes);
     }
 }
