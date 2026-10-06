@@ -26,7 +26,6 @@
 //! semantically identical body would produce a different hash.
 
 use calimero_account::{AccountId, AccountProof, DeviceCert, Warrant, WarrantTerms};
-use calimero_primitives::application::ApplicationId;
 use calimero_primitives::context::ContextId;
 use calimero_primitives::identity::{PrivateKey, PublicKey};
 use pyo3::prelude::*;
@@ -47,7 +46,8 @@ fn parse_secret(raw: &str) -> Result<PrivateKey, String> {
 }
 
 /// Sign a warrant authorising `executor` to run `method(args)` in `context_id`,
-/// spendable only by its device `executor_key`.
+/// spendable only by its device `executor_key`, against the release
+/// `release_bytecode_id` (hex) and its semver `release_version`.
 ///
 /// Returns a dict carrying the warrant plus the facts a caller needs alongside
 /// it — the author's account (which has to be a member before the write is
@@ -55,9 +55,9 @@ fn parse_secret(raw: &str) -> Result<PrivateKey, String> {
 /// out of the credential rather than taken as arguments, because a caller
 /// passing them separately is a caller that can pass them inconsistently.
 ///
-/// `context_id`, `executor` and `executor_key` are 64 hex characters, so nothing
-/// in their shape tells them apart. The relay's `get_intent_relay` reports the
-/// last two.
+/// `context_id`, `executor`, `executor_key` and `release_bytecode_id` are 64 hex
+/// characters, so nothing in their shape tells them apart. The relay's
+/// `get_intent_relay` reports all but the first.
 #[pyfunction]
 #[pyo3(signature = (
     context_id,
@@ -122,8 +122,8 @@ fn build_warrant(
     context_id: &str,
     executor: &str,
     executor_key: &str,
-    _release_bytecode_id: &str,
-    _release_version: &str,
+    release_bytecode_id: &str,
+    release_version: &str,
     method: &str,
     args: &str,
     nonce: u64,
@@ -145,6 +145,13 @@ fn build_warrant(
         .trim()
         .parse()
         .map_err(|e| format!("executor_key '{executor_key}' is not a valid public key: {e}"))?;
+
+    let release_bytecode_id: [u8; 32] = hex::decode(release_bytecode_id.trim())
+        .ok()
+        .and_then(|bytes| bytes.try_into().ok())
+        .ok_or_else(|| {
+            format!("release_bytecode_id '{release_bytecode_id}' is not 32 bytes of hex")
+        })?;
 
     let device_sk = parse_secret(device_secret)?;
 
@@ -177,23 +184,8 @@ fn build_warrant(
 
     let intent_hash = Warrant::intent_hash(method, &args_bytes);
 
-    // Warrant v2 added `app_version`, the plaintext `method` and two
-    // cited-head lists, and `sign` now takes them as a named struct rather than
-    // as positional arguments -- twelve of which four are `[u8; 32]`.
-    //
-    // Three of those fields are defaulted here, and each default is the honest
-    // answer for this binding rather than a placeholder:
-    //
-    // * `app_version` is all-zeros because `sign_warrant` is offline by
-    //   construction -- it takes a context id, not a connection, so it has
-    //   nothing to read the application's content address from. This is exactly
-    //   what `merod account warrant` does with no `--app-version`, so the two
-    //   produce identical bytes for identical inputs. Nothing enforces the field
-    //   yet; when pinning lands, a warrant minted with the default is refused,
-    //   and this binding will need a real value rather than a better default.
-    // * both head lists are empty because this binding tracks no log. An empty
-    //   list says "I cite nothing", which is true; fabricating a head would be a
-    //   claim about a view it never had.
+    // Both head lists are empty because this binding tracks no log: an empty
+    // list says "I cite nothing", which is true, where a fabricated head is not.
     let warrant = Warrant::sign(
         &device_sk,
         WarrantTerms {
@@ -201,7 +193,8 @@ fn build_warrant(
             author_account: proof.statement.account,
             executor: executor_account,
             executor_key,
-            app_version: ApplicationId::from([0; 32]),
+            release_bytecode_id,
+            release_version: release_version.to_owned(),
             method: method.to_owned(),
             intent_hash,
             account_heads: Vec::new(),

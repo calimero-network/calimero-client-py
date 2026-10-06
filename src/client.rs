@@ -1777,8 +1777,9 @@ impl PyClient {
 
     /// Ask what a warrant for this node must name, and whether it may act here.
     ///
-    /// Its `data` carries `executorAccount` and `executorKey`, the `executor`
-    /// and `executor_key` `sign_warrant` needs, plus `canAuthorOnBehalf`.
+    /// Its `data` carries `executorAccount`, `executorKey`, `releaseBytecodeId`
+    /// and `releaseVersion`, the `executor`, `executor_key`, `release_bytecode_id`
+    /// and `release_version` `sign_warrant` needs, plus `canAuthorOnBehalf`.
     pub fn get_intent_relay(&self, context_id: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let context_id = context_id
