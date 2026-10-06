@@ -503,28 +503,8 @@ mod merod_parity {
     use super::build_warrant;
     use super::tests::{CREDENTIAL, EXECUTOR_KEY, RELEASE_BYTECODE_ID, RELEASE_VERSION, SECRET};
 
-    /// The v2 layout this binding mints, byte-frozen.
-    ///
-    /// This binding is a thin wrapper over `calimero_account::Warrant`, so it
-    /// tracks core's encoding by construction and cannot drift from it the way
-    /// a hand-mirrored signer can. What it *can* do — and did — is stop
-    /// compiling when core changes the call, and be fixed in a way that still
-    /// produces different bytes: a field defaulted or wired to the wrong
-    /// argument is invisible to every other test in this file, all of which
-    /// assert relationships rather than bytes.
-    ///
-    /// So this pins the bytes. Every field but the executor key and the release
-    /// was checked byte-for-byte against `merod account warrant` with
-    /// `--not-after` pinned; those sit where core's own warrant wire vector,
-    /// [`CORE_FIXTURE`], puts them. Everything up to `not_after` is
-    /// time-independent, which is where the pin stops; `not_after` comes from
-    /// the clock and the signature covers it.
-    ///
-    /// The frozen prefix reads, in order: context, author account, author
-    /// device key, executor, executor key, release bytecode id, the release
-    /// version's `u32` length and its text, the method's `u32` length and its
-    /// text in the clear, `intent_hash`, then a `u32` count for each cited head
-    /// list (both empty - this binding tracks no log), then the nonce.
+    /// The v2 layout this binding mints, byte-frozen up to `not_after`, which comes from the clock.
+    /// Pins bytes because a field wired to the wrong argument passes every relational test here.
     const V2_PREFIX: &str = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0e2cd2d3dc84e1db5088e32510ca45bc491e4033bbb0f6bbb733bc0c7b7f5e3066245580f7aa816a35d1ff324a714355995ef44a72bcd2341e21d9587d16efce0e2cd2d3dc84e1db5088e32510ca45bc491e4033bbb0f6bbb733bc0c7b7f5e307777777777777777777777777777777777777777777777777777777777777777444444444444444444444444444444444444444444444444444444444444444405000000312e302e3003000000736574dc066cc8524c74dc21714174009df536376e3151f5b92f0a676defde599dbae500000000000000000700000000000000";
 
     /// Core's warrant wire vector (`crates/account/src/tests/warrant_wire_fixture.rs`),
