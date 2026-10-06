@@ -62,6 +62,7 @@ fn parse_secret(raw: &str) -> Result<PrivateKey, String> {
 #[pyo3(signature = (
     context_id,
     executor,
+    executor_key,
     method,
     args,
     nonce,
@@ -78,6 +79,7 @@ pub fn sign_warrant(
     py: Python<'_>,
     context_id: &str,
     executor: &str,
+    executor_key: &str,
     method: &str,
     args: &str,
     nonce: u64,
@@ -88,6 +90,7 @@ pub fn sign_warrant(
     let payload = build_warrant(
         context_id,
         executor,
+        executor_key,
         method,
         args,
         nonce,
@@ -112,6 +115,7 @@ pub fn sign_warrant(
 fn build_warrant(
     context_id: &str,
     executor: &str,
+    _executor_key: &str,
     method: &str,
     args: &str,
     nonce: u64,
@@ -228,10 +232,20 @@ mod tests {
     /// Hex, as every id is now. The 32 bytes are `00 01 02 .. 1f`, unchanged —
     /// this was base58 for the same bytes, so every signature below is identical.
     const CONTEXT: &str = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
+    pub(super) const EXECUTOR_KEY: &str =
+        "7777777777777777777777777777777777777777777777777777777777777777";
 
     fn mint(args: &str, nonce: u64) -> serde_json::Value {
         build_warrant(
-            CONTEXT, ACCOUNT, "set", args, nonce, SECRET, CREDENTIAL, 300,
+            CONTEXT,
+            ACCOUNT,
+            EXECUTOR_KEY,
+            "set",
+            args,
+            nonce,
+            SECRET,
+            CREDENTIAL,
+            300,
         )
         .expect("a well-formed warrant must sign")
     }
@@ -274,8 +288,18 @@ mod tests {
     #[test]
     fn a_credential_certifying_another_key_is_refused() {
         let other = "11".repeat(32);
-        let err = build_warrant(CONTEXT, ACCOUNT, "set", "{}", 1, &other, CREDENTIAL, 300)
-            .expect_err("a mismatched key must be refused");
+        let err = build_warrant(
+            CONTEXT,
+            ACCOUNT,
+            EXECUTOR_KEY,
+            "set",
+            "{}",
+            1,
+            &other,
+            CREDENTIAL,
+            300,
+        )
+        .expect_err("a mismatched key must be refused");
         assert!(err.contains("certifies a different key"), "{err}");
     }
 
@@ -298,6 +322,7 @@ mod tests {
         let err = build_warrant(
             CONTEXT_B58,
             ACCOUNT,
+            EXECUTOR_KEY,
             "set",
             "{}",
             1,
@@ -311,6 +336,7 @@ mod tests {
         let err = build_warrant(
             CONTEXT,
             CONTEXT_B58,
+            EXECUTOR_KEY,
             "set",
             "{}",
             1,
@@ -350,17 +376,53 @@ mod tests {
             ("not json", "args is not valid JSON"),
             ("[1,2", "args is not valid JSON"),
         ] {
-            let err = build_warrant(CONTEXT, ACCOUNT, "set", bad, 1, SECRET, CREDENTIAL, 300)
-                .expect_err("malformed args must be refused");
+            let err = build_warrant(
+                CONTEXT,
+                ACCOUNT,
+                EXECUTOR_KEY,
+                "set",
+                bad,
+                1,
+                SECRET,
+                CREDENTIAL,
+                300,
+            )
+            .expect_err("malformed args must be refused");
             assert!(err.contains(needle), "{err}");
         }
 
-        let err = build_warrant(CONTEXT, ACCOUNT, "set", "{}", 1, "zz", CREDENTIAL, 300)
-            .expect_err("a non-hex secret must be refused");
+        let err = build_warrant(
+            CONTEXT,
+            ACCOUNT,
+            EXECUTOR_KEY,
+            "set",
+            "{}",
+            1,
+            "zz",
+            CREDENTIAL,
+            300,
+        )
+        .expect_err("a non-hex secret must be refused");
         assert!(err.contains("device_secret is not hex"), "{err}");
 
-        let err = build_warrant(CONTEXT, ACCOUNT, "set", "{}", 1, SECRET, "beef", 300)
-            .expect_err("a truncated credential must be refused");
+        let err = build_warrant(
+            CONTEXT, ACCOUNT, "abcd", "set", "{}", 1, SECRET, CREDENTIAL, 300,
+        )
+        .expect_err("a malformed executor key must be refused");
+        assert!(err.contains("executor_key"), "{err}");
+
+        let err = build_warrant(
+            CONTEXT,
+            ACCOUNT,
+            EXECUTOR_KEY,
+            "set",
+            "{}",
+            1,
+            SECRET,
+            "beef",
+            300,
+        )
+        .expect_err("a truncated credential must be refused");
         assert!(
             err.contains("credential is not a device credential"),
             "{err}"
@@ -371,7 +433,7 @@ mod tests {
 #[cfg(test)]
 mod merod_parity {
     use super::build_warrant;
-    use super::tests::{CREDENTIAL, SECRET};
+    use super::tests::{CREDENTIAL, EXECUTOR_KEY, SECRET};
 
     /// The v2 layout, frozen against `merod account warrant`'s own output.
     ///
@@ -383,25 +445,26 @@ mod merod_parity {
     /// and a wrong default is invisible to every other test in this file, all
     /// of which assert relationships rather than bytes.
     ///
-    /// So this pins the bytes. The vector below was produced by this function
-    /// and verified byte-for-byte against `merod account warrant` run on the
-    /// same inputs with `--not-after` pinned — 287 bytes, identical including
-    /// the signature. Everything up to `not_after` is time-independent, which
-    /// is where the pin stops; `not_after` comes from the clock and the
-    /// signature covers it.
+    /// So this pins the bytes. Every field but `executor_key` was checked
+    /// byte-for-byte against `merod account warrant` with `--not-after` pinned;
+    /// `executor_key` sits where core's own warrant wire vector puts it.
+    /// Everything up to `not_after` is time-independent, which is where the pin
+    /// stops; `not_after` comes from the clock and the signature covers it.
     ///
     /// The frozen prefix reads, in order: context, author account, author
-    /// device key, executor, `app_version` (32 zero bytes — this binding is
-    /// offline and has nothing to read it from), the method's `u32` length and
-    /// its text in the clear, `intent_hash`, then a `u32` count for each cited
-    /// head list (both empty — this binding tracks no log), then the nonce.
-    const V2_PREFIX: &str = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0e2cd2d3dc84e1db5088e32510ca45bc491e4033bbb0f6bbb733bc0c7b7f5e3066245580f7aa816a35d1ff324a714355995ef44a72bcd2341e21d9587d16efce0e2cd2d3dc84e1db5088e32510ca45bc491e4033bbb0f6bbb733bc0c7b7f5e30000000000000000000000000000000000000000000000000000000000000000003000000736574dc066cc8524c74dc21714174009df536376e3151f5b92f0a676defde599dbae500000000000000000700000000000000";
+    /// device key, executor, executor key, `app_version` (32 zero bytes - this
+    /// binding is offline and has nothing to read it from), the method's `u32`
+    /// length and its text in the clear, `intent_hash`, then a `u32` count for
+    /// each cited head list (both empty - this binding tracks no log), then the
+    /// nonce.
+    const V2_PREFIX: &str = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0e2cd2d3dc84e1db5088e32510ca45bc491e4033bbb0f6bbb733bc0c7b7f5e3066245580f7aa816a35d1ff324a714355995ef44a72bcd2341e21d9587d16efce0e2cd2d3dc84e1db5088e32510ca45bc491e4033bbb0f6bbb733bc0c7b7f5e307777777777777777777777777777777777777777777777777777777777777777000000000000000000000000000000000000000000000000000000000000000003000000736574dc066cc8524c74dc21714174009df536376e3151f5b92f0a676defde599dbae500000000000000000700000000000000";
 
     #[test]
     fn the_v2_layout_is_byte_frozen_against_merod() {
         let v = build_warrant(
             "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
             "0e2cd2d3dc84e1db5088e32510ca45bc491e4033bbb0f6bbb733bc0c7b7f5e30",
+            EXECUTOR_KEY,
             "set",
             r#"{"key":"k","value":"v"}"#,
             7,
@@ -413,9 +476,9 @@ mod merod_parity {
 
         let hex = v["warrant"].as_str().expect("warrant is a hex string");
 
-        // 287 for these inputs: v1 was 240 and fixed-width, v2 is variable
+        // 319 for these inputs: v1 was 240 and fixed-width, v2 is variable
         // because `method` is a string and each head list a vector.
-        assert_eq!(hex.len() / 2, 287, "wire length moved");
+        assert_eq!(hex.len() / 2, 319, "wire length moved");
         assert!(
             hex.starts_with(V2_PREFIX),
             "the v2 layout moved\n  expected prefix: {V2_PREFIX}\n  got:             {hex}"
