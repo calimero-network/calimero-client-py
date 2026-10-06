@@ -290,7 +290,7 @@ Context, context-identity, and application aliases:
 
 **Groups and subgroups**
 
-- `create_group_in_namespace(namespace_id, group_name=None)`
+- `create_group_in_namespace(namespace_id, group_name=None, visibility=None)`: `visibility` is `"open"` (the default) or `"restricted"`
 - `reparent_group(group_id, new_parent_id)`
 - `list_subgroups(group_id)`
 - `get_group_info(group_id)`
