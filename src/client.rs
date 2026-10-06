@@ -1807,7 +1807,7 @@ impl PyClient {
     /// The caller supplies only the author's half — the warrant and the proof
     /// that the signing key is a device of the account it names. The node
     /// attaches its own credential, which must match the `executor` and
-    /// `executor_key` the warrant names.
+    /// `executor_key` the warrant names, and runs it only on the release it pins.
     ///
     /// Mint the `warrant` with `sign_warrant`, which needs no connection.
     #[pyo3(signature = (context_id, method, args, warrant, author_proof))]

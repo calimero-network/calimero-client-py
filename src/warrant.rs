@@ -497,7 +497,7 @@ mod tests {
 }
 
 #[cfg(test)]
-mod merod_parity {
+mod wire_layout {
     use calimero_account::Warrant;
 
     use super::build_warrant;
@@ -530,8 +530,7 @@ mod merod_parity {
 
         let hex = v["warrant"].as_str().expect("warrant is a hex string");
 
-        // 328 for these inputs: 319 with `app_version`, which the release's
-        // 32-byte id replaced, plus the release version's 4-byte length and 5 bytes.
+        // 328 for these inputs: the release adds a 32-byte id and a 4+5-byte semver.
         assert_eq!(hex.len() / 2, 328, "wire length moved");
         assert!(
             hex.starts_with(V2_PREFIX),
