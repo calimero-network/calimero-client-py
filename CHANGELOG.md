@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.9.0
+
+- **feat(warrant)!: `sign_warrant` names the executor device key and pins the
+  release.** The signature is now `sign_warrant(context_id, executor,
+  executor_key, release_bytecode_id, release_version, method, args, nonce,
+  device_secret, credential, valid_for=300)`. A warrant is spendable only by
+  the relay's device `executor_key` (#127), and only while the relay runs the
+  release `release_bytecode_id`, whose semver `release_version` (at most 256
+  bytes) is signed alongside it (#133). All four come from the relay's
+  `get_intent_relay`, whose `data` now also carries `releaseBytecodeId` and
+  `releaseVersion`. The signed bytes change, so warrants from this version
+  verify only on nodes with core#4517, and older warrants are refused there.
+- **feat: `create_group_in_namespace(namespace_id, group_name=None,
+  visibility=None)`.** `visibility` is `"open"` or `"restricted"`; the node
+  creates an open subgroup when it is omitted.
+- **chore(deps): built on core `master` 6811e566**, which carries core#4517.
+
 ## 0.8.1
 
 - **fix(deps): build on core 0.11.0-rc.79 (316e3835), so no request waits
