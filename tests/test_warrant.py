@@ -29,6 +29,9 @@ SECRET = "4987ccd0fb7ef36bf7f61e8f99fd150d33e6adac47649f23bfd7109c2e36a3ba"
 ACCOUNT = "0e2cd2d3dc84e1db5088e32510ca45bc491e4033bbb0f6bbb733bc0c7b7f5e30"
 # The relay device the warrant names; any 32 bytes, since minting checks no node.
 EXECUTOR_KEY = "77" * 32
+# The release the warrant pins; any 32 bytes and semver, for the same reason.
+RELEASE_BYTECODE_ID = "44" * 32
+RELEASE_VERSION = "1.0.0"
 # Hex, as every id is now. The same 32 bytes (`00 01 .. 1f`) this was base58 for,
 # so the signatures below are unchanged.
 CONTEXT = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
@@ -42,6 +45,8 @@ def mint(args='{"key":"k","value":"v"}', nonce=1, **kwargs):
         context_id=CONTEXT,
         executor=ACCOUNT,
         executor_key=EXECUTOR_KEY,
+        release_bytecode_id=RELEASE_BYTECODE_ID,
+        release_version=RELEASE_VERSION,
         method="set",
         args=args,
         nonce=nonce,
@@ -93,6 +98,26 @@ def test_the_warrant_names_the_executor_key():
 def test_a_malformed_executor_key_is_named():
     with pytest.raises(ValueError, match="executor_key"):
         mint(executor_key="abcd")
+
+
+def test_the_warrant_pins_the_release():
+    """The release's bytecode id right after the executor key, then its semver
+    as a borsh string: a u32 little-endian length, then the UTF-8 bytes.
+    """
+    warrant = bytes.fromhex(mint()["warrant"])
+    assert warrant[160:192] == bytes.fromhex(RELEASE_BYTECODE_ID)
+    assert warrant[192:196] == len(RELEASE_VERSION).to_bytes(4, "little")
+    assert warrant[196:201] == RELEASE_VERSION.encode()
+
+
+def test_a_malformed_release_bytecode_id_is_named():
+    with pytest.raises(ValueError, match="release_bytecode_id"):
+        mint(release_bytecode_id="abcd")
+
+
+def test_a_release_version_over_the_cap_is_refused():
+    with pytest.raises(ValueError, match="release version"):
+        mint(release_version="1" * 257)
 
 
 def test_reformatting_the_arguments_cannot_change_the_commitment():

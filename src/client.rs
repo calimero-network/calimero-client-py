@@ -1777,8 +1777,9 @@ impl PyClient {
 
     /// Ask what a warrant for this node must name, and whether it may act here.
     ///
-    /// Its `data` carries `executorAccount` and `executorKey`, the `executor`
-    /// and `executor_key` `sign_warrant` needs, plus `canAuthorOnBehalf`.
+    /// Its `data` carries `executorAccount`, `executorKey`, `releaseBytecodeId`
+    /// and `releaseVersion`, the `executor`, `executor_key`, `release_bytecode_id`
+    /// and `release_version` `sign_warrant` needs, plus `canAuthorOnBehalf`.
     pub fn get_intent_relay(&self, context_id: &str) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let context_id = context_id
@@ -1806,7 +1807,7 @@ impl PyClient {
     /// The caller supplies only the author's half — the warrant and the proof
     /// that the signing key is a device of the account it names. The node
     /// attaches its own credential, which must match the `executor` and
-    /// `executor_key` the warrant names.
+    /// `executor_key` the warrant names, and runs it only on the release it pins.
     ///
     /// Mint the `warrant` with `sign_warrant`, which needs no connection.
     #[pyo3(signature = (context_id, method, args, warrant, author_proof))]
@@ -2040,20 +2041,23 @@ impl PyClient {
         })
     }
 
-    #[pyo3(signature = (namespace_id, group_name=None))]
+    /// `visibility` is "open" or "restricted"; the node creates an open subgroup when it is omitted.
+    #[pyo3(signature = (namespace_id, group_name=None, visibility=None))]
     pub fn create_group_in_namespace(
         &self,
         namespace_id: &str,
         group_name: Option<&str>,
+        visibility: Option<&str>,
     ) -> PyResult<PyObject> {
         let inner = self.inner.clone();
         let namespace_id = namespace_id.to_string();
         let group_name = group_name.map(|s| s.to_string());
+        let visibility = visibility.map(|s| s.to_string());
 
         Python::with_gil(|py| {
             let result = self.runtime.block_on(async move {
                 inner
-                    .create_group_in_namespace(&namespace_id, group_name)
+                    .create_group_in_namespace(&namespace_id, group_name, visibility)
                     .await
             });
             match result {
