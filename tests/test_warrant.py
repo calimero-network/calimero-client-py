@@ -27,6 +27,8 @@ CREDENTIAL = (
 )
 SECRET = "4987ccd0fb7ef36bf7f61e8f99fd150d33e6adac47649f23bfd7109c2e36a3ba"
 ACCOUNT = "0e2cd2d3dc84e1db5088e32510ca45bc491e4033bbb0f6bbb733bc0c7b7f5e30"
+# The relay device the warrant names; any 32 bytes, since minting checks no node.
+EXECUTOR_KEY = "77" * 32
 # Hex, as every id is now. The same 32 bytes (`00 01 .. 1f`) this was base58 for,
 # so the signatures below are unchanged.
 CONTEXT = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
@@ -39,6 +41,7 @@ def mint(args='{"key":"k","value":"v"}', nonce=1, **kwargs):
     params = dict(
         context_id=CONTEXT,
         executor=ACCOUNT,
+        executor_key=EXECUTOR_KEY,
         method="set",
         args=args,
         nonce=nonce,
@@ -75,6 +78,21 @@ def test_mint_returns_the_warrant_and_the_facts_beside_it():
     assert minted["nonce"] == 1
     assert len(minted["intentHash"]) == 64
     assert minted["notAfter"] > 0
+
+
+def test_the_warrant_names_the_executor_key():
+    """The one relay device that may spend it, signed after the executor account.
+
+    Borsh lays out the context, author account, author device key and executor
+    first, 32 bytes each, so the executor key is bytes 128..160.
+    """
+    warrant = bytes.fromhex(mint()["warrant"])
+    assert warrant[128:160] == bytes.fromhex(EXECUTOR_KEY)
+
+
+def test_a_malformed_executor_key_is_named():
+    with pytest.raises(ValueError, match="executor_key"):
+        mint(executor_key="abcd")
 
 
 def test_reformatting_the_arguments_cannot_change_the_commitment():
@@ -165,3 +183,15 @@ def test_perform_intent_is_bound_on_the_client():
 
     with pytest.raises(ValueError, match="Invalid context ID"):
         client.perform_intent("not-a-context", "set", "{}", "aa", "bb")
+
+
+def test_get_intent_relay_is_bound_on_the_client():
+    """Discovery is how a caller learns the executor and executor key to sign."""
+    connection = create_connection(
+        api_url="https://test.merod.dev.p2p.aws.calimero.network",
+        node_name="test-dev-node",
+    )
+    client = create_client(connection)
+
+    with pytest.raises(ValueError, match="Invalid context ID"):
+        client.get_intent_relay("not-a-context")

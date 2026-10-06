@@ -28,7 +28,7 @@
 use calimero_account::{AccountId, AccountProof, DeviceCert, Warrant, WarrantTerms};
 use calimero_primitives::application::ApplicationId;
 use calimero_primitives::context::ContextId;
-use calimero_primitives::identity::PrivateKey;
+use calimero_primitives::identity::{PrivateKey, PublicKey};
 use pyo3::prelude::*;
 
 use crate::utils::{canonical_args, json_to_python};
@@ -46,7 +46,8 @@ fn parse_secret(raw: &str) -> Result<PrivateKey, String> {
     Ok(PrivateKey::from(bytes))
 }
 
-/// Sign a warrant authorising `executor` to run `method(args)` in `context_id`.
+/// Sign a warrant authorising `executor` to run `method(args)` in `context_id`,
+/// spendable only by its device `executor_key`.
 ///
 /// Returns a dict carrying the warrant plus the facts a caller needs alongside
 /// it — the author's account (which has to be a member before the write is
@@ -54,14 +55,14 @@ fn parse_secret(raw: &str) -> Result<PrivateKey, String> {
 /// out of the credential rather than taken as arguments, because a caller
 /// passing them separately is a caller that can pass them inconsistently.
 ///
-/// Both `context_id` and `executor` are 64 hex characters. There used to be an
-/// asymmetry here — base58 for the context, hex for the account — and it was
-/// core's rather than this binding's; core removed it, so this follows. Nothing
-/// in the shape of either argument distinguishes them any more.
+/// `context_id`, `executor` and `executor_key` are 64 hex characters, so nothing
+/// in their shape tells them apart. The relay's `get_intent_relay` reports the
+/// last two.
 #[pyfunction]
 #[pyo3(signature = (
     context_id,
     executor,
+    executor_key,
     method,
     args,
     nonce,
@@ -78,6 +79,7 @@ pub fn sign_warrant(
     py: Python<'_>,
     context_id: &str,
     executor: &str,
+    executor_key: &str,
     method: &str,
     args: &str,
     nonce: u64,
@@ -88,6 +90,7 @@ pub fn sign_warrant(
     let payload = build_warrant(
         context_id,
         executor,
+        executor_key,
         method,
         args,
         nonce,
@@ -112,6 +115,7 @@ pub fn sign_warrant(
 fn build_warrant(
     context_id: &str,
     executor: &str,
+    executor_key: &str,
     method: &str,
     args: &str,
     nonce: u64,
@@ -128,6 +132,11 @@ fn build_warrant(
         .trim()
         .parse()
         .map_err(|e| format!("executor '{executor}' is not a valid account id: {e}"))?;
+
+    let executor_key: PublicKey = executor_key
+        .trim()
+        .parse()
+        .map_err(|e| format!("executor_key '{executor_key}' is not a valid public key: {e}"))?;
 
     let device_sk = parse_secret(device_secret)?;
 
@@ -160,9 +169,9 @@ fn build_warrant(
 
     let intent_hash = Warrant::intent_hash(method, &args_bytes);
 
-    // Warrant v2 (core#3933) added `app_version`, the plaintext `method` and two
+    // Warrant v2 added `app_version`, the plaintext `method` and two
     // cited-head lists, and `sign` now takes them as a named struct rather than
-    // as positional arguments -- eleven of which four are `[u8; 32]`.
+    // as positional arguments -- twelve of which four are `[u8; 32]`.
     //
     // Three of those fields are defaulted here, and each default is the honest
     // answer for this binding rather than a placeholder:
@@ -183,6 +192,7 @@ fn build_warrant(
             context,
             author_account: proof.statement.account,
             executor: executor_account,
+            executor_key,
             app_version: ApplicationId::from([0; 32]),
             method: method.to_owned(),
             intent_hash,
@@ -228,10 +238,20 @@ mod tests {
     /// Hex, as every id is now. The 32 bytes are `00 01 02 .. 1f`, unchanged —
     /// this was base58 for the same bytes, so every signature below is identical.
     const CONTEXT: &str = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
+    pub(super) const EXECUTOR_KEY: &str =
+        "7777777777777777777777777777777777777777777777777777777777777777";
 
     fn mint(args: &str, nonce: u64) -> serde_json::Value {
         build_warrant(
-            CONTEXT, ACCOUNT, "set", args, nonce, SECRET, CREDENTIAL, 300,
+            CONTEXT,
+            ACCOUNT,
+            EXECUTOR_KEY,
+            "set",
+            args,
+            nonce,
+            SECRET,
+            CREDENTIAL,
+            300,
         )
         .expect("a well-formed warrant must sign")
     }
@@ -274,8 +294,18 @@ mod tests {
     #[test]
     fn a_credential_certifying_another_key_is_refused() {
         let other = "11".repeat(32);
-        let err = build_warrant(CONTEXT, ACCOUNT, "set", "{}", 1, &other, CREDENTIAL, 300)
-            .expect_err("a mismatched key must be refused");
+        let err = build_warrant(
+            CONTEXT,
+            ACCOUNT,
+            EXECUTOR_KEY,
+            "set",
+            "{}",
+            1,
+            &other,
+            CREDENTIAL,
+            300,
+        )
+        .expect_err("a mismatched key must be refused");
         assert!(err.contains("certifies a different key"), "{err}");
     }
 
@@ -298,6 +328,7 @@ mod tests {
         let err = build_warrant(
             CONTEXT_B58,
             ACCOUNT,
+            EXECUTOR_KEY,
             "set",
             "{}",
             1,
@@ -311,6 +342,7 @@ mod tests {
         let err = build_warrant(
             CONTEXT,
             CONTEXT_B58,
+            EXECUTOR_KEY,
             "set",
             "{}",
             1,
@@ -350,17 +382,53 @@ mod tests {
             ("not json", "args is not valid JSON"),
             ("[1,2", "args is not valid JSON"),
         ] {
-            let err = build_warrant(CONTEXT, ACCOUNT, "set", bad, 1, SECRET, CREDENTIAL, 300)
-                .expect_err("malformed args must be refused");
+            let err = build_warrant(
+                CONTEXT,
+                ACCOUNT,
+                EXECUTOR_KEY,
+                "set",
+                bad,
+                1,
+                SECRET,
+                CREDENTIAL,
+                300,
+            )
+            .expect_err("malformed args must be refused");
             assert!(err.contains(needle), "{err}");
         }
 
-        let err = build_warrant(CONTEXT, ACCOUNT, "set", "{}", 1, "zz", CREDENTIAL, 300)
-            .expect_err("a non-hex secret must be refused");
+        let err = build_warrant(
+            CONTEXT,
+            ACCOUNT,
+            EXECUTOR_KEY,
+            "set",
+            "{}",
+            1,
+            "zz",
+            CREDENTIAL,
+            300,
+        )
+        .expect_err("a non-hex secret must be refused");
         assert!(err.contains("device_secret is not hex"), "{err}");
 
-        let err = build_warrant(CONTEXT, ACCOUNT, "set", "{}", 1, SECRET, "beef", 300)
-            .expect_err("a truncated credential must be refused");
+        let err = build_warrant(
+            CONTEXT, ACCOUNT, "abcd", "set", "{}", 1, SECRET, CREDENTIAL, 300,
+        )
+        .expect_err("a malformed executor key must be refused");
+        assert!(err.contains("executor_key"), "{err}");
+
+        let err = build_warrant(
+            CONTEXT,
+            ACCOUNT,
+            EXECUTOR_KEY,
+            "set",
+            "{}",
+            1,
+            SECRET,
+            "beef",
+            300,
+        )
+        .expect_err("a truncated credential must be refused");
         assert!(
             err.contains("credential is not a device credential"),
             "{err}"
@@ -371,7 +439,7 @@ mod tests {
 #[cfg(test)]
 mod merod_parity {
     use super::build_warrant;
-    use super::tests::{CREDENTIAL, SECRET};
+    use super::tests::{CREDENTIAL, EXECUTOR_KEY, SECRET};
 
     /// The v2 layout, frozen against `merod account warrant`'s own output.
     ///
@@ -383,25 +451,26 @@ mod merod_parity {
     /// and a wrong default is invisible to every other test in this file, all
     /// of which assert relationships rather than bytes.
     ///
-    /// So this pins the bytes. The vector below was produced by this function
-    /// and verified byte-for-byte against `merod account warrant` run on the
-    /// same inputs with `--not-after` pinned — 287 bytes, identical including
-    /// the signature. Everything up to `not_after` is time-independent, which
-    /// is where the pin stops; `not_after` comes from the clock and the
-    /// signature covers it.
+    /// So this pins the bytes. Every field but `executor_key` was checked
+    /// byte-for-byte against `merod account warrant` with `--not-after` pinned;
+    /// `executor_key` sits where core's own warrant wire vector puts it.
+    /// Everything up to `not_after` is time-independent, which is where the pin
+    /// stops; `not_after` comes from the clock and the signature covers it.
     ///
     /// The frozen prefix reads, in order: context, author account, author
-    /// device key, executor, `app_version` (32 zero bytes — this binding is
-    /// offline and has nothing to read it from), the method's `u32` length and
-    /// its text in the clear, `intent_hash`, then a `u32` count for each cited
-    /// head list (both empty — this binding tracks no log), then the nonce.
-    const V2_PREFIX: &str = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0e2cd2d3dc84e1db5088e32510ca45bc491e4033bbb0f6bbb733bc0c7b7f5e3066245580f7aa816a35d1ff324a714355995ef44a72bcd2341e21d9587d16efce0e2cd2d3dc84e1db5088e32510ca45bc491e4033bbb0f6bbb733bc0c7b7f5e30000000000000000000000000000000000000000000000000000000000000000003000000736574dc066cc8524c74dc21714174009df536376e3151f5b92f0a676defde599dbae500000000000000000700000000000000";
+    /// device key, executor, executor key, `app_version` (32 zero bytes - this
+    /// binding is offline and has nothing to read it from), the method's `u32`
+    /// length and its text in the clear, `intent_hash`, then a `u32` count for
+    /// each cited head list (both empty - this binding tracks no log), then the
+    /// nonce.
+    const V2_PREFIX: &str = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0e2cd2d3dc84e1db5088e32510ca45bc491e4033bbb0f6bbb733bc0c7b7f5e3066245580f7aa816a35d1ff324a714355995ef44a72bcd2341e21d9587d16efce0e2cd2d3dc84e1db5088e32510ca45bc491e4033bbb0f6bbb733bc0c7b7f5e307777777777777777777777777777777777777777777777777777777777777777000000000000000000000000000000000000000000000000000000000000000003000000736574dc066cc8524c74dc21714174009df536376e3151f5b92f0a676defde599dbae500000000000000000700000000000000";
 
     #[test]
     fn the_v2_layout_is_byte_frozen_against_merod() {
         let v = build_warrant(
             "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
             "0e2cd2d3dc84e1db5088e32510ca45bc491e4033bbb0f6bbb733bc0c7b7f5e30",
+            EXECUTOR_KEY,
             "set",
             r#"{"key":"k","value":"v"}"#,
             7,
@@ -413,9 +482,9 @@ mod merod_parity {
 
         let hex = v["warrant"].as_str().expect("warrant is a hex string");
 
-        // 287 for these inputs: v1 was 240 and fixed-width, v2 is variable
+        // 319 for these inputs: v1 was 240 and fixed-width, v2 is variable
         // because `method` is a string and each head list a vector.
-        assert_eq!(hex.len() / 2, 287, "wire length moved");
+        assert_eq!(hex.len() / 2, 319, "wire length moved");
         assert!(
             hex.starts_with(V2_PREFIX),
             "the v2 layout moved\n  expected prefix: {V2_PREFIX}\n  got:             {hex}"

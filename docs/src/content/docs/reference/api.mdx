@@ -72,15 +72,17 @@ A few shapes are stable enough to document here (keys as returned):
   node name.
 - `get_token_cache_dir() -> str` — the base token-cache directory
   (`~/.merobox/auth_cache`).
-- `sign_warrant(context_id, executor, method, args, nonce, device_secret,
-  credential, valid_for=300) -> dict` — mint a warrant authorising `executor` to
-  run `method(args)` on the signer's behalf. Contacts nothing: it signs with
-  `device_secret` and returns bytes, which is the point — the key that signs a
+- `sign_warrant(context_id, executor, executor_key, method, args, nonce,
+  device_secret, credential, valid_for=300) -> dict` - mint a warrant
+  authorising `executor` to run `method(args)` on the signer's behalf, spendable
+  only by its device `executor_key`. Contacts nothing: it signs with
+  `device_secret` and returns bytes, which is the point - the key that signs a
   warrant must never reach the node that runs the request. Returns `warrant`
   (hex, ready for `perform_intent`), plus `authorAccount`, `authorDeviceKey`,
-  `intentHash`, `nonce` and `notAfter`. `context_id` is base58 and `executor` is
-  hex; the author's account is read out of `credential` rather than taken as an
-  argument, so it cannot disagree with the key that signs.
+  `intentHash`, `nonce` and `notAfter`. Every id is 64 hex; read `executor` and
+  `executor_key` from the relay's `get_intent_relay`. The author's account is
+  read out of `credential` rather than taken as an argument, so it cannot
+  disagree with the key that signs.
 
 ## `ConnectionInfo`
 
@@ -205,12 +207,16 @@ Constructed via `create_client(connection)` or `Client(connection)`.
 
 ### Delegated authorship
 
+- `get_intent_relay(context_id)` - ask what a warrant for this node must name,
+  before signing one. Its `data` carries `executorAccount` and `executorKey`
+  (the `executor` and `executor_key` for `sign_warrant`) and
+  `canAuthorOnBehalf`, whether the node may act here at all.
 - `perform_intent(context_id, method, args, warrant, author_proof)` — ask this
   node to run one method on a member's behalf, under a warrant that member
   signed. Supply only the author's half: the warrant and the proof that its
   signing key is a device of the account it names. The node attaches its own
-  credential, so a caller never learns which of its processes runs the intent,
-  and the node re-keying does not void a warrant already issued.
+  credential, and refuses with a `403` a warrant naming another account or
+  device key.
 
   Mint the warrant with `sign_warrant`, which needs no connection. A warrant is
   single-use — presenting a spent one is refused with a `403` — and the write is
