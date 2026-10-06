@@ -28,7 +28,7 @@
 use calimero_account::{AccountId, AccountProof, DeviceCert, Warrant, WarrantTerms};
 use calimero_primitives::application::ApplicationId;
 use calimero_primitives::context::ContextId;
-use calimero_primitives::identity::PrivateKey;
+use calimero_primitives::identity::{PrivateKey, PublicKey};
 use pyo3::prelude::*;
 
 use crate::utils::{canonical_args, json_to_python};
@@ -46,7 +46,8 @@ fn parse_secret(raw: &str) -> Result<PrivateKey, String> {
     Ok(PrivateKey::from(bytes))
 }
 
-/// Sign a warrant authorising `executor` to run `method(args)` in `context_id`.
+/// Sign a warrant authorising `executor` to run `method(args)` in `context_id`,
+/// spendable only by its device `executor_key`.
 ///
 /// Returns a dict carrying the warrant plus the facts a caller needs alongside
 /// it — the author's account (which has to be a member before the write is
@@ -54,10 +55,9 @@ fn parse_secret(raw: &str) -> Result<PrivateKey, String> {
 /// out of the credential rather than taken as arguments, because a caller
 /// passing them separately is a caller that can pass them inconsistently.
 ///
-/// Both `context_id` and `executor` are 64 hex characters. There used to be an
-/// asymmetry here — base58 for the context, hex for the account — and it was
-/// core's rather than this binding's; core removed it, so this follows. Nothing
-/// in the shape of either argument distinguishes them any more.
+/// `context_id`, `executor` and `executor_key` are 64 hex characters, so nothing
+/// in their shape tells them apart. The relay's `get_intent_relay` reports the
+/// last two.
 #[pyfunction]
 #[pyo3(signature = (
     context_id,
@@ -115,7 +115,7 @@ pub fn sign_warrant(
 fn build_warrant(
     context_id: &str,
     executor: &str,
-    _executor_key: &str,
+    executor_key: &str,
     method: &str,
     args: &str,
     nonce: u64,
@@ -132,6 +132,11 @@ fn build_warrant(
         .trim()
         .parse()
         .map_err(|e| format!("executor '{executor}' is not a valid account id: {e}"))?;
+
+    let executor_key: PublicKey = executor_key
+        .trim()
+        .parse()
+        .map_err(|e| format!("executor_key '{executor_key}' is not a valid public key: {e}"))?;
 
     let device_sk = parse_secret(device_secret)?;
 
@@ -164,9 +169,9 @@ fn build_warrant(
 
     let intent_hash = Warrant::intent_hash(method, &args_bytes);
 
-    // Warrant v2 (core#3933) added `app_version`, the plaintext `method` and two
+    // Warrant v2 added `app_version`, the plaintext `method` and two
     // cited-head lists, and `sign` now takes them as a named struct rather than
-    // as positional arguments -- eleven of which four are `[u8; 32]`.
+    // as positional arguments -- twelve of which four are `[u8; 32]`.
     //
     // Three of those fields are defaulted here, and each default is the honest
     // answer for this binding rather than a placeholder:
@@ -187,6 +192,7 @@ fn build_warrant(
             context,
             author_account: proof.statement.account,
             executor: executor_account,
+            executor_key,
             app_version: ApplicationId::from([0; 32]),
             method: method.to_owned(),
             intent_hash,

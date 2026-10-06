@@ -1774,14 +1774,39 @@ impl PyClient {
             Self::to_python(py, result)
         })
     }
+
+    /// Ask what a warrant for this node must name, and whether it may act here.
+    ///
+    /// Its `data` carries `executorAccount` and `executorKey`, the `executor`
+    /// and `executor_key` `sign_warrant` needs, plus `canAuthorOnBehalf`.
+    pub fn get_intent_relay(&self, context_id: &str) -> PyResult<PyObject> {
+        let inner = self.inner.clone();
+        let context_id = context_id
+            .trim()
+            .parse::<ContextId>()
+            .map_err(|e| {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "Invalid context ID '{}': {}",
+                    context_id, e
+                ))
+            })?
+            .to_string();
+
+        Python::with_gil(|py| {
+            let result = self
+                .runtime
+                .block_on(async move { inner.get_intent_relay(&context_id).await });
+            Self::to_python(py, result)
+        })
+    }
+
     /// Ask this node to run one method on a member's behalf, under a warrant
     /// that member signed.
     ///
     /// The caller supplies only the author's half — the warrant and the proof
     /// that the signing key is a device of the account it names. The node
-    /// attaches its own credential, so a client never learns which of the node's
-    /// processes runs the intent, and the node re-keying does not void a warrant
-    /// already issued to it.
+    /// attaches its own credential, which must match the `executor` and
+    /// `executor_key` the warrant names.
     ///
     /// Mint the `warrant` with `sign_warrant`, which needs no connection.
     #[pyo3(signature = (context_id, method, args, warrant, author_proof))]
