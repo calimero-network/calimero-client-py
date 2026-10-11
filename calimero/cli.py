@@ -31,7 +31,7 @@ Examples:
     parser.add_argument(
         "--base-url",
         required=True,
-        help="Base URL of the node; cached tokens are only sent to the origin they were saved for",
+        help="Base URL of the node; cached tokens are only sent to the node URL they were saved for",
     )
 
     parser.add_argument(

@@ -34,9 +34,11 @@ pub fn get_cache_base_dir() -> eyre::Result<PathBuf> {
     Ok(home.join(MEROBOX_DIR).join(AUTH_CACHE_SUBDIR))
 }
 
-/// The part of a node URL its tokens are bound to: scheme, host and port.
-pub fn token_cache_origin(api_url: &Url) -> String {
-    api_url.origin().ascii_serialization()
+/// The part of a node URL its tokens are bound to: scheme, host, port and base
+/// path, so nodes mounted under one gateway stay apart.
+pub fn token_cache_base(api_url: &Url) -> String {
+    let path = api_url.path().trim_end_matches('/');
+    format!("{}{}", api_url.origin().ascii_serialization(), path)
 }
 
 /// Sanitize a node name to create a safe filesystem slug.
@@ -59,16 +61,16 @@ pub fn sanitize_node_name(node_name: &str) -> String {
 ///
 /// This ensures:
 /// - Human-readable prefix (truncated slug)
-/// - Collision-resistant suffix (SHA-256 hash prefix of origin and name)
+/// - Collision-resistant suffix (SHA-256 hash prefix of node base URL and name)
 /// - Safe filesystem characters only
-pub fn derive_token_filename(node_name: &str, origin: &str) -> String {
+pub fn derive_token_filename(node_name: &str, base: &str) -> String {
     // Create sanitized slug
     let slug = sanitize_node_name(node_name);
     let truncated_slug: String = slug.chars().take(64).collect();
 
-    // An origin never contains NUL, so the pair is unambiguous.
+    // A URL never contains NUL, so the pair is unambiguous.
     let mut hasher = Sha256::new();
-    hasher.update(origin.as_bytes());
+    hasher.update(base.as_bytes());
     hasher.update([0]);
     hasher.update(node_name.as_bytes());
     let hash_result = hasher.finalize();
@@ -93,7 +95,7 @@ fn runtime_error(e: eyre::Report) -> PyErr {
 
 /// Python-exposed function to get the token cache path for a node name at `api_url`.
 #[pyfunction]
-pub fn get_token_cache_path(node_name: &str, api_url: &str) -> PyResult<String> {
+pub fn get_token_cache_path(api_url: &str, node_name: &str) -> PyResult<String> {
     let storage = MeroboxFileStorage::new(&parse_url(api_url)?);
     let path = storage.path(node_name).map_err(runtime_error)?;
     path.to_str().map(|s| s.to_string()).ok_or_else(|| {
@@ -254,19 +256,27 @@ mod tests {
         );
     }
 
-    /// The origin is scheme, host and port: the path and a default port do not count.
+    /// A node mounted under a path behind a gateway is its own node.
     #[test]
-    fn test_origin_is_scheme_host_port() {
-        let origin = |u: &str| token_cache_origin(&Url::parse(u).unwrap());
+    fn test_base_is_origin_and_path() {
+        let base = |u: &str| token_cache_base(&Url::parse(u).unwrap());
         assert_eq!(
-            origin("https://a.example.com/admin-api"),
-            "https://a.example.com"
+            base("https://gw.example.com/tenant-a/"),
+            "https://gw.example.com/tenant-a"
         );
         assert_eq!(
-            origin("https://a.example.com:443/"),
+            base("https://gw.example.com/tenant-a"),
+            "https://gw.example.com/tenant-a"
+        );
+        assert_ne!(
+            base("https://gw.example.com/tenant-a/"),
+            base("https://gw.example.com/tenant-b/")
+        );
+        assert_eq!(
+            base("https://user:pw@a.example.com:443/?q=1#f"),
             "https://a.example.com"
         );
-        assert_eq!(origin("http://127.0.0.1:2428/x"), "http://127.0.0.1:2428");
+        assert_eq!(base("http://127.0.0.1:2428/"), "http://127.0.0.1:2428");
     }
 
     /// Test cache base directory format.

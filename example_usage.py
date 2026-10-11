@@ -96,7 +96,7 @@ def demo_token_cache_utilities():
         # Get the cache path for a specific node
         node_name = "my-production-node"
         node_url = "https://my-node.example.com:2428"
-        cache_path = calimero.get_token_cache_path(node_name, node_url)
+        cache_path = calimero.get_token_cache_path(node_url, node_name)
         print(f"Token cache path for '{node_name}': {cache_path}")
 
         # Show how different node names produce different paths
@@ -108,7 +108,7 @@ def demo_token_cache_utilities():
             "my-node",  # Same input = same output (stable)
         ]
         for name in examples:
-            path = calimero.get_token_cache_path(name, node_url)
+            path = calimero.get_token_cache_path(node_url, name)
             filename = os.path.basename(path)
             print(f"  '{name}' -> {filename}")
 

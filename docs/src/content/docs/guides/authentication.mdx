@@ -10,8 +10,8 @@ import { Steps, LinkCard, CardGrid } from '@astrojs/starlight/components';
 Local nodes usually run without authentication. Remote nodes typically require a
 JWT. The client persists tokens on disk, attaches them automatically, and
 refreshes them when they expire — keyed by the connection's
-[`node_name`](/guides/connecting/#the-node_name-parameter) and the node's origin
-(scheme, host and port of `api_url`).
+[`node_name`](/guides/connecting/#the-node_name-parameter) and the node's URL
+(scheme, host, port and base path of `api_url`; a trailing `/` does not count).
 
 ## Detecting whether auth is required
 
@@ -33,7 +33,7 @@ string raises `ValueError`.
 ## Where tokens are cached
 
 Tokens live under `~/.merobox/auth_cache/`, one JSON file per node. The filename
-is derived from `node_name` and the origin of `api_url` — a sanitized, truncated
+is derived from `node_name` and that URL — a sanitized, truncated
 slug of the name plus a short SHA-256 hash of both:
 
 ```
@@ -47,12 +47,12 @@ from calimero_client_py import get_token_cache_path, get_token_cache_dir
 
 URL = "https://my-node.example.com:2428"
 get_token_cache_dir()                      # -> ~/.merobox/auth_cache
-get_token_cache_path("prod-node-1", URL)   # -> ~/.merobox/auth_cache/prod-node-1-<hash>.json
+get_token_cache_path(URL, "prod-node-1")   # -> ~/.merobox/auth_cache/prod-node-1-<hash>.json
 ```
 
-`get_token_cache_path` is stable: the same `node_name` and origin always map to
+`get_token_cache_path` is stable: the same `node_name` and URL always map to
 the same file. That is why a stable name matters — it is how the client finds
-tokens saved in a previous session. Tokens saved for one origin are never sent
+tokens saved in a previous session. Tokens saved for one node URL are never sent
 to another, even under the same `node_name`.
 
 ## The authentication flow

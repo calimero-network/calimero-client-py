@@ -5,7 +5,7 @@ Tests for token persistence functionality.
 These tests verify:
 1. Token cache path utilities work correctly
 2. Filename derivation is stable (same input → same output)
-3. Different node names, or origins, produce different cache paths
+3. Different node names, or node URLs, produce different cache paths
 4. Cache paths are valid filesystem paths
 """
 
@@ -41,19 +41,19 @@ class TestTokenCachePathUtilities:
 
     def test_get_token_cache_path_returns_string(self):
         """Test that get_token_cache_path returns a string path."""
-        path = get_token_cache_path("test-node", NODE_URL)
+        path = get_token_cache_path(NODE_URL, "test-node")
         assert isinstance(path, str)
         assert len(path) > 0
 
     def test_get_token_cache_path_ends_with_json(self):
         """Test that cache path has .json extension."""
-        path = get_token_cache_path("test-node", NODE_URL)
+        path = get_token_cache_path(NODE_URL, "test-node")
         assert path.endswith(".json")
 
     def test_get_token_cache_path_under_cache_dir(self):
         """Test that cache path is under the cache directory."""
         cache_dir = get_token_cache_dir()
-        cache_path = get_token_cache_path("test-node", NODE_URL)
+        cache_path = get_token_cache_path(NODE_URL, "test-node")
         assert cache_path.startswith(cache_dir)
 
 
@@ -63,17 +63,17 @@ class TestFilenameDerivationStability:
     def test_same_input_same_output(self):
         """Test that the same node_name always produces the same path."""
         node_name = "my-stable-node"
-        path1 = get_token_cache_path(node_name, NODE_URL)
-        path2 = get_token_cache_path(node_name, NODE_URL)
-        path3 = get_token_cache_path(node_name, NODE_URL)
+        path1 = get_token_cache_path(NODE_URL, node_name)
+        path2 = get_token_cache_path(NODE_URL, node_name)
+        path3 = get_token_cache_path(NODE_URL, node_name)
 
         assert path1 == path2 == path3, "Same input should always produce same output"
 
     def test_different_inputs_different_outputs(self):
         """Test that different node names produce different paths."""
-        path1 = get_token_cache_path("node-alpha", NODE_URL)
-        path2 = get_token_cache_path("node-beta", NODE_URL)
-        path3 = get_token_cache_path("node-gamma", NODE_URL)
+        path1 = get_token_cache_path(NODE_URL, "node-alpha")
+        path2 = get_token_cache_path(NODE_URL, "node-beta")
+        path3 = get_token_cache_path(NODE_URL, "node-gamma")
 
         paths = {path1, path2, path3}
         assert len(paths) == 3, "Different inputs should produce different outputs"
@@ -81,8 +81,8 @@ class TestFilenameDerivationStability:
     def test_url_like_node_names(self):
         """Test that URL-like node names work and are stable."""
         node_name = "https://my-node.example.com:8080/api"
-        path1 = get_token_cache_path(node_name, NODE_URL)
-        path2 = get_token_cache_path(node_name, NODE_URL)
+        path1 = get_token_cache_path(NODE_URL, node_name)
+        path2 = get_token_cache_path(NODE_URL, node_name)
 
         assert path1 == path2, "URL-like names should be stable"
         assert path1.endswith(".json")
@@ -103,7 +103,7 @@ class TestFilenameDerivationStability:
 
         paths = []
         for name in special_names:
-            path = get_token_cache_path(name, NODE_URL)
+            path = get_token_cache_path(NODE_URL, name)
             assert isinstance(path, str)
             assert path.endswith(".json")
             # Ensure no path traversal - path should be under cache dir
@@ -118,13 +118,13 @@ class TestFilenameDerivationStability:
 
     def test_empty_string_node_name(self):
         """Test that empty string node name works."""
-        path = get_token_cache_path("", NODE_URL)
+        path = get_token_cache_path(NODE_URL, "")
         assert isinstance(path, str)
         assert path.endswith(".json")
 
     def test_same_name_at_another_origin_is_another_file(self):
-        assert get_token_cache_path("node", "https://a.example.com") != (
-            get_token_cache_path("node", "https://b.example.com")
+        assert get_token_cache_path("https://a.example.com", "node") != (
+            get_token_cache_path("https://b.example.com", "node")
         )
 
 
@@ -133,7 +133,7 @@ class TestFilenameFormat:
 
     def test_filename_contains_hash_suffix(self):
         """Test that filename contains a hash-like suffix."""
-        path = get_token_cache_path("test-node", NODE_URL)
+        path = get_token_cache_path(NODE_URL, "test-node")
         filename = os.path.basename(path)
 
         # Remove .json extension
@@ -146,7 +146,7 @@ class TestFilenameFormat:
         """Test that filename length is reasonable."""
         # Test with a very long node name
         long_name = "a" * 1000
-        path = get_token_cache_path(long_name, NODE_URL)
+        path = get_token_cache_path(NODE_URL, long_name)
         filename = os.path.basename(path)
 
         # Filename should be truncated to a reasonable length
@@ -165,7 +165,7 @@ class TestFilenameFormat:
         ]
 
         for name in test_names:
-            path = get_token_cache_path(name, NODE_URL)
+            path = get_token_cache_path(NODE_URL, name)
             filename = os.path.basename(path)
 
             # Check for invalid filesystem characters (Windows-focused)
@@ -185,7 +185,7 @@ class TestTokenCacheIntegration:
             # We can't change the cache directory, but we can verify
             # the path format is valid by creating a similar structure
             node_name = "integration-test-node"
-            path = get_token_cache_path(node_name, NODE_URL)
+            path = get_token_cache_path(NODE_URL, node_name)
             filename = os.path.basename(path)
 
             # Create a test file with the same filename in temp dir
@@ -211,7 +211,7 @@ class TestTokenCacheIntegration:
         """Test that token JSON can be round-tripped through a file."""
         with tempfile.TemporaryDirectory() as temp_dir:
             filename = os.path.basename(
-                get_token_cache_path("roundtrip-test", NODE_URL)
+                get_token_cache_path(NODE_URL, "roundtrip-test")
             )
             test_path = os.path.join(temp_dir, filename)
 
@@ -238,7 +238,7 @@ class TestTokenCacheIntegration:
     def test_remove_token_file(self):
         """Test that token files can be removed."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            filename = os.path.basename(get_token_cache_path("remove-test", NODE_URL))
+            filename = os.path.basename(get_token_cache_path(NODE_URL, "remove-test"))
             test_path = os.path.join(temp_dir, filename)
 
             # Create file
@@ -259,8 +259,8 @@ class TestNodeNameBestPractices:
     def test_stable_node_name_example(self):
         """Demonstrate that stable node names are important."""
         # Good: Use the same node_name across sessions
-        session1_path = get_token_cache_path("my-production-server", NODE_URL)
-        session2_path = get_token_cache_path("my-production-server", NODE_URL)
+        session1_path = get_token_cache_path(NODE_URL, "my-production-server")
+        session2_path = get_token_cache_path(NODE_URL, "my-production-server")
 
         assert (
             session1_path == session2_path
@@ -269,9 +269,9 @@ class TestNodeNameBestPractices:
     def test_unique_node_names_for_different_servers(self):
         """Demonstrate using unique names for different servers."""
         # Good: Different servers get different names
-        prod_path = get_token_cache_path("prod-api.example.com", NODE_URL)
-        dev_path = get_token_cache_path("dev-api.example.com", NODE_URL)
-        test_path = get_token_cache_path("test-dev-node", NODE_URL)
+        prod_path = get_token_cache_path(NODE_URL, "prod-api.example.com")
+        dev_path = get_token_cache_path(NODE_URL, "dev-api.example.com")
+        test_path = get_token_cache_path(NODE_URL, "test-dev-node")
 
         paths = {prod_path, dev_path, test_path}
         assert (
@@ -283,7 +283,7 @@ def test_save_token_cache_writes_owner_only(monkeypatch, tmp_path):
     monkeypatch.setenv("HOME", str(tmp_path))
     save_token_cache(NODE_URL, "node", JwtToken("access", refresh_token="refresh"))
 
-    path = get_token_cache_path("node", NODE_URL)
+    path = get_token_cache_path(NODE_URL, "node")
     assert path.startswith(str(tmp_path))
     with open(path, encoding="utf-8") as f:
         assert json.load(f)["access_token"] == "access"

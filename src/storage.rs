@@ -5,11 +5,13 @@
 //! ## Features
 //! - Atomic writes using temp file + rename pattern
 //! - Secure permissions (0700 for directory, 0600 for files on Unix), tightened if wider
-//! - Human-readable + collision-resistant filenames, bound to the node's origin
+//! - Human-readable + collision-resistant filenames, bound to the node's base URL
 //! - Proper error handling with context
 
+use std::collections::hash_map::RandomState;
 use std::fs;
 use std::fs::OpenOptions;
+use std::hash::BuildHasher;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
@@ -21,7 +23,7 @@ use calimero_client::JwtToken;
 use eyre::WrapErr;
 use url::Url;
 
-use crate::cache::{derive_token_filename, get_cache_base_dir, token_cache_origin};
+use crate::cache::{derive_token_filename, get_cache_base_dir, token_cache_base};
 
 const CACHE_DIR_MODE: u32 = 0o700;
 const CACHE_FILE_MODE: u32 = 0o600;
@@ -58,10 +60,10 @@ impl Drop for TempFileGuard {
     }
 }
 
-/// Disk-backed storage implementation for JWT tokens, for one node origin.
+/// Disk-backed storage implementation for JWT tokens, for one node base URL.
 #[derive(Clone)]
 pub struct MeroboxFileStorage {
-    origin: String,
+    base: String,
     /// `None` is the home cache, resolved per call so connections that never
     /// cache tokens do not need a home directory.
     dir: Option<PathBuf>,
@@ -70,7 +72,7 @@ pub struct MeroboxFileStorage {
 impl MeroboxFileStorage {
     pub fn new(api_url: &Url) -> Self {
         Self {
-            origin: token_cache_origin(api_url),
+            base: token_cache_base(api_url),
             dir: None,
         }
     }
@@ -82,7 +84,7 @@ impl MeroboxFileStorage {
     pub fn path(&self, node_name: &str) -> eyre::Result<PathBuf> {
         Ok(self
             .cache_dir()?
-            .join(derive_token_filename(node_name, &self.origin)))
+            .join(derive_token_filename(node_name, &self.base)))
     }
 
     /// Ensure the cache directory exists with secure permissions (0700 on Unix).
@@ -126,16 +128,12 @@ impl MeroboxFileStorage {
         self.ensure_cache_dir_exists()?;
 
         let cache_path = self.path(node_name)?;
-        let temp_path = cache_path.with_extension("json.tmp");
-
-        // `mode` applies only on create, so a stale temp file must not be reused.
-        match fs::remove_file(&temp_path) {
-            Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
-                return Err(e)
-                    .wrap_err_with(|| format!("Failed to remove stale temp file: {:?}", temp_path))
-            }
-            _ => {}
-        }
+        // Unique per save, so concurrent writers never share or reuse a temp file.
+        let temp_path = cache_path.with_extension(format!(
+            "json.{}.{:016x}.tmp",
+            std::process::id(),
+            RandomState::new().hash_one(())
+        ));
 
         // Create guard to ensure temp file is cleaned up on error
         let _guard = TempFileGuard::new(temp_path.clone());
@@ -255,9 +253,23 @@ fn restrict_mode(path: &Path, mode: u32) -> eyre::Result<()> {
         .mode();
     if current & 0o077 != 0 {
         fs::set_permissions(path, fs::Permissions::from_mode(mode))
-            .wrap_err_with(|| format!("Failed to restrict permissions on {:?}", path))?;
+            .map_err(|e| restrict_error(path, mode, e))?;
     }
     Ok(())
+}
+
+#[cfg(unix)]
+fn restrict_error(path: &Path, mode: u32, e: std::io::Error) -> eyre::Report {
+    let context = if e.kind() == std::io::ErrorKind::PermissionDenied {
+        format!(
+            "{:?} is accessible to other users but owned by another user, so its \
+             permissions cannot be restricted; set it to {:o} or remove it",
+            path, mode
+        )
+    } else {
+        format!("Failed to restrict permissions on {:?} to {:o}", path, mode)
+    };
+    eyre::Report::new(e).wrap_err(context)
 }
 
 #[cfg(not(unix))]
@@ -299,7 +311,7 @@ mod tests {
             .save("node", &token())
             .unwrap();
 
-        let same = storage_in(&dir, "https://node-a.example.com:2428/admin-api");
+        let same = storage_in(&dir, "https://node-a.example.com:2428/");
         assert_eq!(same.load("node").unwrap().unwrap().access_token, "access");
         let other = storage_in(&dir, "https://node-b.example.com:2428");
         assert!(other.load("node").unwrap().is_none());
@@ -332,20 +344,74 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
-    fn save_tightens_the_directory_and_ignores_a_stale_temp_file() {
+    fn save_tightens_the_directory() {
         let dir = scratch_dir("save-modes");
         let storage = storage_in(&dir, "https://node.example.com");
         let path = storage.path("node").unwrap();
         fs::create_dir_all(path.parent().unwrap()).unwrap();
         fs::set_permissions(path.parent().unwrap(), fs::Permissions::from_mode(0o755)).unwrap();
-        let temp = path.with_extension("json.tmp");
-        fs::write(&temp, "").unwrap();
-        fs::set_permissions(&temp, fs::Permissions::from_mode(0o644)).unwrap();
 
         storage.save("node", &token()).unwrap();
         assert_eq!(mode(path.parent().unwrap()), CACHE_DIR_MODE);
         assert_eq!(mode(&path), CACHE_FILE_MODE);
 
         fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn nodes_under_one_gateway_do_not_share_tokens() {
+        let dir = scratch_dir("gateway");
+        storage_in(&dir, "https://gw.example.com/tenant-a/")
+            .save("node", &token())
+            .unwrap();
+
+        assert!(storage_in(&dir, "https://gw.example.com/tenant-a")
+            .load("node")
+            .unwrap()
+            .is_some());
+        assert!(storage_in(&dir, "https://gw.example.com/tenant-b/")
+            .load("node")
+            .unwrap()
+            .is_none());
+
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn concurrent_saves_all_succeed_and_leave_a_whole_file() {
+        let dir = scratch_dir("concurrent");
+        let storage = storage_in(&dir, "https://node.example.com");
+        std::thread::scope(|s| {
+            for t in 0..4 {
+                let storage = &storage;
+                s.spawn(move || {
+                    for i in 0..100 {
+                        let access = format!("access-{t}-{}", "x".repeat(i));
+                        let token = JwtToken::with_refresh(access, "refresh".to_owned());
+                        storage.save("node", &token).unwrap();
+                    }
+                });
+            }
+        });
+
+        assert!(storage.load("node").unwrap().is_some());
+        let left = fs::read_dir(storage.path("node").unwrap().parent().unwrap())
+            .unwrap()
+            .count();
+        assert_eq!(left, 1, "no temp files are left behind");
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_file_that_cannot_be_restricted_names_the_cause() {
+        let err = restrict_error(
+            Path::new("/cache/node.json"),
+            CACHE_FILE_MODE,
+            std::io::Error::from(std::io::ErrorKind::PermissionDenied),
+        );
+        let message = format!("{:#}", err);
+        assert!(message.contains("owned by another user"), "{message}");
+        assert!(message.contains("600"), "{message}");
     }
 }

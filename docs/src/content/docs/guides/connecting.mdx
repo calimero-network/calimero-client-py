@@ -56,7 +56,7 @@ nodes it is important:
 - **Unique per node** — different remote nodes should use different names to
   avoid token collisions in the cache.
 
-Cached tokens are also bound to the origin (scheme, host and port) of `api_url`,
+Cached tokens are also bound to `api_url` (scheme, host, port and base path),
 so the same `node_name` pointed at another URL starts with no tokens.
 
 ```python
