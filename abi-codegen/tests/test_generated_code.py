@@ -29,6 +29,9 @@ BASE_ABI = {
 }
 
 
+REFUSED = "cannot be used as a name in generated code"
+
+
 def _payload(marker: Path) -> str:
     return f"__import__('pathlib').Path({str(marker)!r}).touch()"
 
@@ -82,7 +85,9 @@ SITES = {
 
 
 @pytest.mark.parametrize("site", SITES)
-@pytest.mark.parametrize("kind", ["code", "keyword", "empty"])
+@pytest.mark.parametrize(
+    "kind", ["code", "keyword", "empty", "dunder", "underscore", "non-ascii"]
+)
 def test_unsafe_name_is_refused(tmp_path, site, kind):
     marker = tmp_path / "marker"
     name = {
@@ -90,17 +95,58 @@ def test_unsafe_name_is_refused(tmp_path, site, kind):
         "code": f"A:\n    pass\n{_payload(marker)}\nclass B",
         "keyword": "class",
         "empty": "",
+        "dunder": "__class__",
+        "underscore": "_x",
+        # NFKC-normalises to "fix" as an identifier but not inside a literal.
+        "non-ascii": "\ufb01x",
     }[kind]
     abi = copy.deepcopy(BASE_ABI)
     SITES[site](abi, name)
 
-    with pytest.raises(ValueError, match="not a valid Python identifier"):
+    with pytest.raises(ValueError, match=REFUSED):
         _import_generated(tmp_path, abi)
     assert not marker.exists()
 
 
+@pytest.mark.parametrize(
+    "site, name",
+    [
+        ("record name", "ClientError"),
+        ("variant type name", "Enum"),
+        ("record name", "json"),
+        ("method name", "client"),
+        ("param name", "self"),
+        ("param name", "json"),
+        ("param name", "args"),
+    ],
+)
+def test_name_the_generated_code_uses_is_refused(tmp_path, site, name):
+    abi = copy.deepcopy(BASE_ABI)
+    SITES[site](abi, name)
+
+    with pytest.raises(ValueError, match=REFUSED):
+        _import_generated(tmp_path, abi)
+
+
+def test_duplicate_parameter_names_are_refused(tmp_path):
+    abi = copy.deepcopy(BASE_ABI)
+    abi["methods"][0]["params"].append({"name": "key", "type": {"kind": "u32"}})
+
+    with pytest.raises(ValueError, match="duplicate parameter"):
+        _import_generated(tmp_path, abi)
+
+
+def test_record_without_fields_is_importable(tmp_path):
+    abi = copy.deepcopy(BASE_ABI)
+    abi["types"]["Empty"] = {"kind": "record", "fields": []}
+
+    module = _import_generated(tmp_path, abi)
+
+    assert module.Empty() is not None
+
+
 def test_unsafe_class_name_is_refused(tmp_path):
-    with pytest.raises(ValueError, match="not a valid Python identifier"):
+    with pytest.raises(ValueError, match=REFUSED):
         _import_generated(tmp_path, copy.deepcopy(BASE_ABI), class_name="A(object)")
 
 

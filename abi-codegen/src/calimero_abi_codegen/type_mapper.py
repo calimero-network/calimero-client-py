@@ -9,11 +9,29 @@ from typing import Dict, List, Any, Optional, Union
 from dataclasses import dataclass
 from .parser import WASMABISchema, ABIType, ABIMethod
 
+# Names the generated modules import, or read in annotations, at module level.
+MODULE_NAMES = frozenset(
+    {"Any", "Dict", "List", "Optional", "Union", "dataclass", "Enum", "json"}
+    | {"Client", "ClientError", "bool", "int", "float", "str", "bytes"}
+)
+# Attributes of the generated client class.
+CLIENT_MEMBERS = frozenset({"client", "context_id", "executor_public_key"})
+# Names a generated method body binds or reads besides its parameters.
+METHOD_LOCALS = MODULE_NAMES | {"self", "args", "result", "e"}
 
-def checked_identifier(name: Any, what: str) -> str:
+
+def checked_identifier(name: Any, what: str, reserved: frozenset = frozenset()) -> str:
     """Return `name` if it can be written into generated code as a bare name."""
-    if not isinstance(name, str) or not name.isidentifier() or keyword.iskeyword(name):
-        raise ValueError(f"{what} {name!r} is not a valid Python identifier")
+    # ASCII only: identifiers are NFKC-normalised, the repr() literals are not.
+    if (
+        not isinstance(name, str)
+        or not name.isascii()
+        or not name.isidentifier()
+        or keyword.iskeyword(name)
+        or name.startswith("_")
+        or name in reserved
+    ):
+        raise ValueError(f"{what} {name!r} cannot be used as a name in generated code")
     return name
 
 
@@ -100,7 +118,7 @@ class TypeMapper:
     def _convert_complex_type(self, abi_type: ABIType) -> str:
         """Convert a complex ABI type to Python type."""
         if abi_type.kind in ("record", "variant"):
-            return checked_identifier(abi_type.name, "type name")
+            return checked_identifier(abi_type.name, "type name", MODULE_NAMES)
         elif abi_type.kind == "alias":
             if abi_type.target:
                 return self.get_python_type(abi_type.target)
@@ -115,10 +133,12 @@ class TypeMapper:
 
         lines = [
             f"@dataclass",
-            f"class {checked_identifier(abi_type.name, 'type name')}:",
+            f"class {checked_identifier(abi_type.name, 'type name', MODULE_NAMES)}:",
         ]
 
-        if abi_type.fields:
+        if not abi_type.fields:
+            lines.append("    pass")
+        else:
             for field in abi_type.fields:
                 field_name = checked_identifier(field.get("name"), "field name")
                 field_type_ref = field.get("type", {})
@@ -135,7 +155,7 @@ class TypeMapper:
             return ""
 
         lines = [
-            f"class {checked_identifier(abi_type.name, 'type name')}(Enum):",
+            f"class {checked_identifier(abi_type.name, 'type name', MODULE_NAMES)}(Enum):",
         ]
 
         if abi_type.variants:
@@ -148,10 +168,18 @@ class TypeMapper:
     def get_method_signature(self, method: ABIMethod) -> str:
         """Generate Python method signature for an ABI method."""
         params = ["self"]
+        seen = set()
 
         # Add method parameters
         for param in method.params:
-            param_name = checked_identifier(param.get("name"), "parameter name")
+            param_name = checked_identifier(
+                param.get("name"), "parameter name", METHOD_LOCALS
+            )
+            if param_name in seen:
+                raise ValueError(
+                    f"duplicate parameter {param_name!r} in {method.name!r}"
+                )
+            seen.add(param_name)
             param_type_ref = param.get("type", {})
             param_nullable = param.get("nullable", False)
             param_python_type = self.get_python_type(param_type_ref, param_nullable)
@@ -165,21 +193,23 @@ class TypeMapper:
             )
             return_type = return_python_type
 
-        method_name = checked_identifier(method.name, "method name")
+        method_name = checked_identifier(method.name, "method name", CLIENT_MEMBERS)
         return f"def {method_name}({', '.join(params)}) -> {return_type}:"
 
     def get_method_docstring(self, method: ABIMethod) -> str:
         """Generate docstring for a method."""
         lines = [
             f'        """',
-            f"        {checked_identifier(method.name, 'method name')} method from ABI",
+            f"        {checked_identifier(method.name, 'method name', CLIENT_MEMBERS)} method from ABI",
         ]
 
         if method.params:
             lines.append("        ")
             lines.append("        Args:")
             for param in method.params:
-                param_name = checked_identifier(param.get("name"), "parameter name")
+                param_name = checked_identifier(
+                    param.get("name"), "parameter name", METHOD_LOCALS
+                )
                 param_type_ref = param.get("type", {})
                 param_python_type = self.get_python_type(
                     param_type_ref, param.get("nullable", False)

@@ -7,7 +7,13 @@ Generates Python client code from WASM ABI schemas.
 from typing import Dict, List, Any, Optional
 from pathlib import Path
 from .parser import WASMABISchema, ABIMethod, ABIType
-from .type_mapper import TypeMapper, checked_identifier
+from .type_mapper import (
+    CLIENT_MEMBERS,
+    METHOD_LOCALS,
+    MODULE_NAMES,
+    TypeMapper,
+    checked_identifier,
+)
 
 
 class ClientGenerator:
@@ -48,7 +54,7 @@ class ClientGenerator:
 
     def generate_client_file(self, class_name: str = "ABIClient") -> str:
         """Generate the main client file."""
-        class_name = checked_identifier(class_name, "class name")
+        class_name = checked_identifier(class_name, "class name", MODULE_NAMES)
         lines = [
             '"""Generated client from WASM ABI schema"""',
             "",
@@ -80,7 +86,7 @@ class ClientGenerator:
     def _generate_method(self, method: ABIMethod) -> str:
         """Generate a single method implementation."""
         lines = []
-        method_name = checked_identifier(method.name, "method name")
+        method_name = checked_identifier(method.name, "method name", CLIENT_MEMBERS)
 
         # Method signature
         signature = self.type_mapper.get_method_signature(method)
@@ -95,7 +101,7 @@ class ClientGenerator:
 
         # Build parameters for the call
         param_names = [
-            checked_identifier(param.get("name"), "parameter name")
+            checked_identifier(param.get("name"), "parameter name", METHOD_LOCALS)
             for param in method.params
         ]
 
@@ -138,7 +144,7 @@ class ClientGenerator:
 
     def generate_init_file(self, class_name: str = "ABIClient") -> str:
         """Generate __init__.py file."""
-        class_name = checked_identifier(class_name, "class name")
+        class_name = checked_identifier(class_name, "class name", MODULE_NAMES)
         lines = [
             '"""Generated ABI client package"""',
             "",
@@ -151,7 +157,9 @@ class ClientGenerator:
 
         # Add all type names
         for type_name in self.schema.types.keys():
-            lines.append(f"    {checked_identifier(type_name, 'type name')!r},")
+            lines.append(
+                f"    {checked_identifier(type_name, 'type name', MODULE_NAMES)!r},"
+            )
 
         lines.extend(
             [
