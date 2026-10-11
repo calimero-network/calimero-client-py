@@ -57,6 +57,18 @@ impl PyJwtToken {
     }
 }
 
+impl From<PyJwtToken> for JwtToken {
+    fn from(token: PyJwtToken) -> Self {
+        let mut core = JwtToken::new(token.access_token);
+        core.refresh_token = token.refresh_token;
+        // Without an explicit expiry, keep the one `new` read from the JWT.
+        if token.expires_at.is_some() {
+            core.expires_at = token.expires_at;
+        }
+        core
+    }
+}
+
 impl From<JwtToken> for PyJwtToken {
     fn from(token: JwtToken) -> Self {
         // Cloned, not moved: `JwtToken` implements `Drop` upstream (it wipes the

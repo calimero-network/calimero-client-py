@@ -10,7 +10,8 @@ import { Steps, LinkCard, CardGrid } from '@astrojs/starlight/components';
 Local nodes usually run without authentication. Remote nodes typically require a
 JWT. The client persists tokens on disk, attaches them automatically, and
 refreshes them when they expire — keyed by the connection's
-[`node_name`](/guides/connecting/#the-node_name-parameter).
+[`node_name`](/guides/connecting/#the-node_name-parameter) and the node's origin
+(scheme, host and port of `api_url`).
 
 ## Detecting whether auth is required
 
@@ -32,58 +33,53 @@ string raises `ValueError`.
 ## Where tokens are cached
 
 Tokens live under `~/.merobox/auth_cache/`, one JSON file per node. The filename
-is derived from `node_name` — a sanitized, truncated slug plus a short SHA-256
-hash for collision resistance:
+is derived from `node_name` and the origin of `api_url` — a sanitized, truncated
+slug of the name plus a short SHA-256 hash of both:
 
 ```
 ~/.merobox/auth_cache/{slug}-{hash}.json
 ```
 
-Two helpers expose these paths so your application can write the initial tokens
-to the right place:
+Two helpers expose these paths:
 
 ```python
 from calimero_client_py import get_token_cache_path, get_token_cache_dir
 
-get_token_cache_dir()                 # -> ~/.merobox/auth_cache
-get_token_cache_path("prod-node-1")   # -> ~/.merobox/auth_cache/prod-node-1-<hash>.json
+URL = "https://my-node.example.com:2428"
+get_token_cache_dir()                      # -> ~/.merobox/auth_cache
+get_token_cache_path("prod-node-1", URL)   # -> ~/.merobox/auth_cache/prod-node-1-<hash>.json
 ```
 
-`get_token_cache_path` is stable: the same `node_name` always maps to the same
-file. That is why a stable name matters — it is how the client finds tokens
-saved in a previous session.
+`get_token_cache_path` is stable: the same `node_name` and origin always map to
+the same file. That is why a stable name matters — it is how the client finds
+tokens saved in a previous session. Tokens saved for one origin are never sent
+to another, even under the same `node_name`.
 
 ## The authentication flow
 
 <Steps>
 
 1. **Obtain tokens** through your node's auth endpoint (handled by your
-   application, e.g. merobox) and **write them** to the cache path for the
-   node's `node_name`:
+   application, e.g. merobox) and **save them** for the node's URL and
+   `node_name`:
 
    ```python
-   import json, os
-   from calimero_client_py import get_token_cache_path
+   from calimero_client_py import JwtToken, save_token_cache
 
+   NODE_URL = "https://my-node.example.com:2428"
    NODE_NAME = "prod-node-1"  # keep this stable
-   path = get_token_cache_path(NODE_NAME)
-   os.makedirs(os.path.dirname(path), exist_ok=True)
-   with open(path, "w") as f:
-       json.dump({
-           "access_token": access_token,
-           "refresh_token": refresh_token,
-           "expires_at": expires_at,
-       }, f)
+   save_token_cache(NODE_URL, NODE_NAME,
+                    JwtToken(access_token, refresh_token=refresh_token,
+                             expires_at=expires_at))
    ```
 
-2. **Connect with the same `node_name`.** The client loads the cached tokens and
-   attaches an `Authorization: Bearer …` header to every request:
+2. **Connect with the same URL and `node_name`.** The client loads the cached
+   tokens and attaches an `Authorization: Bearer …` header to every request:
 
    ```python
    from calimero_client_py import create_connection, create_client
 
-   connection = create_connection(api_url="https://my-node.example.com:2428",
-                                  node_name=NODE_NAME)
+   connection = create_connection(api_url=NODE_URL, node_name=NODE_NAME)
    client = create_client(connection)
    contexts = client.list_contexts()  # authenticated automatically
    ```
@@ -94,7 +90,8 @@ saved in a previous session.
 </Steps>
 
 :::note
-On Unix the cache file is written with restrictive `0600` permissions. The
+On Unix the cache directory is `0700` and each cache file `0600`; the client
+tightens a wider directory or file when it next reads or writes it. The
 directory name `.merobox` is shared with the merobox tooling — the same cache is
 reused when both run as the same user.
 :::

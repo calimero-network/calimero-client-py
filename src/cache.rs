@@ -5,8 +5,14 @@
 
 use std::path::PathBuf;
 
+use calimero_client::JwtToken;
+use eyre::OptionExt;
 use pyo3::prelude::*;
 use sha2::{Digest, Sha256};
+use url::Url;
+
+use crate::storage::MeroboxFileStorage;
+use crate::token::PyJwtToken;
 
 // ============================================================================
 // Constants
@@ -22,11 +28,15 @@ pub const MEROBOX_DIR: &str = ".merobox";
 
 /// Get the base directory for token cache files.
 /// Returns `~/.merobox/auth_cache/`
-pub fn get_cache_base_dir() -> PathBuf {
-    dirs::home_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join(MEROBOX_DIR)
-        .join(AUTH_CACHE_SUBDIR)
+pub fn get_cache_base_dir() -> eyre::Result<PathBuf> {
+    // No fallback to the working directory: it may be shared or committed.
+    let home = dirs::home_dir().ok_or_eyre("no home directory to keep the token cache in")?;
+    Ok(home.join(MEROBOX_DIR).join(AUTH_CACHE_SUBDIR))
+}
+
+/// The part of a node URL its tokens are bound to: scheme, host and port.
+pub fn token_cache_origin(api_url: &Url) -> String {
+    api_url.origin().ascii_serialization()
 }
 
 /// Sanitize a node name to create a safe filesystem slug.
@@ -49,15 +59,17 @@ pub fn sanitize_node_name(node_name: &str) -> String {
 ///
 /// This ensures:
 /// - Human-readable prefix (truncated slug)
-/// - Collision-resistant suffix (SHA-256 hash prefix)
+/// - Collision-resistant suffix (SHA-256 hash prefix of origin and name)
 /// - Safe filesystem characters only
-pub fn derive_token_filename(node_name: &str) -> String {
+pub fn derive_token_filename(node_name: &str, origin: &str) -> String {
     // Create sanitized slug
     let slug = sanitize_node_name(node_name);
     let truncated_slug: String = slug.chars().take(64).collect();
 
-    // Compute SHA-256 hash of the original node_name
+    // An origin never contains NUL, so the pair is unambiguous.
     let mut hasher = Sha256::new();
+    hasher.update(origin.as_bytes());
+    hasher.update([0]);
     hasher.update(node_name.as_bytes());
     let hash_result = hasher.finalize();
     let hash_hex = hex::encode(hash_result);
@@ -66,21 +78,24 @@ pub fn derive_token_filename(node_name: &str) -> String {
     format!("{}-{}.json", truncated_slug, hash_prefix)
 }
 
-/// Get the full path to the token cache file for a given node name.
-/// Returns the path as `~/.merobox/auth_cache/{slug}-{hash}.json`
-pub fn get_token_cache_path_internal(node_name: &str) -> PathBuf {
-    get_cache_base_dir().join(derive_token_filename(node_name))
+fn parse_url(api_url: &str) -> PyResult<Url> {
+    Url::parse(api_url)
+        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Invalid URL: {}", e)))
+}
+
+fn runtime_error(e: eyre::Report) -> PyErr {
+    PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("{:#}", e))
 }
 
 // ============================================================================
 // Python-exposed Functions
 // ============================================================================
 
-/// Python-exposed function to get the token cache path for a given node name.
-/// This allows Python code (e.g., merobox) to write initial tokens to the correct location.
+/// Python-exposed function to get the token cache path for a node name at `api_url`.
 #[pyfunction]
-pub fn get_token_cache_path(node_name: &str) -> PyResult<String> {
-    let path = get_token_cache_path_internal(node_name);
+pub fn get_token_cache_path(node_name: &str, api_url: &str) -> PyResult<String> {
+    let storage = MeroboxFileStorage::new(&parse_url(api_url)?);
+    let path = storage.path(node_name).map_err(runtime_error)?;
     path.to_str().map(|s| s.to_string()).ok_or_else(|| {
         PyErr::new::<pyo3::exceptions::PyValueError, _>(
             "Token cache path contains invalid UTF-8 characters",
@@ -92,12 +107,22 @@ pub fn get_token_cache_path(node_name: &str) -> PyResult<String> {
 /// Returns `~/.merobox/auth_cache/`
 #[pyfunction]
 pub fn get_token_cache_dir() -> PyResult<String> {
-    let path = get_cache_base_dir();
+    let path = get_cache_base_dir().map_err(runtime_error)?;
     path.to_str().map(|s| s.to_string()).ok_or_else(|| {
         PyErr::new::<pyo3::exceptions::PyValueError, _>(
             "Token cache directory path contains invalid UTF-8 characters",
         )
     })
+}
+
+/// Save tokens where a connection to `api_url` named `node_name` loads them,
+/// owner-only on Unix. This is how an application seeds the cache.
+#[pyfunction]
+pub fn save_token_cache(api_url: &str, node_name: &str, token: PyJwtToken) -> PyResult<()> {
+    let storage = MeroboxFileStorage::new(&parse_url(api_url)?);
+    storage
+        .save(node_name, &JwtToken::from(token))
+        .map_err(runtime_error)
 }
 
 // ============================================================================
@@ -108,14 +133,16 @@ pub fn get_token_cache_dir() -> PyResult<String> {
 mod tests {
     use super::*;
 
+    const ORIGIN: &str = "https://node.example.com:2428";
+
     /// Test that filename derivation is stable (same input → same output).
     #[test]
     fn test_filename_derivation_stability() {
         let node_name = "https://my-node.example.com:8080";
 
-        let filename1 = derive_token_filename(node_name);
-        let filename2 = derive_token_filename(node_name);
-        let filename3 = derive_token_filename(node_name);
+        let filename1 = derive_token_filename(node_name, ORIGIN);
+        let filename2 = derive_token_filename(node_name, ORIGIN);
+        let filename3 = derive_token_filename(node_name, ORIGIN);
 
         assert_eq!(
             filename1, filename2,
@@ -138,7 +165,7 @@ mod tests {
             "test-dev-node",
         ]
         .into_iter()
-        .map(derive_token_filename)
+        .map(|name| derive_token_filename(name, ORIGIN))
         .collect();
 
         // Check all filenames are unique
@@ -156,7 +183,7 @@ mod tests {
     /// Test filename format is correct: {slug}-{hash}.json
     #[test]
     fn test_filename_format() {
-        let filename = derive_token_filename("test-node");
+        let filename = derive_token_filename("test-node", ORIGIN);
 
         // Should end with .json
         assert!(
@@ -186,7 +213,7 @@ mod tests {
     #[test]
     fn test_long_node_name_truncation() {
         let long_name = "a".repeat(1000);
-        let filename = derive_token_filename(&long_name);
+        let filename = derive_token_filename(&long_name, ORIGIN);
 
         // slug (max 64) + dash (1) + hash (12) + .json (5) = max 82 chars
         assert!(
@@ -214,29 +241,38 @@ mod tests {
         assert_eq!(sanitize_node_name("path/to/node"), "path_to_node");
     }
 
-    /// Test cache path derivation.
+    /// The same node name at another origin must not share a cache file.
     #[test]
-    fn test_cache_path_derivation() {
-        let path = get_token_cache_path_internal("test-node");
-
-        // Should be under the cache directory
-        let cache_dir = get_cache_base_dir();
-        assert!(
-            path.starts_with(&cache_dir),
-            "Path should be under cache directory"
+    fn test_filename_is_bound_to_origin() {
+        assert_ne!(
+            derive_token_filename("node", "https://a.example.com:2428"),
+            derive_token_filename("node", "https://b.example.com:2428"),
         );
-
-        // Should end with .json
-        assert!(
-            path.to_str().unwrap().ends_with(".json"),
-            "Path should end with .json"
+        assert_ne!(
+            derive_token_filename("node", "http://a.example.com"),
+            derive_token_filename("node", "https://a.example.com"),
         );
+    }
+
+    /// The origin is scheme, host and port: the path and a default port do not count.
+    #[test]
+    fn test_origin_is_scheme_host_port() {
+        let origin = |u: &str| token_cache_origin(&Url::parse(u).unwrap());
+        assert_eq!(
+            origin("https://a.example.com/admin-api"),
+            "https://a.example.com"
+        );
+        assert_eq!(
+            origin("https://a.example.com:443/"),
+            "https://a.example.com"
+        );
+        assert_eq!(origin("http://127.0.0.1:2428/x"), "http://127.0.0.1:2428");
     }
 
     /// Test cache base directory format.
     #[test]
     fn test_cache_base_dir() {
-        let cache_dir = get_cache_base_dir();
+        let cache_dir = get_cache_base_dir().unwrap();
         let path_str = cache_dir.to_str().unwrap();
 
         // Should contain .merobox and auth_cache
@@ -253,7 +289,7 @@ mod tests {
     /// Test that empty node name works (edge case).
     #[test]
     fn test_empty_node_name() {
-        let filename = derive_token_filename("");
+        let filename = derive_token_filename("", ORIGIN);
         assert!(filename.ends_with(".json"));
         assert!(filename.len() > 5); // At least "-{hash}.json"
     }
@@ -269,7 +305,7 @@ mod tests {
         ];
 
         for url in test_urls {
-            let filename = derive_token_filename(url);
+            let filename = derive_token_filename(url, ORIGIN);
             assert!(
                 filename.ends_with(".json"),
                 "URL '{}' should produce .json file",

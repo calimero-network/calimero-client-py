@@ -18,7 +18,7 @@ def main():
 Examples:
   calimero-client-py --help
   calimero-client-py --version
-  calimero-client-py --base-url https://test.merod.dev.p2p.aws.calimero.network list-contexts
+  calimero-client-py --base-url http://localhost:2428 list-contexts
         """,
     )
 
@@ -30,8 +30,8 @@ Examples:
 
     parser.add_argument(
         "--base-url",
-        default="https://test.merod.dev.p2p.aws.calimero.network",
-        help="Base URL for the Calimero server (default: https://test.merod.dev.p2p.aws.calimero.network)",
+        required=True,
+        help="Base URL of the node; cached tokens are only sent to the origin they were saved for",
     )
 
     parser.add_argument(

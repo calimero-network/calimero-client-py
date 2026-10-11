@@ -4,23 +4,27 @@
 //!
 //! ## Features
 //! - Atomic writes using temp file + rename pattern
-//! - Secure permissions (0700 for directory, 0600 for files on Unix)
-//! - Human-readable + collision-resistant filenames
+//! - Secure permissions (0700 for directory, 0600 for files on Unix), tightened if wider
+//! - Human-readable + collision-resistant filenames, bound to the node's origin
 //! - Proper error handling with context
 
 use std::fs;
 use std::fs::OpenOptions;
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[cfg(unix)]
-use std::os::unix::fs::OpenOptionsExt;
+use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 
 use calimero_client::traits::ClientStorage;
 use calimero_client::JwtToken;
 use eyre::WrapErr;
+use url::Url;
 
-use crate::cache::{get_cache_base_dir, get_token_cache_path_internal};
+use crate::cache::{derive_token_filename, get_cache_base_dir, token_cache_origin};
+
+const CACHE_DIR_MODE: u32 = 0o700;
+const CACHE_FILE_MODE: u32 = 0o600;
 
 /// Guard that ensures a temp file is cleaned up if the operation fails.
 /// The file is only removed if `commit()` is not called before drop.
@@ -54,13 +58,31 @@ impl Drop for TempFileGuard {
     }
 }
 
-/// Disk-backed storage implementation for JWT tokens.
+/// Disk-backed storage implementation for JWT tokens, for one node origin.
 #[derive(Clone)]
-pub struct MeroboxFileStorage;
+pub struct MeroboxFileStorage {
+    origin: String,
+    /// `None` is the home cache, resolved per call so connections that never
+    /// cache tokens do not need a home directory.
+    dir: Option<PathBuf>,
+}
 
 impl MeroboxFileStorage {
-    pub fn new() -> Self {
-        Self
+    pub fn new(api_url: &Url) -> Self {
+        Self {
+            origin: token_cache_origin(api_url),
+            dir: None,
+        }
+    }
+
+    fn cache_dir(&self) -> eyre::Result<PathBuf> {
+        self.dir.clone().map_or_else(get_cache_base_dir, Ok)
+    }
+
+    pub fn path(&self, node_name: &str) -> eyre::Result<PathBuf> {
+        Ok(self
+            .cache_dir()?
+            .join(derive_token_filename(node_name, &self.origin)))
     }
 
     /// Ensure the cache directory exists with secure permissions (0700 on Unix).
@@ -68,18 +90,19 @@ impl MeroboxFileStorage {
     /// Uses `DirBuilderExt::mode` on Unix to create with correct permissions atomically,
     /// avoiding a TOCTOU race between create and set_permissions.
     fn ensure_cache_dir_exists(&self) -> eyre::Result<()> {
-        let cache_dir = get_cache_base_dir();
-        if !cache_dir.exists() {
-            Self::create_cache_dir(&cache_dir)?;
+        let cache_dir = self.cache_dir()?;
+        if cache_dir.exists() {
+            restrict_mode(&cache_dir, CACHE_DIR_MODE)
+        } else {
+            Self::create_cache_dir(&cache_dir)
         }
-        Ok(())
     }
 
     #[cfg(unix)]
     fn create_cache_dir(cache_dir: &std::path::Path) -> eyre::Result<()> {
         use std::os::unix::fs::DirBuilderExt;
         fs::DirBuilder::new()
-            .mode(0o700)
+            .mode(CACHE_DIR_MODE)
             .recursive(true)
             .create(cache_dir)
             .wrap_err_with(|| format!("Failed to create cache directory: {:?}", cache_dir))
@@ -90,29 +113,29 @@ impl MeroboxFileStorage {
         fs::create_dir_all(cache_dir)
             .wrap_err_with(|| format!("Failed to create cache directory: {:?}", cache_dir))
     }
-}
 
-impl Default for MeroboxFileStorage {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[async_trait::async_trait]
-impl ClientStorage for MeroboxFileStorage {
     /// Save JWT tokens to disk with atomic write and secure permissions.
     ///
     /// This method:
     /// 1. Ensures the cache directory exists (creating with 0700 permissions if needed)
-    /// 2. Creates a temp file with 0600 permissions (Unix) via OpenOptionsExt::mode to avoid TOCTOU
+    /// 2. Creates a fresh temp file with 0600 permissions (Unix) via OpenOptionsExt::mode
     /// 3. Writes tokens and syncs
     /// 4. Atomically renames temp file to final path
-    async fn save_tokens(&self, node_name: &str, tokens: &JwtToken) -> eyre::Result<()> {
+    pub fn save(&self, node_name: &str, tokens: &JwtToken) -> eyre::Result<()> {
         // Ensure directory exists with proper permissions
         self.ensure_cache_dir_exists()?;
 
-        let cache_path = get_token_cache_path_internal(node_name);
+        let cache_path = self.path(node_name)?;
         let temp_path = cache_path.with_extension("json.tmp");
+
+        // `mode` applies only on create, so a stale temp file must not be reused.
+        match fs::remove_file(&temp_path) {
+            Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
+                return Err(e)
+                    .wrap_err_with(|| format!("Failed to remove stale temp file: {:?}", temp_path))
+            }
+            _ => {}
+        }
 
         // Create guard to ensure temp file is cleaned up on error
         let _guard = TempFileGuard::new(temp_path.clone());
@@ -126,10 +149,10 @@ impl ClientStorage for MeroboxFileStorage {
         {
             #[allow(unused_mut)] // mut needed on Unix for mode() call
             let mut opts = OpenOptions::new();
-            opts.write(true).create(true).truncate(true);
+            opts.write(true).create_new(true);
             #[cfg(unix)]
             {
-                opts.mode(0o600);
+                opts.mode(CACHE_FILE_MODE);
             }
             let mut file = opts
                 .open(&temp_path)
@@ -154,19 +177,22 @@ impl ClientStorage for MeroboxFileStorage {
         Ok(())
     }
 
-    /// Load JWT tokens from disk.
+    /// Load JWT tokens from disk, first tightening a directory or file left wider
+    /// than owner-only.
     ///
     /// Returns:
     /// - `Ok(Some(tokens))` if file exists and is valid JSON
     /// - `Ok(None)` if file does not exist
     /// - `Err(...)` if file exists but cannot be read or parsed
-    async fn load_tokens(&self, node_name: &str) -> eyre::Result<Option<JwtToken>> {
-        let cache_path = get_token_cache_path_internal(node_name);
+    fn load(&self, node_name: &str) -> eyre::Result<Option<JwtToken>> {
+        let cache_path = self.path(node_name)?;
 
         // If file doesn't exist, return None (not an error)
         if !cache_path.exists() {
             return Ok(None);
         }
+        restrict_mode(&self.cache_dir()?, CACHE_DIR_MODE)?;
+        restrict_mode(&cache_path, CACHE_FILE_MODE)?;
 
         // Read and deserialize
         let json = fs::read_to_string(&cache_path).wrap_err_with(|| {
@@ -187,11 +213,8 @@ impl ClientStorage for MeroboxFileStorage {
     }
 
     /// Remove the token file for a given node.
-    ///
-    /// This overrides the default trait implementation which would save an "empty token".
-    /// Instead, we delete the file entirely.
-    async fn remove_tokens(&self, node_name: &str) -> eyre::Result<()> {
-        let cache_path = get_token_cache_path_internal(node_name);
+    fn remove(&self, node_name: &str) -> eyre::Result<()> {
+        let cache_path = self.path(node_name)?;
 
         // Only try to remove if file exists
         if cache_path.exists() {
@@ -204,5 +227,125 @@ impl ClientStorage for MeroboxFileStorage {
         }
 
         Ok(())
+    }
+}
+
+#[async_trait::async_trait]
+impl ClientStorage for MeroboxFileStorage {
+    async fn save_tokens(&self, node_name: &str, tokens: &JwtToken) -> eyre::Result<()> {
+        self.save(node_name, tokens)
+    }
+
+    async fn load_tokens(&self, node_name: &str) -> eyre::Result<Option<JwtToken>> {
+        self.load(node_name)
+    }
+
+    /// Overrides the default, which would save an "empty token": the file is deleted.
+    async fn remove_tokens(&self, node_name: &str) -> eyre::Result<()> {
+        self.remove(node_name)
+    }
+}
+
+/// Clear any group or other bits on `path`, leaving at most `mode`.
+#[cfg(unix)]
+fn restrict_mode(path: &Path, mode: u32) -> eyre::Result<()> {
+    let current = fs::metadata(path)
+        .wrap_err_with(|| format!("Failed to stat {:?}", path))?
+        .permissions()
+        .mode();
+    if current & 0o077 != 0 {
+        fs::set_permissions(path, fs::Permissions::from_mode(mode))
+            .wrap_err_with(|| format!("Failed to restrict permissions on {:?}", path))?;
+    }
+    Ok(())
+}
+
+#[cfg(not(unix))]
+fn restrict_mode(_path: &Path, _mode: u32) -> eyre::Result<()> {
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A storage for `url` rooted in a fresh directory under the system temp dir.
+    fn storage_in(dir: &Path, url: &str) -> MeroboxFileStorage {
+        MeroboxFileStorage {
+            dir: Some(dir.join("auth_cache")),
+            ..MeroboxFileStorage::new(&Url::parse(url).unwrap())
+        }
+    }
+
+    fn scratch_dir(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "calimero-client-py-{}-{}",
+            name,
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    fn token() -> JwtToken {
+        JwtToken::with_refresh("access".to_owned(), "refresh".to_owned())
+    }
+
+    #[test]
+    fn tokens_for_one_origin_are_not_loaded_for_another() {
+        let dir = scratch_dir("origin");
+        storage_in(&dir, "https://node-a.example.com:2428")
+            .save("node", &token())
+            .unwrap();
+
+        let same = storage_in(&dir, "https://node-a.example.com:2428/admin-api");
+        assert_eq!(same.load("node").unwrap().unwrap().access_token, "access");
+        let other = storage_in(&dir, "https://node-b.example.com:2428");
+        assert!(other.load("node").unwrap().is_none());
+
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[cfg(unix)]
+    fn mode(path: &Path) -> u32 {
+        fs::metadata(path).unwrap().permissions().mode() & 0o777
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn load_tightens_a_wider_directory_and_file() {
+        let dir = scratch_dir("load-modes");
+        let storage = storage_in(&dir, "https://node.example.com");
+        let path = storage.path("node").unwrap();
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::set_permissions(path.parent().unwrap(), fs::Permissions::from_mode(0o755)).unwrap();
+        fs::write(&path, serde_json::to_string(&token()).unwrap()).unwrap();
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o644)).unwrap();
+
+        assert!(storage.load("node").unwrap().is_some());
+        assert_eq!(mode(path.parent().unwrap()), CACHE_DIR_MODE);
+        assert_eq!(mode(&path), CACHE_FILE_MODE);
+
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn save_tightens_the_directory_and_ignores_a_stale_temp_file() {
+        let dir = scratch_dir("save-modes");
+        let storage = storage_in(&dir, "https://node.example.com");
+        let path = storage.path("node").unwrap();
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::set_permissions(path.parent().unwrap(), fs::Permissions::from_mode(0o755)).unwrap();
+        let temp = path.with_extension("json.tmp");
+        fs::write(&temp, "").unwrap();
+        fs::set_permissions(&temp, fs::Permissions::from_mode(0o644)).unwrap();
+
+        storage.save("node", &token()).unwrap();
+        assert_eq!(mode(path.parent().unwrap()), CACHE_DIR_MODE);
+        assert_eq!(mode(&path), CACHE_FILE_MODE);
+
+        fs::remove_dir_all(&dir).unwrap();
     }
 }

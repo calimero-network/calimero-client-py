@@ -23,6 +23,7 @@ from calimero_client_py import (
     AuthMode,
     get_token_cache_path,
     get_token_cache_dir,
+    save_token_cache,
 )
 
 # Re-export main types
@@ -36,4 +37,5 @@ __all__ = [
     "AuthMode",
     "get_token_cache_path",
     "get_token_cache_dir",
+    "save_token_cache",
 ]

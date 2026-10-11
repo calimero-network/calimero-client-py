@@ -15,6 +15,8 @@ import pytest
 from calimero import __version__
 import calimero.cli as cli
 
+NODE_URL = "http://localhost:2428"
+
 
 class _FakeAuthMode:
     def __init__(self, value):
@@ -57,7 +59,9 @@ def patched(monkeypatch):
 
 
 def _run(monkeypatch, *argv):
-    monkeypatch.setattr(sys, "argv", ["calimero-client-py", *argv])
+    monkeypatch.setattr(
+        sys, "argv", ["calimero-client-py", "--base-url", NODE_URL, *argv]
+    )
     cli.main()
 
 
@@ -77,7 +81,7 @@ def test_no_command_prints_help(monkeypatch, capsys, patched):
 
 def test_list_contexts_counts_bare_list(monkeypatch, capsys, patched):
     patched["contexts"] = ["ctx-a", "ctx-b", "ctx-c"]
-    _run(monkeypatch, "--base-url", "http://localhost:2428", "list-contexts")
+    _run(monkeypatch, "list-contexts")
     assert "Found 3 contexts:" in capsys.readouterr().out
 
 
@@ -105,3 +109,14 @@ def test_auth_mode_match_does_not_warn(monkeypatch, capsys, patched):
 def test_node_name_threaded_to_connection(monkeypatch, capsys, patched):
     _run(monkeypatch, "--node-name", "prod-1", "list-contexts")
     assert patched["node_name"] == "prod-1"
+
+
+def test_base_url_is_required(monkeypatch, capsys, patched):
+    # Cached tokens are sent to whatever URL the connection names, so there is no default.
+    monkeypatch.setattr(
+        sys, "argv", ["calimero-client-py", "--node-name", "prod-1", "list-contexts"]
+    )
+    with pytest.raises(SystemExit) as exc:
+        cli.main()
+    assert exc.value.code == 2
+    assert patched["api_url"] is None

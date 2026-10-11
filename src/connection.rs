@@ -200,7 +200,7 @@ impl PyConnectionInfo {
         })?;
 
         let authenticator = CliAuthenticator::new();
-        let storage = MeroboxFileStorage::new();
+        let storage = MeroboxFileStorage::new(&url);
 
         let connection = ConnectionInfo::new(
             url,

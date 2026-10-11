@@ -45,6 +45,7 @@ fn calimero_client_py(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> 
     m.add_function(wrap_pyfunction!(client::create_client, m)?)?;
     m.add_function(wrap_pyfunction!(cache::get_token_cache_path, m)?)?;
     m.add_function(wrap_pyfunction!(cache::get_token_cache_dir, m)?)?;
+    m.add_function(wrap_pyfunction!(cache::save_token_cache, m)?)?;
     // Offline: mints a warrant from a device secret and contacts nothing.
     m.add_function(wrap_pyfunction!(warrant::sign_warrant, m)?)?;
     m.add_function(wrap_pyfunction!(request::sign_request, m)?)?;
