@@ -101,6 +101,22 @@ jobs:
       run: |
         pytest
 
+  workflow-permissions:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Check OIDC tokens are only minted inside an environment
+      run: |
+        pip install pyyaml
+        python scripts/check_oidc_jobs.py
+
   # Cargo.lock pins core, so a field core adds to a request type breaks only the
   # next lock update. This builds against core master as it is today.
   core-master:
