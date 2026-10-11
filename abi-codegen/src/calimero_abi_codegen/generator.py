@@ -7,7 +7,7 @@ Generates Python client code from WASM ABI schemas.
 from typing import Dict, List, Any, Optional
 from pathlib import Path
 from .parser import WASMABISchema, ABIMethod, ABIType
-from .type_mapper import TypeMapper
+from .type_mapper import TypeMapper, checked_identifier
 
 
 class ClientGenerator:
@@ -48,6 +48,7 @@ class ClientGenerator:
 
     def generate_client_file(self, class_name: str = "ABIClient") -> str:
         """Generate the main client file."""
+        class_name = checked_identifier(class_name, "class name")
         lines = [
             '"""Generated client from WASM ABI schema"""',
             "",
@@ -79,6 +80,7 @@ class ClientGenerator:
     def _generate_method(self, method: ABIMethod) -> str:
         """Generate a single method implementation."""
         lines = []
+        method_name = checked_identifier(method.name, "method name")
 
         # Method signature
         signature = self.type_mapper.get_method_signature(method)
@@ -92,12 +94,15 @@ class ClientGenerator:
         lines.append("        try:")
 
         # Build parameters for the call
-        param_names = [param.get("name", "unknown") for param in method.params]
+        param_names = [
+            checked_identifier(param.get("name"), "parameter name")
+            for param in method.params
+        ]
 
         if param_names:
             # Create a dict with parameter names and values
             params_dict = (
-                "{" + ", ".join([f'"{name}": {name}' for name in param_names]) + "}"
+                "{" + ", ".join([f"{name!r}: {name}" for name in param_names]) + "}"
             )
             lines.append(f"            # Prepare arguments as JSON")
             lines.append(f"            args = json.dumps({params_dict})")
@@ -108,7 +113,7 @@ class ClientGenerator:
         lines.append(f"            # Execute the ABI method")
         lines.append(f"            result = self.client.execute_function(")
         lines.append(f"                context_id=self.context_id,")
-        lines.append(f"                method='{method.name}',")
+        lines.append(f"                method={method_name!r},")
         lines.append(f"                args=args,")
         lines.append(f"                executor_public_key=self.executor_public_key")
         lines.append(f"            )")
@@ -126,13 +131,14 @@ class ClientGenerator:
 
         lines.append("        except ClientError as e:")
         lines.append(
-            f"            raise ClientError(f'Error calling {method.name}: {{e}}')"
+            f"            raise ClientError(f'Error calling {method_name}: {{e}}')"
         )
 
         return "\n".join(lines)
 
     def generate_init_file(self, class_name: str = "ABIClient") -> str:
         """Generate __init__.py file."""
+        class_name = checked_identifier(class_name, "class name")
         lines = [
             '"""Generated ABI client package"""',
             "",
@@ -140,18 +146,18 @@ class ClientGenerator:
             "from .types import *",
             "",
             "__all__ = [",
-            f'    "{class_name}",',
+            f"    {class_name!r},",
         ]
 
         # Add all type names
         for type_name in self.schema.types.keys():
-            lines.append(f'    "{type_name}",')
+            lines.append(f"    {checked_identifier(type_name, 'type name')!r},")
 
         lines.extend(
             [
                 "]",
                 "",
-                f'__version__ = "{self.schema.schema_version}"',
+                f"__version__ = {self.schema.schema_version!r}",
             ]
         )
 

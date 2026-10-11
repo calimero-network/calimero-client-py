@@ -4,9 +4,17 @@ Type Mapper for WASM ABI to Python
 Maps WASM ABI types to Python type annotations and generates dataclass definitions.
 """
 
+import keyword
 from typing import Dict, List, Any, Optional, Union
 from dataclasses import dataclass
 from .parser import WASMABISchema, ABIType, ABIMethod
+
+
+def checked_identifier(name: Any, what: str) -> str:
+    """Return `name` if it can be written into generated code as a bare name."""
+    if not isinstance(name, str) or not name.isidentifier() or keyword.iskeyword(name):
+        raise ValueError(f"{what} {name!r} is not a valid Python identifier")
+    return name
 
 
 class TypeMapper:
@@ -91,10 +99,8 @@ class TypeMapper:
 
     def _convert_complex_type(self, abi_type: ABIType) -> str:
         """Convert a complex ABI type to Python type."""
-        if abi_type.kind == "record":
-            return abi_type.name
-        elif abi_type.kind == "variant":
-            return abi_type.name
+        if abi_type.kind in ("record", "variant"):
+            return checked_identifier(abi_type.name, "type name")
         elif abi_type.kind == "alias":
             if abi_type.target:
                 return self.get_python_type(abi_type.target)
@@ -109,12 +115,12 @@ class TypeMapper:
 
         lines = [
             f"@dataclass",
-            f"class {abi_type.name}:",
+            f"class {checked_identifier(abi_type.name, 'type name')}:",
         ]
 
         if abi_type.fields:
             for field in abi_type.fields:
-                field_name = field.get("name", "unknown")
+                field_name = checked_identifier(field.get("name"), "field name")
                 field_type_ref = field.get("type", {})
                 field_nullable = field.get("nullable", False)
                 field_python_type = self.get_python_type(field_type_ref, field_nullable)
@@ -129,13 +135,13 @@ class TypeMapper:
             return ""
 
         lines = [
-            f"class {abi_type.name}(Enum):",
+            f"class {checked_identifier(abi_type.name, 'type name')}(Enum):",
         ]
 
         if abi_type.variants:
             for variant in abi_type.variants:
-                variant_name = variant.get("name", "UNKNOWN")
-                lines.append(f'    {variant_name} = "{variant_name}"')
+                variant_name = checked_identifier(variant.get("name"), "variant name")
+                lines.append(f"    {variant_name} = {variant_name!r}")
 
         return "\n".join(lines)
 
@@ -145,7 +151,7 @@ class TypeMapper:
 
         # Add method parameters
         for param in method.params:
-            param_name = param.get("name", "unknown")
+            param_name = checked_identifier(param.get("name"), "parameter name")
             param_type_ref = param.get("type", {})
             param_nullable = param.get("nullable", False)
             param_python_type = self.get_python_type(param_type_ref, param_nullable)
@@ -159,20 +165,21 @@ class TypeMapper:
             )
             return_type = return_python_type
 
-        return f"def {method.name}({', '.join(params)}) -> {return_type}:"
+        method_name = checked_identifier(method.name, "method name")
+        return f"def {method_name}({', '.join(params)}) -> {return_type}:"
 
     def get_method_docstring(self, method: ABIMethod) -> str:
         """Generate docstring for a method."""
         lines = [
             f'        """',
-            f"        {method.name} method from ABI",
+            f"        {checked_identifier(method.name, 'method name')} method from ABI",
         ]
 
         if method.params:
             lines.append("        ")
             lines.append("        Args:")
             for param in method.params:
-                param_name = param.get("name", "unknown")
+                param_name = checked_identifier(param.get("name"), "parameter name")
                 param_type_ref = param.get("type", {})
                 param_python_type = self.get_python_type(
                     param_type_ref, param.get("nullable", False)
