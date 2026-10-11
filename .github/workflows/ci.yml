@@ -114,7 +114,8 @@ jobs:
 
     - name: Check OIDC tokens are only minted inside an environment
       run: |
-        pip install pyyaml
+        pip install pyyaml pytest
+        pytest -o addopts="" scripts/test_check_oidc_jobs.py
         python scripts/check_oidc_jobs.py
 
   # Cargo.lock pins core, so a field core adds to a request type breaks only the

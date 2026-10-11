@@ -18,15 +18,22 @@ def grants_id_token(permissions) -> bool:
     return isinstance(permissions, dict) and permissions.get("id-token") == "write"
 
 
+def fixed_environment(job) -> bool:
+    """True if the job names an environment that cannot evaluate to empty."""
+    env = job.get("environment")
+    name = env.get("name") if isinstance(env, dict) else env
+    return isinstance(name, str) and name != "" and "${{" not in name
+
+
 def violations(workflow: Path) -> list:
     doc = yaml.safe_load(workflow.read_text())
     found = []
     for name, job in (doc.get("jobs") or {}).items():
         # A job without its own permissions block inherits the workflow's.
         permissions = job.get("permissions", doc.get("permissions"))
-        if grants_id_token(permissions) and not job.get("environment"):
+        if grants_id_token(permissions) and not fixed_environment(job):
             found.append(
-                f"{workflow.name}: job {name} can mint an OIDC token outside an environment"
+                f"{workflow.name}: job {name} can mint an OIDC token outside a fixed environment"
             )
     return found
 
