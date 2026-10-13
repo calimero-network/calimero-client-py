@@ -70,7 +70,37 @@ fn sort_keys(value: serde_json::Value) -> serde_json::Value {
 
 #[cfg(test)]
 mod tests {
-    use super::canonical_args;
+    use super::{canonical_args, json_to_python};
+    use pyo3::prelude::*;
+    use pyo3::types::PyFloat;
+
+    fn convert(json: &str) -> PyObject {
+        pyo3::prepare_freethreaded_python();
+        Python::with_gil(|py| json_to_python(py, &serde_json::from_str(json).unwrap()))
+    }
+
+    #[test]
+    fn integers_above_i64_max_stay_exact() {
+        for value in [u64::MAX, i64::MAX as u64 + 1] {
+            Python::with_gil(|py| {
+                let object = convert(&value.to_string()).into_bound(py);
+                assert!(
+                    !object.is_instance_of::<PyFloat>(),
+                    "{value} became a float"
+                );
+                assert_eq!(object.extract::<u64>().unwrap(), value);
+            });
+        }
+    }
+
+    #[test]
+    fn floats_stay_floats() {
+        Python::with_gil(|py| {
+            let object = convert("1.5").into_bound(py);
+            assert_eq!(object.extract::<f64>().unwrap(), 1.5);
+            assert!(object.is_instance_of::<PyFloat>());
+        });
+    }
 
     #[test]
     fn keys_are_sorted_at_every_depth() {
