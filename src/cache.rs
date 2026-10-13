@@ -80,7 +80,7 @@ pub fn derive_token_filename(node_name: &str, base: &str) -> String {
     format!("{}-{}.json", truncated_slug, hash_prefix)
 }
 
-fn parse_url(api_url: &str) -> PyResult<Url> {
+pub(crate) fn parse_url(api_url: &str) -> PyResult<Url> {
     Url::parse(api_url)
         .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Invalid URL: {}", e)))
 }

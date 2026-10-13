@@ -9,9 +9,9 @@ use calimero_client::CliAuthenticator;
 use calimero_primitives::identity::PrivateKey;
 use pyo3::prelude::*;
 use tokio::runtime::Runtime;
-use url::Url;
 
 use crate::auth::PyAuthMode;
+use crate::cache::parse_url;
 use crate::storage::MeroboxFileStorage;
 use crate::tee::{decode_32, PyTeePolicy};
 use crate::utils::json_to_python;
@@ -195,9 +195,7 @@ impl PyConnectionInfo {
                 .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))?,
         );
 
-        let url = Url::parse(api_url).map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Invalid URL: {}", e))
-        })?;
+        let url = parse_url(api_url)?;
 
         let authenticator = CliAuthenticator::new();
         let storage = MeroboxFileStorage::new(&url);

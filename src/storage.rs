@@ -209,23 +209,6 @@ impl MeroboxFileStorage {
 
         Ok(Some(tokens))
     }
-
-    /// Remove the token file for a given node.
-    fn remove(&self, node_name: &str) -> eyre::Result<()> {
-        let cache_path = self.path(node_name)?;
-
-        // Only try to remove if file exists
-        if cache_path.exists() {
-            fs::remove_file(&cache_path).wrap_err_with(|| {
-                format!(
-                    "Failed to remove token file: {:?} for node: {}",
-                    cache_path, node_name
-                )
-            })?;
-        }
-
-        Ok(())
-    }
 }
 
 #[async_trait::async_trait]
@@ -240,7 +223,19 @@ impl ClientStorage for MeroboxFileStorage {
 
     /// Overrides the default, which would save an "empty token": the file is deleted.
     async fn remove_tokens(&self, node_name: &str) -> eyre::Result<()> {
-        self.remove(node_name)
+        let cache_path = self.path(node_name)?;
+
+        // Only try to remove if file exists
+        if cache_path.exists() {
+            fs::remove_file(&cache_path).wrap_err_with(|| {
+                format!(
+                    "Failed to remove token file: {:?} for node: {}",
+                    cache_path, node_name
+                )
+            })?;
+        }
+
+        Ok(())
     }
 }
 
