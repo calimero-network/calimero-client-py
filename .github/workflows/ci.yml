@@ -118,6 +118,11 @@ jobs:
         pytest -o addopts="" scripts/test_check_oidc_jobs.py
         python scripts/check_oidc_jobs.py
 
+    - name: Check workflows are least-privilege and pinned
+      run: |
+        pytest -o addopts="" scripts/test_check_workflow_hardening.py
+        python scripts/check_workflow_hardening.py
+
   # Cargo.lock pins core, so a field core adds to a request type breaks only the
   # next lock update. This builds against core master as it is today.
   core-master:
