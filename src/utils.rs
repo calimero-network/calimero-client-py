@@ -74,16 +74,20 @@ mod tests {
     use pyo3::prelude::*;
     use pyo3::types::PyFloat;
 
-    fn convert(json: &str) -> PyObject {
+    fn with_python<R>(f: impl FnOnce(Python) -> R) -> R {
         pyo3::prepare_freethreaded_python();
-        Python::with_gil(|py| json_to_python(py, &serde_json::from_str(json).unwrap()))
+        Python::with_gil(f)
+    }
+
+    fn convert<'py>(py: Python<'py>, json: &str) -> Bound<'py, PyAny> {
+        json_to_python(py, &serde_json::from_str(json).unwrap()).into_bound(py)
     }
 
     #[test]
     fn integers_above_i64_max_stay_exact() {
         for value in [u64::MAX, i64::MAX as u64 + 1] {
-            Python::with_gil(|py| {
-                let object = convert(&value.to_string()).into_bound(py);
+            with_python(|py| {
+                let object = convert(py, &value.to_string());
                 assert!(
                     !object.is_instance_of::<PyFloat>(),
                     "{value} became a float"
@@ -95,8 +99,8 @@ mod tests {
 
     #[test]
     fn floats_stay_floats() {
-        Python::with_gil(|py| {
-            let object = convert("1.5").into_bound(py);
+        with_python(|py| {
+            let object = convert(py, "1.5");
             assert_eq!(object.extract::<f64>().unwrap(), 1.5);
             assert!(object.is_instance_of::<PyFloat>());
         });
