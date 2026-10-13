@@ -61,7 +61,10 @@ Examples:
         return
 
     # Create connection
-    connection = create_connection(api_url=args.base_url, node_name=args.node_name)
+    # An interactive tool, so a missing token is prompted for on stdin.
+    connection = create_connection(
+        api_url=args.base_url, node_name=args.node_name, interactive=True
+    )
 
     # Reconcile the expected auth mode against what the node actually requires.
     try:

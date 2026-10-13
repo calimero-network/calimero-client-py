@@ -111,6 +111,24 @@ token.expires_at     # the expiry timestamp, or None
 token.is_expired()   # True once expires_at has passed (False if unset)
 ```
 
+## When no token is stored
+
+If no usable token is cached for the node and refreshing fails, the call raises
+`RuntimeError`.
+The client never reads from stdin on its own, so a server, CI job or notebook
+cannot block on a prompt or save a token it did not ask for.
+
+An interactive tool can opt in to a prompt: with `interactive=True`, the client
+asks on stdin for an access token and an optional refresh token, then saves them
+to the token cache for later sessions.
+
+```python
+connection = create_connection(api_url="https://my-node.example.com:2428",
+                               node_name="prod-node-1", interactive=True)
+```
+
+The bundled `calimero-client-py` CLI opts in.
+
 ## Next steps
 
 <CardGrid>

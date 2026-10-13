@@ -4,7 +4,6 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use calimero_client::client::Client;
-use calimero_client::CliAuthenticator;
 use calimero_primitives::alias::Alias;
 use calimero_primitives::application::ApplicationId;
 use calimero_primitives::blobs;
@@ -16,6 +15,7 @@ use calimero_server_primitives::jsonrpc;
 use pyo3::prelude::*;
 use tokio::runtime::Runtime;
 
+use crate::auth::Authenticator;
 use crate::connection::PyConnectionInfo;
 use crate::storage::MeroboxFileStorage;
 use crate::utils::json_to_python;
@@ -23,7 +23,7 @@ use crate::utils::json_to_python;
 /// Python wrapper for Client
 #[pyclass(name = "Client")]
 pub struct PyClient {
-    inner: Arc<Client<CliAuthenticator, MeroboxFileStorage>>,
+    inner: Arc<Client<Authenticator, MeroboxFileStorage>>,
     runtime: Arc<Runtime>,
 }
 
