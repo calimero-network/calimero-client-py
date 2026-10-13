@@ -9,7 +9,6 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   build-source:
@@ -137,6 +136,8 @@ jobs:
     # release go out sdist-only would silently put that back.
     needs: [build-source, build-windows-wheel, check-version]
     if: github.ref == 'refs/heads/master' && needs.check-version.outputs.version-bumped == 'true'
+    # PyPI trusts any OIDC token from this workflow; the environment's reviewers are the gate.
+    environment: pypi
     permissions:
       contents: read
       id-token: write
@@ -178,5 +179,4 @@ jobs:
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
-        password: ${{ secrets.PYPI_API_TOKEN }}
         packages-dir: dist/
