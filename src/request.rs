@@ -186,7 +186,7 @@ mod tests {
             ),
             (
                 "expires_at",
-                build_request_sig(METHOD, PATH, SIGNER, BODY, ISSUED_AT, EXPIRES_AT + 1),
+                build_request_sig(METHOD, PATH, SIGNER, BODY, ISSUED_AT, EXPIRES_AT - 1),
             ),
         ] {
             assert_ne!(
