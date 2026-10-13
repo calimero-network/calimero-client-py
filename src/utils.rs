@@ -11,6 +11,8 @@ pub fn json_to_python(py: Python, value: &serde_json::Value) -> PyObject {
         serde_json::Value::Number(n) => {
             if let Some(i) = n.as_i64() {
                 i.into_py(py)
+            } else if let Some(u) = n.as_u64() {
+                u.into_py(py)
             } else if let Some(f) = n.as_f64() {
                 f.into_py(py)
             } else {
@@ -70,7 +72,41 @@ fn sort_keys(value: serde_json::Value) -> serde_json::Value {
 
 #[cfg(test)]
 mod tests {
-    use super::canonical_args;
+    use super::{canonical_args, json_to_python};
+    use pyo3::prelude::*;
+    use pyo3::types::PyFloat;
+
+    fn with_python<R>(f: impl FnOnce(Python) -> R) -> R {
+        pyo3::prepare_freethreaded_python();
+        Python::with_gil(f)
+    }
+
+    fn convert<'py>(py: Python<'py>, json: &str) -> Bound<'py, PyAny> {
+        json_to_python(py, &serde_json::from_str(json).unwrap()).into_bound(py)
+    }
+
+    #[test]
+    fn integers_above_i64_max_stay_exact() {
+        for value in [u64::MAX, i64::MAX as u64 + 1] {
+            with_python(|py| {
+                let object = convert(py, &value.to_string());
+                assert!(
+                    !object.is_instance_of::<PyFloat>(),
+                    "{value} became a float"
+                );
+                assert_eq!(object.extract::<u64>().unwrap(), value);
+            });
+        }
+    }
+
+    #[test]
+    fn floats_stay_floats() {
+        with_python(|py| {
+            let object = convert(py, "1.5");
+            assert_eq!(object.extract::<f64>().unwrap(), 1.5);
+            assert!(object.is_instance_of::<PyFloat>());
+        });
+    }
 
     #[test]
     fn keys_are_sorted_at_every_depth() {
