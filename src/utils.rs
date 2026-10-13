@@ -11,6 +11,8 @@ pub fn json_to_python(py: Python, value: &serde_json::Value) -> PyObject {
         serde_json::Value::Number(n) => {
             if let Some(i) = n.as_i64() {
                 i.into_py(py)
+            } else if let Some(u) = n.as_u64() {
+                u.into_py(py)
             } else if let Some(f) = n.as_f64() {
                 f.into_py(py)
             } else {
