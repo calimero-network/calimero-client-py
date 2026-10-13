@@ -32,6 +32,14 @@ jobs:
       run: |
         black --check .
 
+    # pyo3 only turns a Rust panic into a Python exception when it unwinds.
+    - name: Check the release profile unwinds
+      run: |
+        python -c "import tomllib, sys; sys.exit(tomllib.load(open('Cargo.toml', 'rb')).get('profile', {}).get('release', {}).get('panic') == 'abort')" || {
+          echo "[profile.release] must not set panic = \"abort\"" >&2
+          exit 1
+        }
+
     # Black gated the Python and nothing gated the Rust, so `src/` had already
     # drifted from rustfmt by the time this was added.
     - name: Check Rust formatting

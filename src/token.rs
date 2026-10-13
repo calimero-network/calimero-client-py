@@ -3,6 +3,13 @@
 use calimero_client::JwtToken;
 use pyo3::prelude::*;
 
+fn access_token_preview(access_token: &str) -> &str {
+    match access_token.char_indices().nth(10) {
+        Some((end, _)) => &access_token[..end],
+        None => access_token,
+    }
+}
+
 /// Python wrapper for JwtToken
 #[pyclass(name = "JwtToken")]
 #[derive(Debug, Clone)]
@@ -51,7 +58,7 @@ impl PyJwtToken {
     fn __str__(&self) -> String {
         format!(
             "JwtToken(access_token='{}...', expires_at={:?})",
-            &self.access_token[..self.access_token.len().min(10)],
+            access_token_preview(&self.access_token),
             self.expires_at
         )
     }
@@ -67,5 +74,26 @@ impl From<JwtToken> for PyJwtToken {
             refresh_token: token.refresh_token.clone(),
             expires_at: token.expires_at,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::access_token_preview;
+
+    #[test]
+    fn preview_keeps_the_first_ten_characters() {
+        assert_eq!(access_token_preview("abcdefghijklmnop"), "abcdefghij");
+        assert_eq!(access_token_preview("short"), "short");
+    }
+
+    #[test]
+    fn preview_does_not_split_a_multibyte_character() {
+        let token = "\u{65e5}".repeat(12);
+        assert_eq!(access_token_preview(&token), "\u{65e5}".repeat(10));
+        assert_eq!(
+            access_token_preview("a\u{65e5}\u{65e5}\u{65e5}\u{65e5}"),
+            "a\u{65e5}\u{65e5}\u{65e5}\u{65e5}"
+        );
     }
 }
