@@ -199,6 +199,26 @@ mod tests {
         );
     }
 
+    /// A lifetime the node would refuse is rejected here, naming the limit and the value.
+    #[test]
+    fn a_lifetime_outside_the_node_limit_is_rejected() {
+        for valid_for in [0, 301, 86_400] {
+            let err =
+                build_request_sig(METHOD, PATH, SIGNER, BODY, ISSUED_AT, ISSUED_AT + valid_for)
+                    .unwrap_err();
+            assert!(err.contains("300"), "limit not named: {err}");
+            assert!(
+                err.contains(&valid_for.to_string()),
+                "value not named: {err}"
+            );
+        }
+    }
+
+    #[test]
+    fn the_node_limit_itself_is_accepted() {
+        assert!(build_request_sig(METHOD, PATH, SIGNER, BODY, ISSUED_AT, ISSUED_AT + 300).is_ok());
+    }
+
     /// A secret that is not 32 bytes of hex is named rather than panicking
     /// somewhere inside the signer.
     #[test]
