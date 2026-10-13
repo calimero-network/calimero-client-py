@@ -45,9 +45,10 @@ def patched(monkeypatch):
     """Patch the CLI's client factories; returns state the test can tweak."""
     state = {"detected": "none", "contexts": [], "node_name": None, "api_url": None}
 
-    def fake_create_connection(api_url, node_name=None):
+    def fake_create_connection(api_url, node_name=None, interactive=False):
         state["api_url"] = api_url
         state["node_name"] = node_name
+        state["interactive"] = interactive
         return _FakeConnection(detected=state["detected"])
 
     def fake_create_client(connection):
@@ -104,6 +105,12 @@ def test_auth_mode_match_does_not_warn(monkeypatch, capsys, patched):
     patched["detected"] = "none"
     _run(monkeypatch, "--auth-mode", "none", "list-contexts")
     assert "auth-mode" not in capsys.readouterr().err.lower()
+
+
+def test_cli_prompts_for_a_missing_token(monkeypatch, capsys, patched):
+    # A library caller must opt in to the stdin prompt; the CLI is interactive.
+    _run(monkeypatch, "list-contexts")
+    assert patched["interactive"] is True
 
 
 def test_node_name_threaded_to_connection(monkeypatch, capsys, patched):
