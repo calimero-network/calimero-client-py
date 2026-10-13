@@ -7,13 +7,7 @@ Generates Python client code from WASM ABI schemas.
 from typing import Dict, List, Any, Optional
 from pathlib import Path
 from .parser import WASMABISchema, ABIMethod, ABIType
-from .type_mapper import (
-    CLIENT_MEMBERS,
-    METHOD_LOCALS,
-    MODULE_NAMES,
-    TypeMapper,
-    checked_identifier,
-)
+from .type_mapper import MODULE_NAMES, TypeMapper, checked_identifier
 
 
 class ClientGenerator:
@@ -86,7 +80,6 @@ class ClientGenerator:
     def _generate_method(self, method: ABIMethod) -> str:
         """Generate a single method implementation."""
         lines = []
-        method_name = checked_identifier(method.name, "method name", CLIENT_MEMBERS)
 
         # Method signature
         signature = self.type_mapper.get_method_signature(method)
@@ -100,10 +93,7 @@ class ClientGenerator:
         lines.append("        try:")
 
         # Build parameters for the call
-        param_names = [
-            checked_identifier(param.get("name"), "parameter name", METHOD_LOCALS)
-            for param in method.params
-        ]
+        param_names = [param.get("name") for param in method.params]
 
         if param_names:
             # Create a dict with parameter names and values
@@ -119,7 +109,7 @@ class ClientGenerator:
         lines.append(f"            # Execute the ABI method")
         lines.append(f"            result = self.client.execute_function(")
         lines.append(f"                context_id=self.context_id,")
-        lines.append(f"                method={method_name!r},")
+        lines.append(f"                method={method.name!r},")
         lines.append(f"                args=args,")
         lines.append(f"                executor_public_key=self.executor_public_key")
         lines.append(f"            )")
@@ -137,7 +127,7 @@ class ClientGenerator:
 
         lines.append("        except ClientError as e:")
         lines.append(
-            f"            raise ClientError(f'Error calling {method_name}: {{e}}')"
+            f"            raise ClientError(f'Error calling {method.name}: {{e}}')"
         )
 
         return "\n".join(lines)
@@ -157,9 +147,7 @@ class ClientGenerator:
 
         # Add all type names
         for type_name in self.schema.types.keys():
-            lines.append(
-                f"    {checked_identifier(type_name, 'type name', MODULE_NAMES)!r},"
-            )
+            lines.append(f"    {type_name!r},")
 
         lines.extend(
             [

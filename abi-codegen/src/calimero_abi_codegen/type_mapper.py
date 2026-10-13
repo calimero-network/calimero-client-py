@@ -55,6 +55,27 @@ class TypeMapper:
     def __init__(self, schema: WASMABISchema):
         self.schema = schema
         self.type_cache = {}
+        self._validate_names()
+
+    def _validate_names(self) -> None:
+        """Refuse any schema name that cannot be written into generated code."""
+        for key, abi_type in self.schema.types.items():
+            for type_name in (key, abi_type.name):
+                checked_identifier(type_name, "type name", MODULE_NAMES)
+            for field in abi_type.fields or []:
+                checked_identifier(field.get("name"), "field name")
+            for variant in abi_type.variants or []:
+                checked_identifier(variant.get("name"), "variant name")
+        for method in self.schema.methods:
+            checked_identifier(method.name, "method name", CLIENT_MEMBERS)
+            seen = set()
+            for param in method.params:
+                name = checked_identifier(
+                    param.get("name"), "parameter name", METHOD_LOCALS
+                )
+                if name in seen:
+                    raise ValueError(f"duplicate parameter {name!r} in {method.name!r}")
+                seen.add(name)
 
     def get_python_type(
         self, type_ref: Union[str, Dict[str, Any]], nullable: bool = False
@@ -118,7 +139,7 @@ class TypeMapper:
     def _convert_complex_type(self, abi_type: ABIType) -> str:
         """Convert a complex ABI type to Python type."""
         if abi_type.kind in ("record", "variant"):
-            return checked_identifier(abi_type.name, "type name", MODULE_NAMES)
+            return abi_type.name
         elif abi_type.kind == "alias":
             if abi_type.target:
                 return self.get_python_type(abi_type.target)
@@ -133,14 +154,14 @@ class TypeMapper:
 
         lines = [
             f"@dataclass",
-            f"class {checked_identifier(abi_type.name, 'type name', MODULE_NAMES)}:",
+            f"class {abi_type.name}:",
         ]
 
         if not abi_type.fields:
             lines.append("    pass")
         else:
             for field in abi_type.fields:
-                field_name = checked_identifier(field.get("name"), "field name")
+                field_name = field.get("name")
                 field_type_ref = field.get("type", {})
                 field_nullable = field.get("nullable", False)
                 field_python_type = self.get_python_type(field_type_ref, field_nullable)
@@ -155,12 +176,12 @@ class TypeMapper:
             return ""
 
         lines = [
-            f"class {checked_identifier(abi_type.name, 'type name', MODULE_NAMES)}(Enum):",
+            f"class {abi_type.name}(Enum):",
         ]
 
         if abi_type.variants:
             for variant in abi_type.variants:
-                variant_name = checked_identifier(variant.get("name"), "variant name")
+                variant_name = variant.get("name")
                 lines.append(f"    {variant_name} = {variant_name!r}")
 
         return "\n".join(lines)
@@ -168,18 +189,10 @@ class TypeMapper:
     def get_method_signature(self, method: ABIMethod) -> str:
         """Generate Python method signature for an ABI method."""
         params = ["self"]
-        seen = set()
 
         # Add method parameters
         for param in method.params:
-            param_name = checked_identifier(
-                param.get("name"), "parameter name", METHOD_LOCALS
-            )
-            if param_name in seen:
-                raise ValueError(
-                    f"duplicate parameter {param_name!r} in {method.name!r}"
-                )
-            seen.add(param_name)
+            param_name = param.get("name")
             param_type_ref = param.get("type", {})
             param_nullable = param.get("nullable", False)
             param_python_type = self.get_python_type(param_type_ref, param_nullable)
@@ -193,23 +206,20 @@ class TypeMapper:
             )
             return_type = return_python_type
 
-        method_name = checked_identifier(method.name, "method name", CLIENT_MEMBERS)
-        return f"def {method_name}({', '.join(params)}) -> {return_type}:"
+        return f"def {method.name}({', '.join(params)}) -> {return_type}:"
 
     def get_method_docstring(self, method: ABIMethod) -> str:
         """Generate docstring for a method."""
         lines = [
             f'        """',
-            f"        {checked_identifier(method.name, 'method name', CLIENT_MEMBERS)} method from ABI",
+            f"        {method.name} method from ABI",
         ]
 
         if method.params:
             lines.append("        ")
             lines.append("        Args:")
             for param in method.params:
-                param_name = checked_identifier(
-                    param.get("name"), "parameter name", METHOD_LOCALS
-                )
+                param_name = param.get("name")
                 param_type_ref = param.get("type", {})
                 param_python_type = self.get_python_type(
                     param_type_ref, param.get("nullable", False)
