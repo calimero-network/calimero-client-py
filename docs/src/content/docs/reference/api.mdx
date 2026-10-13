@@ -68,8 +68,10 @@ A few shapes are stable enough to document here (keys as returned):
   attested under `tee` or given as `transport_public_key`; see
   [TEE nodes](/guides/tee-nodes/).
 - `create_client(connection) -> Client` — build a client from a `ConnectionInfo`.
-- `get_token_cache_path(node_name) -> str` — path to the JWT cache file for a
-  node name.
+- `get_token_cache_path(api_url, node_name) -> str` — path to the JWT cache
+  file for a node name at `api_url` (origin and base path).
+- `save_token_cache(api_url, node_name, token)` — write a `JwtToken` to that
+  file, owner-only (`0600`) on Unix.
 - `get_token_cache_dir() -> str` — the base token-cache directory
   (`~/.merobox/auth_cache`).
 - `sign_warrant(context_id, executor, executor_key, release_bytecode_id,

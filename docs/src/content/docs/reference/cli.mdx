@@ -12,7 +12,7 @@ a thin wrapper for quick checks, not a full-featured CLI.
 ## Usage
 
 ```bash
-calimero-client-py [--base-url URL] [--node-name NAME] [--auth-mode {none,required}] <command>
+calimero-client-py --base-url URL [--node-name NAME] [--auth-mode {none,required}] <command>
 ```
 
 With no command, it prints help.
@@ -20,8 +20,8 @@ With no command, it prints help.
 ## Global options
 
 - `--version` — print the version and exit.
-- `--base-url URL` — the node's base URL. Defaults to
-  `https://test.merod.dev.p2p.aws.calimero.network`.
+- `--base-url URL` — the node's base URL. Required: cached tokens are only
+  sent to the node URL they were saved for.
 - `--node-name NAME` — a stable node name used to locate cached JWT tokens.
   Required for authenticated nodes (see
   [authentication](/guides/authentication/)); omit it for unauthenticated local
