@@ -84,7 +84,7 @@ strip = "symbols"
 lto = true
 codegen-units = 1
 opt-level = "z"
-panic = "abort"
+panic = "unwind"
 
 [profile.dev]
 opt-level = 0

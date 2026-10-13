@@ -4,7 +4,10 @@ use calimero_client::JwtToken;
 use pyo3::prelude::*;
 
 fn access_token_preview(access_token: &str) -> &str {
-    &access_token[..access_token.len().min(10)]
+    match access_token.char_indices().nth(10) {
+        Some((end, _)) => &access_token[..end],
+        None => access_token,
+    }
 }
 
 /// Python wrapper for JwtToken
