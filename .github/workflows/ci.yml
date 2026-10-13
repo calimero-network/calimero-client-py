@@ -56,6 +56,29 @@ jobs:
       run: |
         pytest tests/ -v --tb=short
 
+  abi-codegen:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: abi-codegen
+
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e . pytest pytest-cov
+
+    - name: Run tests
+      run: |
+        pytest
+
   # Cargo.lock pins core, so a field core adds to a request type breaks only the
   # next lock update. This builds against core master as it is today.
   core-master:

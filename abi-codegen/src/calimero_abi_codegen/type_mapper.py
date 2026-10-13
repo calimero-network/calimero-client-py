@@ -4,9 +4,35 @@ Type Mapper for WASM ABI to Python
 Maps WASM ABI types to Python type annotations and generates dataclass definitions.
 """
 
+import keyword
 from typing import Dict, List, Any, Optional, Union
 from dataclasses import dataclass
 from .parser import WASMABISchema, ABIType, ABIMethod
+
+# Names the generated modules import, or read in annotations, at module level.
+MODULE_NAMES = frozenset(
+    {"Any", "Dict", "List", "Optional", "Union", "dataclass", "Enum", "json"}
+    | {"Client", "ClientError", "bool", "int", "float", "str", "bytes"}
+)
+# Attributes of the generated client class.
+CLIENT_MEMBERS = frozenset({"client", "context_id", "executor_public_key"})
+# Names a generated method body binds or reads besides its parameters.
+METHOD_LOCALS = MODULE_NAMES | {"self", "args", "result", "e"}
+
+
+def checked_identifier(name: Any, what: str, reserved: frozenset = frozenset()) -> str:
+    """Return `name` if it can be written into generated code as a bare name."""
+    # ASCII only: identifiers are NFKC-normalised, the repr() literals are not.
+    if (
+        not isinstance(name, str)
+        or not name.isascii()
+        or not name.isidentifier()
+        or keyword.iskeyword(name)
+        or name.startswith("_")
+        or name in reserved
+    ):
+        raise ValueError(f"{what} {name!r} cannot be used as a name in generated code")
+    return name
 
 
 class TypeMapper:
@@ -29,6 +55,27 @@ class TypeMapper:
     def __init__(self, schema: WASMABISchema):
         self.schema = schema
         self.type_cache = {}
+        self._validate_names()
+
+    def _validate_names(self) -> None:
+        """Refuse any schema name that cannot be written into generated code."""
+        for key, abi_type in self.schema.types.items():
+            for type_name in (key, abi_type.name):
+                checked_identifier(type_name, "type name", MODULE_NAMES)
+            for field in abi_type.fields or []:
+                checked_identifier(field.get("name"), "field name")
+            for variant in abi_type.variants or []:
+                checked_identifier(variant.get("name"), "variant name")
+        for method in self.schema.methods:
+            checked_identifier(method.name, "method name", CLIENT_MEMBERS)
+            seen = set()
+            for param in method.params:
+                name = checked_identifier(
+                    param.get("name"), "parameter name", METHOD_LOCALS
+                )
+                if name in seen:
+                    raise ValueError(f"duplicate parameter {name!r} in {method.name!r}")
+                seen.add(name)
 
     def get_python_type(
         self, type_ref: Union[str, Dict[str, Any]], nullable: bool = False
@@ -91,9 +138,7 @@ class TypeMapper:
 
     def _convert_complex_type(self, abi_type: ABIType) -> str:
         """Convert a complex ABI type to Python type."""
-        if abi_type.kind == "record":
-            return abi_type.name
-        elif abi_type.kind == "variant":
+        if abi_type.kind in ("record", "variant"):
             return abi_type.name
         elif abi_type.kind == "alias":
             if abi_type.target:
@@ -112,9 +157,11 @@ class TypeMapper:
             f"class {abi_type.name}:",
         ]
 
-        if abi_type.fields:
+        if not abi_type.fields:
+            lines.append("    pass")
+        else:
             for field in abi_type.fields:
-                field_name = field.get("name", "unknown")
+                field_name = field.get("name")
                 field_type_ref = field.get("type", {})
                 field_nullable = field.get("nullable", False)
                 field_python_type = self.get_python_type(field_type_ref, field_nullable)
@@ -134,8 +181,8 @@ class TypeMapper:
 
         if abi_type.variants:
             for variant in abi_type.variants:
-                variant_name = variant.get("name", "UNKNOWN")
-                lines.append(f'    {variant_name} = "{variant_name}"')
+                variant_name = variant.get("name")
+                lines.append(f"    {variant_name} = {variant_name!r}")
 
         return "\n".join(lines)
 
@@ -145,7 +192,7 @@ class TypeMapper:
 
         # Add method parameters
         for param in method.params:
-            param_name = param.get("name", "unknown")
+            param_name = param.get("name")
             param_type_ref = param.get("type", {})
             param_nullable = param.get("nullable", False)
             param_python_type = self.get_python_type(param_type_ref, param_nullable)
@@ -172,7 +219,7 @@ class TypeMapper:
             lines.append("        ")
             lines.append("        Args:")
             for param in method.params:
-                param_name = param.get("name", "unknown")
+                param_name = param.get("name")
                 param_type_ref = param.get("type", {})
                 param_python_type = self.get_python_type(
                     param_type_ref, param.get("nullable", False)
