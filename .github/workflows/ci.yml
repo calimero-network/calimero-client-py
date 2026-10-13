@@ -35,7 +35,7 @@ jobs:
     # pyo3 only turns a Rust panic into a Python exception when it unwinds.
     - name: Check the release profile unwinds
       run: |
-        awk '/^\[/{release=($0=="[profile.release]")} release && /^panic[[:space:]]*=[[:space:]]*"abort"/{bad=1} END{exit bad}' Cargo.toml || {
+        python -c "import tomllib, sys; sys.exit(tomllib.load(open('Cargo.toml', 'rb')).get('profile', {}).get('release', {}).get('panic') == 'abort')" || {
           echo "[profile.release] must not set panic = \"abort\"" >&2
           exit 1
         }
