@@ -46,5 +46,4 @@ def main(paths) -> int:
 
 
 if __name__ == "__main__":
-    args = [Path(p) for p in sys.argv[1:]] or sorted(WORKFLOWS.glob("*.y*ml"))
-    sys.exit(main(args))
+    sys.exit(main(sorted(WORKFLOWS.glob("*.y*ml"))))
