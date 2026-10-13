@@ -4,6 +4,7 @@ Example usage of calimero-client-py package
 
 To use this example:
 1. Install the package: pip install calimero-client-py
+   (or from a checkout: maturin develop --release)
 2. Run this script: python example_usage.py
 
 Note: This example uses the test development node for demonstration
@@ -32,14 +33,7 @@ Example:
 For local development without authentication, node_name can be any string or None.
 """
 
-# This import will work after pip installation
-# import calimero
-
-# For development/testing, we'll use the local module
-import sys
 import os
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "calimero"))
 
 import calimero
 
