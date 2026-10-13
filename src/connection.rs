@@ -5,12 +5,11 @@ use std::sync::Arc;
 use calimero_client::connection::ConnectionInfo;
 use calimero_client::proof::RequestProofSigner;
 use calimero_client::tee::sealed::SealedTransport;
-use calimero_client::CliAuthenticator;
 use calimero_primitives::identity::PrivateKey;
 use pyo3::prelude::*;
 use tokio::runtime::Runtime;
 
-use crate::auth::PyAuthMode;
+use crate::auth::{Authenticator, PyAuthMode};
 use crate::cache::parse_url;
 use crate::storage::MeroboxFileStorage;
 use crate::tee::{decode_32, PyTeePolicy};
@@ -129,12 +128,12 @@ fn sealed_transport(
     Ok(connection.with_sealed_transport(transport))
 }
 
-type Connection = ConnectionInfo<CliAuthenticator, MeroboxFileStorage>;
+type Connection = ConnectionInfo<Authenticator, MeroboxFileStorage>;
 
 /// Python wrapper for ConnectionInfo
 #[pyclass(name = "ConnectionInfo")]
 pub struct PyConnectionInfo {
-    pub(crate) inner: Arc<ConnectionInfo<CliAuthenticator, MeroboxFileStorage>>,
+    pub(crate) inner: Arc<Connection>,
     pub(crate) runtime: Arc<Runtime>,
 }
 
@@ -164,6 +163,9 @@ impl PyConnectionInfo {
     /// `transport_public_key` (hex) verified some other way. A key or a policy
     /// without `sealed`, or `sealed` with neither, is refused rather than
     /// ignored.
+    ///
+    /// With no usable token stored, a call raises unless `interactive=True`,
+    /// which prompts on stdin for one and saves it to the token cache.
     #[new]
     #[pyo3(signature = (
         api_url,
@@ -175,6 +177,7 @@ impl PyConnectionInfo {
         tee=None,
         sealed=false,
         transport_public_key=None,
+        interactive=false,
     ))]
     #[expect(
         clippy::too_many_arguments,
@@ -189,6 +192,7 @@ impl PyConnectionInfo {
         tee: Option<PyTeePolicy>,
         sealed: bool,
         transport_public_key: Option<&str>,
+        interactive: bool,
     ) -> PyResult<Self> {
         let runtime = Arc::new(
             Runtime::new()
@@ -197,7 +201,7 @@ impl PyConnectionInfo {
 
         let url = parse_url(api_url)?;
 
-        let authenticator = CliAuthenticator::new();
+        let authenticator = Authenticator::new(interactive);
         let storage = MeroboxFileStorage::new(&url);
 
         let connection = ConnectionInfo::new(
@@ -281,6 +285,7 @@ impl PyConnectionInfo {
     tee=None,
     sealed=false,
     transport_public_key=None,
+    interactive=false,
 ))]
 #[expect(
     clippy::too_many_arguments,
@@ -295,6 +300,7 @@ pub fn create_connection(
     tee: Option<PyTeePolicy>,
     sealed: bool,
     transport_public_key: Option<&str>,
+    interactive: bool,
 ) -> PyResult<PyConnectionInfo> {
     PyConnectionInfo::new(
         api_url,
@@ -305,5 +311,6 @@ pub fn create_connection(
         tee,
         sealed,
         transport_public_key,
+        interactive,
     )
 }

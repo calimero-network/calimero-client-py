@@ -62,11 +62,12 @@ A few shapes are stable enough to document here (keys as returned):
 
 - `create_connection(api_url, node_name=None, device_credential=None,
   device_secret=None, device_session=None, *, tee=None, sealed=False,
-  transport_public_key=None) -> ConnectionInfo` — build a connection to a
+  transport_public_key=None, interactive=False) -> ConnectionInfo` — build a connection to a
   node's API URL. The device arguments sign every request with a device key.
   `sealed=True` encrypts every request to a TEE node's attested transport key,
   attested under `tee` or given as `transport_public_key`; see
-  [TEE nodes](/guides/tee-nodes/).
+  [TEE nodes](/guides/tee-nodes/). `interactive=True` prompts on stdin for a
+  missing token; see [Authentication](/guides/authentication/#when-no-token-is-stored).
 - `create_client(connection) -> Client` — build a client from a `ConnectionInfo`.
 - `get_token_cache_path(api_url, node_name) -> str` — path to the JWT cache
   file for a node name at `api_url` (origin and base path).
