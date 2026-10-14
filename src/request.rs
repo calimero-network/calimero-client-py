@@ -29,7 +29,7 @@
 //! bytes something else may change means failing for reasons the caller cannot
 //! see. Pass the path alone; anything that must be bound belongs in the body.
 
-use calimero_account::RequestSig;
+use calimero_account::{RequestSig, MAX_REQUEST_LIFETIME_SECS};
 use calimero_primitives::identity::PrivateKey;
 use pyo3::prelude::*;
 
@@ -48,7 +48,8 @@ fn parse_secret(raw: &str) -> Result<PrivateKey, String> {
 
 /// Sign the request `method path` with `body`, returning the hex encoding.
 ///
-/// `valid_for` is seconds, and short is right: the window is what bounds replay
+/// `valid_for` is seconds, from 1 to the node's 300 s limit (a `ValueError`
+/// otherwise), and short is right: the window is what bounds replay
 /// and nothing else does. A captured signature performs the identical request
 /// until it expires — the same read, or the same write with the same bytes —
 /// so a long window buys convenience at the cost of the only limit there is.
@@ -95,6 +96,13 @@ fn build_request_sig(
     issued_at: u64,
     expires_at: u64,
 ) -> Result<String, String> {
+    let valid_for = expires_at.saturating_sub(issued_at);
+    if valid_for == 0 || valid_for > MAX_REQUEST_LIFETIME_SECS {
+        return Err(format!(
+            "valid_for is {valid_for} seconds, must be between 1 and {MAX_REQUEST_LIFETIME_SECS}"
+        ));
+    }
+
     let signer = parse_secret(signer_secret)?;
 
     let sig = RequestSig::sign(&signer, method, path, body, issued_at, expires_at)
@@ -178,7 +186,7 @@ mod tests {
             ),
             (
                 "expires_at",
-                build_request_sig(METHOD, PATH, SIGNER, BODY, ISSUED_AT, EXPIRES_AT + 1),
+                build_request_sig(METHOD, PATH, SIGNER, BODY, ISSUED_AT, EXPIRES_AT - 1),
             ),
         ] {
             assert_ne!(
@@ -197,6 +205,26 @@ mod tests {
             build_request_sig("HEAD", PATH, SIGNER, BODY, ISSUED_AT, EXPIRES_AT).expect("sign"),
             build_request_sig("GET", PATH, SIGNER, BODY, ISSUED_AT, EXPIRES_AT).expect("sign"),
         );
+    }
+
+    /// A lifetime the node would refuse is rejected here, naming the limit and the value.
+    #[test]
+    fn a_lifetime_outside_the_node_limit_is_rejected() {
+        for valid_for in [0, 301, 86_400] {
+            let err =
+                build_request_sig(METHOD, PATH, SIGNER, BODY, ISSUED_AT, ISSUED_AT + valid_for)
+                    .unwrap_err();
+            assert!(err.contains("300"), "limit not named: {err}");
+            assert!(
+                err.contains(&valid_for.to_string()),
+                "value not named: {err}"
+            );
+        }
+    }
+
+    #[test]
+    fn the_node_limit_itself_is_accepted() {
+        assert!(build_request_sig(METHOD, PATH, SIGNER, BODY, ISSUED_AT, ISSUED_AT + 300).is_ok());
     }
 
     /// A secret that is not 32 bytes of hex is named rather than panicking
