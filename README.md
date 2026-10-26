@@ -58,6 +58,28 @@ See the [quickstart](https://calimero-network.github.io/calimero-client-py/get-s
 and [guides](https://calimero-network.github.io/calimero-client-py/guides/connecting/)
 for connecting, authentication, contexts, blobs, and namespaces & groups.
 
+## Calimero Cloud (release-v2)
+
+`CloudClient` talks to a release-v2 cluster (`merod-v2`). Attestation, the sealed
+channel and passkey handling run in core's Rust `calimero-cloud-client`, so Python
+applies the same trust check as every other client.
+
+```python
+from calimero_client_py import CloudClient, CloudError
+
+client = CloudClient("https://eu1.cloud.calimero.network")  # allow_mock=True for dev clusters
+client.use_api_key("cal_...")
+r = client.call(app_id, "set", {"key": "a", "value": "1"}, idempotency_key="k1")
+print(client.view(app_id, "get", {"key": "a"})["result"])
+for e in client.events(app_id, start=0, limit=10, timeout=5):
+    print(e["kind"], e["data"])
+```
+
+`SoftPasskey` is an in-memory passkey for scripts and tests against development
+clusters (`client.sign_up(SoftPasskey(), "alice")`, `client.call_confirmed(...)`).
+Errors raise `CloudError(message, status, code, details)`.
+`tests/test_cloud_v2.py` runs against a local 3-node cluster built from core's `release-v2` branch.
+
 ## CLI
 
 Installing the package puts a small `calimero-client-py` command on your `PATH`

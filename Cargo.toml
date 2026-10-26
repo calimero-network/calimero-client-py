@@ -43,6 +43,11 @@ calimero-context-config = { git = "https://github.com/calimero-network/core", br
 # reimplementation that would have to stay byte-identical with the node forever.
 calimero-account = { git = "https://github.com/calimero-network/core", branch = "master" }
 borsh = "1.5"
+# The release-v2 cloud client. It shares no types with the crates above, so
+# tracking a different branch of core does not split them.
+calimero-cloud-client = { git = "https://github.com/calimero-network/core", branch = "release-v2", features = ["testing"] }
+calimero-identity = { git = "https://github.com/calimero-network/core", branch = "release-v2", features = ["testing"] }
+futures-util = "0.3"
 
 # Python bindings
 # `extension-module` is enabled by the `python` feature below, not here.

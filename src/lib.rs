@@ -14,10 +14,12 @@
 //! - `tee` - TeePolicy, for attested transports to a TEE node
 //! - `client` - PyClient and create_client()
 //! - `utils` - JSON to Python conversion helpers
+//! - `cloud` - CloudClient, SoftPasskey, CloudError for release-v2 clusters
 
 pub mod auth;
 pub mod cache;
 pub mod client;
+pub mod cloud;
 pub mod connection;
 pub mod error;
 pub mod request;
@@ -39,6 +41,9 @@ fn calimero_client_py(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> 
     m.add_class::<error::PyClientError>()?;
     m.add_class::<auth::PyAuthMode>()?;
     m.add_class::<tee::PyTeePolicy>()?;
+    m.add_class::<cloud::PyCloudClient>()?;
+    m.add_class::<cloud::PySoftPasskey>()?;
+    m.add("CloudError", m.py().get_type_bound::<cloud::CloudError>())?;
 
     // Register functions
     m.add_function(wrap_pyfunction!(connection::create_connection, m)?)?;

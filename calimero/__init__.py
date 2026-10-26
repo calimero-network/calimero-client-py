@@ -24,6 +24,9 @@ from calimero_client_py import (
     get_token_cache_path,
     get_token_cache_dir,
     save_token_cache,
+    CloudClient,
+    CloudError,
+    SoftPasskey,
 )
 
 # Re-export main types
@@ -38,4 +41,7 @@ __all__ = [
     "get_token_cache_path",
     "get_token_cache_dir",
     "save_token_cache",
+    "CloudClient",
+    "CloudError",
+    "SoftPasskey",
 ]
