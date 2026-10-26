@@ -7,7 +7,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use calimero_cloud_client::{Client, Consistency, Error, Policy, Session};
+use calimero_cloud_client::{Client, Consistency, Error, Measurements, Policy, Session};
 use calimero_identity::testing::SoftAuthenticator;
 use futures_util::StreamExt;
 use pyo3::exceptions::PyValueError;
@@ -118,9 +118,20 @@ impl PyCloudClient {
     /// Connect to `base_url`. The node is trusted only once its attestation
     /// verifies; `allow_mock` accepts development (mock) quotes, `app_hash`
     /// (hex) pins the bundle the quote must bind.
+    ///
+    /// A real TDX quote is accepted only from an image the policy names:
+    /// `tee_profiles` admits nodes whose signed mero-tee release lists their
+    /// measurements under one of those profiles (`min_release` is a floor).
+    /// Without it, only mock quotes (`allow_mock`) can be accepted.
     #[new]
-    #[pyo3(signature = (base_url, allow_mock = false, app_hash = None))]
-    fn new(base_url: &str, allow_mock: bool, app_hash: Option<&str>) -> PyResult<Self> {
+    #[pyo3(signature = (base_url, allow_mock = false, app_hash = None, tee_profiles = None, min_release = None))]
+    fn new(
+        base_url: &str,
+        allow_mock: bool,
+        app_hash: Option<&str>,
+        tee_profiles: Option<Vec<String>>,
+        min_release: Option<String>,
+    ) -> PyResult<Self> {
         let app_hash = app_hash
             .map(|h| {
                 hex::decode(h)
@@ -137,6 +148,16 @@ impl PyCloudClient {
                 Policy {
                     allow_mock,
                     app_hash,
+                    measurements: match tee_profiles {
+                        Some(allowed_profiles) if !allowed_profiles.is_empty() => {
+                            Measurements::Release {
+                                allowed_profiles,
+                                min_version: min_release,
+                            }
+                        }
+                        _ => Measurements::None,
+                    },
+                    allowed_tcb_statuses: Vec::new(),
                 },
             )
             .map_err(|e| PyValueError::new_err(format!("{e:#}")))?
