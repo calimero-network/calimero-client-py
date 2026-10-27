@@ -113,6 +113,45 @@ impl PyCloudClient {
     }
 }
 
+#[derive(Clone, Copy)]
+enum Verb {
+    Get,
+    Post,
+    Delete,
+}
+
+/// One path segment, percent-encoded, so an id can never reach another route.
+fn seg(s: &str) -> String {
+    url::form_urlencoded::byte_serialize(s.as_bytes())
+        .collect::<String>()
+        .replace('+', "%20")
+}
+
+fn field(v: &Value, name: &str) -> PyResult<String> {
+    v[name]
+        .as_str()
+        .map(str::to_owned)
+        .ok_or_else(|| PyValueError::new_err(format!("the node's answer has no {name}")))
+}
+
+impl PyCloudClient {
+    fn send(&self, py: Python<'_>, verb: Verb, path: String, body: Value) -> PyResult<Value> {
+        let c = Arc::clone(&self.inner);
+        let body = if body.is_null() {
+            Value::Object(serde_json::Map::new())
+        } else {
+            body
+        };
+        self.run(py, async move {
+            match verb {
+                Verb::Get => c.get(&path).await,
+                Verb::Post => c.post(&path, body).await,
+                Verb::Delete => c.delete(&path).await,
+            }
+        })
+    }
+}
+
 #[pymethods]
 impl PyCloudClient {
     /// Connect to `base_url`. The node is trusted only once its attestation
@@ -233,7 +272,8 @@ impl PyCloudClient {
     }
 
     /// Create an API key. Returns `(key_id, key)`; the key is shown once.
-    /// `options` may set `name`, `apps`, `org` and `expiresAt`.
+    /// `options` may set `label`, `apps` and `methods` (scopes), `readOnly`,
+    /// `allowConfirm` and `ttlSecs` (at most a year).
     #[pyo3(signature = (options = None))]
     fn create_api_key(
         &self,
@@ -376,6 +416,298 @@ impl PyCloudClient {
         to_py(py, &out)
     }
 
+    /// End this session on the node (its refresh token stops working).
+    fn sign_out(&self, py: Python<'_>) -> PyResult<()> {
+        self.send(py, Verb::Post, "auth/logout".into(), Value::Null)
+            .map(drop)
+    }
+
+    /// Remove a passkey (a device) from the signed-in account.
+    fn remove_passkey(&self, py: Python<'_>, credential_id: &str) -> PyResult<()> {
+        self.send(
+            py,
+            Verb::Delete,
+            format!("auth/passkeys/{}", seg(credential_id)),
+            Value::Null,
+        )
+        .map(drop)
+    }
+
+    /// The account's API keys (their records; the keys themselves are never shown again).
+    fn list_api_keys(&self, py: Python<'_>) -> PyResult<PyObject> {
+        let v = self.send(py, Verb::Get, "auth/apikeys".into(), Value::Null)?;
+        to_py(py, &v["keys"])
+    }
+
+    /// Revoke an API key by its id.
+    fn revoke_api_key(&self, py: Python<'_>, key_id: &str) -> PyResult<()> {
+        self.send(
+            py,
+            Verb::Delete,
+            format!("auth/apikeys/{}", seg(key_id)),
+            Value::Null,
+        )
+        .map(drop)
+    }
+
+    // ------------------------------------------------------------ apps
+
+    /// The apps the caller can reach: `[{"appId", "name", "owner", "org", "bundle"}]`.
+    fn list_apps(&self, py: Python<'_>) -> PyResult<PyObject> {
+        let v = self.send(py, Verb::Get, "apps".into(), Value::Null)?;
+        to_py(py, &v["apps"])
+    }
+
+    /// One app: its directory record and state (`ready`, `initError`).
+    fn get_app(&self, py: Python<'_>, app: &str) -> PyResult<PyObject> {
+        let v = self.send(py, Verb::Get, format!("apps/{}", seg(app)), Value::Null)?;
+        to_py(py, &v)
+    }
+
+    /// Who may reach an app: `{"kind": "owner" | "org" | "public"}`,
+    /// `{"kind": "accounts", "accounts": [...]}` or `{"kind": "team", "team": id}`.
+    fn set_access(&self, py: Python<'_>, app: &str, access: &Bound<'_, PyAny>) -> PyResult<()> {
+        let body = serde_json::json!({ "access": to_json(py, Some(access))? });
+        self.send(py, Verb::Post, format!("apps/{}/access", seg(app)), body)
+            .map(drop)
+    }
+
+    /// Run `app` on another uploaded bundle. The node plans the migration from
+    /// the two bundles' ABIs (`migrate` names an export to use instead).
+    /// Returns `{"index", "status", "error"}`.
+    #[pyo3(signature = (app, bundle, migrate = None))]
+    fn upgrade_app(
+        &self,
+        py: Python<'_>,
+        app: &str,
+        bundle: &str,
+        migrate: Option<&str>,
+    ) -> PyResult<PyObject> {
+        let body = serde_json::json!({ "bundle": bundle, "migrate": migrate });
+        let v = self.send(py, Verb::Post, format!("apps/{}/upgrade", seg(app)), body)?;
+        to_py(py, &v)
+    }
+
+    // ------------------------------------------------------------ organizations
+
+    /// Create an organization; the caller owns it. Returns its id.
+    fn create_org(&self, py: Python<'_>, name: &str) -> PyResult<String> {
+        let v = self.send(
+            py,
+            Verb::Post,
+            "orgs".into(),
+            serde_json::json!({ "name": name }),
+        )?;
+        field(&v, "orgId")
+    }
+
+    /// An organization: members, roles and the teams the caller can see.
+    fn get_org(&self, py: Python<'_>, org: &str) -> PyResult<PyObject> {
+        let v = self.send(py, Verb::Get, format!("orgs/{}", seg(org)), Value::Null)?;
+        to_py(py, &v)
+    }
+
+    /// Add `account` to the organization, or change its role
+    /// (`guest`, `member`, `admin`, `owner`).
+    fn set_member(&self, py: Python<'_>, org: &str, account: &str, role: &str) -> PyResult<()> {
+        let body = serde_json::json!({ "account": account, "role": role });
+        self.send(py, Verb::Post, format!("orgs/{}/members", seg(org)), body)
+            .map(drop)
+    }
+
+    /// Remove `account` from the organization (yourself, to leave it).
+    fn remove_member(&self, py: Python<'_>, org: &str, account: &str) -> PyResult<()> {
+        self.send(
+            py,
+            Verb::Delete,
+            format!("orgs/{}/members/{}", seg(org), seg(account)),
+            Value::Null,
+        )
+        .map(drop)
+    }
+
+    /// Set capability bits (v1's `MemberCapabilities`): for `account` (in
+    /// `team`, if given), or, with no account, the organization's default.
+    #[pyo3(signature = (org, capabilities, account = None, team = None))]
+    fn set_capabilities(
+        &self,
+        py: Python<'_>,
+        org: &str,
+        capabilities: u32,
+        account: Option<&str>,
+        team: Option<&str>,
+    ) -> PyResult<()> {
+        let body =
+            serde_json::json!({ "capabilities": capabilities, "account": account, "team": team });
+        self.send(
+            py,
+            Verb::Post,
+            format!("orgs/{}/capabilities", seg(org)),
+            body,
+        )
+        .map(drop)
+    }
+
+    /// Create a team: `join="everyone"` (open: whoever reaches the parent is a
+    /// member) or `"invite"` (restricted), under `parent` or at the top.
+    /// Returns its id.
+    #[pyo3(signature = (org, name, join = "invite", parent = None))]
+    fn create_team(
+        &self,
+        py: Python<'_>,
+        org: &str,
+        name: &str,
+        join: &str,
+        parent: Option<&str>,
+    ) -> PyResult<String> {
+        let body = serde_json::json!({ "name": name, "join": join, "parent": parent });
+        let v = self.send(py, Verb::Post, format!("orgs/{}/teams", seg(org)), body)?;
+        field(&v, "teamId")
+    }
+
+    /// A team: its members, sub-teams and apps.
+    fn get_team(&self, py: Python<'_>, org: &str, team: &str) -> PyResult<PyObject> {
+        let v = self.send(
+            py,
+            Verb::Get,
+            format!("orgs/{}/teams/{}", seg(org), seg(team)),
+            Value::Null,
+        )?;
+        to_py(py, &v)
+    }
+
+    /// Rename, change how it is joined, set its metadata, or move it: under
+    /// `parent`, or to the top with `to_top=True`. Unset arguments stay as they are.
+    #[pyo3(signature = (org, team, name = None, join = None, metadata = None, parent = None, to_top = false))]
+    #[allow(clippy::too_many_arguments)]
+    fn update_team(
+        &self,
+        py: Python<'_>,
+        org: &str,
+        team: &str,
+        name: Option<&str>,
+        join: Option<&str>,
+        metadata: Option<&Bound<'_, PyAny>>,
+        parent: Option<&str>,
+        to_top: bool,
+    ) -> PyResult<()> {
+        if to_top && parent.is_some() {
+            return Err(PyValueError::new_err("pass parent or to_top, not both"));
+        }
+        let mut body = serde_json::Map::new();
+        if let Some(name) = name {
+            let _prev = body.insert("name".into(), name.into());
+        }
+        if let Some(join) = join {
+            let _prev = body.insert("join".into(), join.into());
+        }
+        if let Some(metadata) = metadata {
+            let _prev = body.insert("metadata".into(), to_json(py, Some(metadata))?);
+        }
+        if let Some(parent) = parent {
+            let _prev = body.insert("parent".into(), parent.into());
+        } else if to_top {
+            let _prev = body.insert("parent".into(), Value::Null);
+        }
+        self.send(
+            py,
+            Verb::Post,
+            format!("orgs/{}/teams/{}", seg(org), seg(team)),
+            Value::Object(body),
+        )
+        .map(drop)
+    }
+
+    /// Delete a team, the teams below it and their apps.
+    fn delete_team(&self, py: Python<'_>, org: &str, team: &str) -> PyResult<()> {
+        self.send(
+            py,
+            Verb::Delete,
+            format!("orgs/{}/teams/{}", seg(org), seg(team)),
+            Value::Null,
+        )
+        .map(drop)
+    }
+
+    /// Add `account` to a team, or change its row: `role` is `lead`, `member`
+    /// or `readOnly`; `capabilities` overrides the organization's default.
+    #[pyo3(signature = (org, team, account, role = None, capabilities = None))]
+    fn set_team_member(
+        &self,
+        py: Python<'_>,
+        org: &str,
+        team: &str,
+        account: &str,
+        role: Option<&str>,
+        capabilities: Option<u32>,
+    ) -> PyResult<()> {
+        let body = serde_json::json!({
+            "account": account,
+            "role": role,
+            "capabilities": capabilities,
+        });
+        self.send(
+            py,
+            Verb::Post,
+            format!("orgs/{}/teams/{}/members", seg(org), seg(team)),
+            body,
+        )
+        .map(drop)
+    }
+
+    /// Remove `account` from a team. It does not come back through an open
+    /// parent until it is added again.
+    fn remove_team_member(
+        &self,
+        py: Python<'_>,
+        org: &str,
+        team: &str,
+        account: &str,
+    ) -> PyResult<()> {
+        self.send(
+            py,
+            Verb::Delete,
+            format!(
+                "orgs/{}/teams/{}/members/{}",
+                seg(org),
+                seg(team),
+                seg(account)
+            ),
+            Value::Null,
+        )
+        .map(drop)
+    }
+
+    /// Invite someone into the organization with `role`, and into `teams`.
+    /// Returns the token to hand them (valid `ttl_secs`, default a week, for
+    /// `uses` redemptions, default one).
+    #[pyo3(signature = (org, role, teams = Vec::new(), ttl_secs = None, uses = None))]
+    fn invite(
+        &self,
+        py: Python<'_>,
+        org: &str,
+        role: &str,
+        teams: Vec<String>,
+        ttl_secs: Option<u64>,
+        uses: Option<u32>,
+    ) -> PyResult<String> {
+        let body =
+            serde_json::json!({ "role": role, "teams": teams, "ttlSecs": ttl_secs, "uses": uses });
+        let v = self.send(py, Verb::Post, format!("orgs/{}/invites", seg(org)), body)?;
+        field(&v, "token")
+    }
+
+    /// Join an organization (and its invited teams) with an invite token.
+    fn redeem_invite(&self, py: Python<'_>, token: &str) -> PyResult<PyObject> {
+        let v = self.send(
+            py,
+            Verb::Post,
+            format!("invites/{}/redeem", seg(token)),
+            Value::Null,
+        )?;
+        to_py(py, &v)
+    }
+
     /// POST any API path (organizations, teams, invites, ...).
     #[pyo3(signature = (path, body = None))]
     fn post(
@@ -408,5 +740,18 @@ impl PyCloudClient {
         let c = Arc::clone(&self.inner);
         let v = self.run(py, async move { c.attestation().await })?;
         to_py(py, &v)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::seg;
+
+    #[test]
+    fn a_path_segment_cannot_reach_another_route() {
+        assert_eq!(seg("39VM3IF4orLKKYdSYpZgqg"), "39VM3IF4orLKKYdSYpZgqg");
+        assert_eq!(seg("a/../ops/status"), "a%2F..%2Fops%2Fstatus");
+        assert_eq!(seg("x?y=1#z"), "x%3Fy%3D1%23z");
+        assert_eq!(seg("a b"), "a%20b");
     }
 }

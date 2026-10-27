@@ -75,10 +75,37 @@ for e in client.events(app_id, start=0, limit=10, timeout=5):
     print(e["kind"], e["data"])
 ```
 
+Organizations, teams and invites:
+
+```python
+org = client.create_org("Acme")
+token = client.invite(org, "member", teams=[], ttl_secs=86400, uses=1)  # hand it over
+other.redeem_invite(token)
+team = client.create_team(org, "eng", join="invite")      # or join="everyone", parent=...
+client.set_team_member(org, team, account_id, role="readOnly")
+app = client.create_app("eng-kv", client.upload_bundle(wasm),
+                        {"org": org, "access": {"kind": "team", "team": team}})
+client.update_team(org, team, name="engineering", metadata={"colour": "teal"})
+client.delete_team(org, team)                               # takes its sub-teams and apps
+```
+
+| Area | Methods |
+| --- | --- |
+| Session | `sign_up`, `sign_in`, `refresh`, `sign_out`, `use_session`, `use_api_key`, `me` |
+| Devices (passkeys) | `add_passkey`, `remove_passkey` |
+| API keys | `create_api_key({label, apps, methods, readOnly, allowConfirm, ttlSecs})`, `list_api_keys`, `revoke_api_key` |
+| Apps | `upload_bundle`, `create_app`, `list_apps`, `get_app`, `set_access`, `upgrade_app` |
+| Calls | `call`, `call_confirmed`, `view`, `events` |
+| Blobs | `upload_blob`, `download_blob` |
+| Organizations | `create_org`, `get_org`, `set_member`, `remove_member`, `set_capabilities`, `invite`, `redeem_invite` |
+| Teams | `create_team`, `get_team`, `update_team`, `delete_team`, `set_team_member`, `remove_team_member` |
+| Anything else | `get`, `post`, `delete` on any API path; `attestation` |
+
 `SoftPasskey` is an in-memory passkey for scripts and tests against development
 clusters (`client.sign_up(SoftPasskey(), "alice")`, `client.call_confirmed(...)`).
 Errors raise `CloudError(message, status, code, details)`.
-`tests/test_cloud_v2.py` runs against a local 3-node cluster built from core's `release-v2` branch.
+`tests/test_cloud_v2.py` and `tests/test_cloud_v2_api.py` run against a local 3-node
+cluster built from core's `release-v2` branch.
 
 ## CLI
 
