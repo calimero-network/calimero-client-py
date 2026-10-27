@@ -194,6 +194,21 @@ def test_organizations_gate_apps(cluster, wasm):
     assert code(e.value) == "NOT_FOUND"
 
 
+def test_blobs_belong_to_their_app(cluster, wasm):
+    alice, _pk = person(cluster, 0, "alice-blobs")
+    bundle = alice.upload_bundle(wasm)
+    app = alice.create_app("files", bundle)
+    other = alice.create_app("other", bundle)
+    data = b"%PDF-1.7 " * 500
+    up = alice.upload_blob(app, data)
+    assert up["size"] == len(data)
+    assert alice.download_blob(app, up["blobId"]) == data
+    assert alice.download_blob(app, up["id"]) == data
+    with pytest.raises(CloudError) as e:
+        alice.download_blob(other, up["blobId"])
+    assert code(e.value) == "NOT_FOUND"
+
+
 def test_keeps_serving_after_a_node_dies(cluster, wasm):
     alice, pk = person(cluster, 1, "alice-failover")
     app = alice.create_app("kv-ha", alice.upload_bundle(wasm))
@@ -210,3 +225,4 @@ def test_keeps_serving_after_a_node_dies(cluster, wasm):
     else:
         pytest.fail("no write after failover")
     assert other.view(app, "get", {"key": "k"})["result"] == "v"
+

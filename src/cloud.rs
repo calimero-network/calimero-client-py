@@ -240,6 +240,23 @@ impl PyCloudClient {
         self.run(py, async move { c.upload_bundle(wasm).await })
     }
 
+    /// Upload a blob for `app`. Returns `{"blobId", "id", "size"}` (`blobId`
+    /// base58, as apps print it; `id` hex).
+    fn upload_blob(&self, py: Python<'_>, app: &str, data: Vec<u8>) -> PyResult<PyObject> {
+        let (c, app) = (Arc::clone(&self.inner), app.to_owned());
+        let r = self.run(py, async move { c.upload_blob(&app, data).await })?;
+        to_py(py, &r)
+    }
+
+    /// One of `app`'s blobs, by id (base58 or hex).
+    fn download_blob(&self, py: Python<'_>, app: &str, id: &str) -> PyResult<PyObject> {
+        let (c, app, id) = (Arc::clone(&self.inner), app.to_owned(), id.to_owned());
+        let bytes = self.run(py, async move { c.download_blob(&app, &id).await })?;
+        Ok(pyo3::types::PyBytes::new_bound(py, &bytes)
+            .into_any()
+            .unbind())
+    }
+
     /// Create an app from a bundle. `options` may set `org`, `access`, `confirmMethods`.
     #[pyo3(signature = (name, bundle, options = None))]
     fn create_app(
