@@ -45,8 +45,8 @@ calimero-account = { git = "https://github.com/calimero-network/core", branch = 
 borsh = "1.5"
 # The release-v2 cloud client. It shares no types with the crates above, so
 # tracking a different branch of core does not split them.
-calimero-cloud-client = { git = "https://github.com/calimero-network/core", branch = "release-v2", features = ["testing"] }
-calimero-identity = { git = "https://github.com/calimero-network/core", branch = "release-v2", features = ["testing"] }
+calimero-cloud-client = { git = "https://github.com/calimero-network/core", branch = "release-v2-parity", features = ["testing"] }
+calimero-identity = { git = "https://github.com/calimero-network/core", branch = "release-v2-parity", features = ["testing"] }
 futures-util = "0.3"
 
 # Python bindings

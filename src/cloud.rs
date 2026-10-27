@@ -135,6 +135,20 @@ fn field(v: &Value, name: &str) -> PyResult<String> {
 }
 
 impl PyCloudClient {
+    fn confirmed(
+        &self,
+        py: Python<'_>,
+        path: String,
+        body: Value,
+        passkey: &PySoftPasskey,
+    ) -> PyResult<Value> {
+        let (c, pk) = (Arc::clone(&self.inner), Arc::clone(&passkey.inner));
+        self.run(py, async move {
+            let mut auth = pk.lock().await;
+            c.post_confirmed(&path, body, &mut *auth).await
+        })
+    }
+
     fn send(&self, py: Python<'_>, verb: Verb, path: String, body: Value) -> PyResult<Value> {
         let c = Arc::clone(&self.inner);
         let body = if body.is_null() {
@@ -161,15 +175,18 @@ impl PyCloudClient {
     /// A real TDX quote is accepted only from an image the policy names:
     /// `tee_profiles` admits nodes whose signed mero-tee release lists their
     /// measurements under one of those profiles (`min_release` is a floor).
-    /// Without it, only mock quotes (`allow_mock`) can be accepted.
+    /// Without it, only mock quotes (`allow_mock`) can be accepted. A
+    /// release's debug profiles (whose memory the host can read) are refused
+    /// unless `allow_debug_profiles`.
     #[new]
-    #[pyo3(signature = (base_url, allow_mock = false, app_hash = None, tee_profiles = None, min_release = None))]
+    #[pyo3(signature = (base_url, allow_mock = false, app_hash = None, tee_profiles = None, min_release = None, allow_debug_profiles = false))]
     fn new(
         base_url: &str,
         allow_mock: bool,
         app_hash: Option<&str>,
         tee_profiles: Option<Vec<String>>,
         min_release: Option<String>,
+        allow_debug_profiles: bool,
     ) -> PyResult<Self> {
         let app_hash = app_hash
             .map(|h| {
@@ -197,6 +214,7 @@ impl PyCloudClient {
                         _ => Measurements::None,
                     },
                     allowed_tcb_statuses: Vec::new(),
+                    allow_debug_profiles,
                 },
             )
             .map_err(|e| PyValueError::new_err(format!("{e:#}")))?
@@ -472,19 +490,50 @@ impl PyCloudClient {
             .map(drop)
     }
 
-    /// Run `app` on another uploaded bundle. The node plans the migration from
-    /// the two bundles' ABIs (`migrate` names an export to use instead).
-    /// Returns `{"index", "status", "error"}`.
-    #[pyo3(signature = (app, bundle, migrate = None))]
+    /// Run `app` on another uploaded bundle (or `version` of its package).
+    /// The node plans the migration from the two bundles' ABIs (`migrate`
+    /// names an export to use instead). Where the app's owner approves
+    /// upgrades, `passkey` is theirs: it answers the node's challenge over
+    /// this exact upgrade. Returns `{"index", "status", "error"}`.
+    #[pyo3(signature = (app, bundle = None, migrate = None, version = None, passkey = None))]
     fn upgrade_app(
         &self,
         py: Python<'_>,
         app: &str,
-        bundle: &str,
+        bundle: Option<&str>,
         migrate: Option<&str>,
+        version: Option<&str>,
+        passkey: Option<&PySoftPasskey>,
     ) -> PyResult<PyObject> {
-        let body = serde_json::json!({ "bundle": bundle, "migrate": migrate });
-        let v = self.send(py, Verb::Post, format!("apps/{}/upgrade", seg(app)), body)?;
+        let body =
+            serde_json::json!({ "bundle": bundle, "version": version, "migrate": migrate });
+        let path = format!("apps/{}/upgrade", seg(app));
+        let v = match passkey {
+            Some(pk) => self.confirmed(py, path, body, pk)?,
+            None => self.send(py, Verb::Post, path, body)?,
+        };
+        to_py(py, &v)
+    }
+
+    /// POST `body` to `path`, answering a `412 CONFIRM_REQUIRED` with
+    /// `passkey`'s assertion over the node's challenge: what an owner
+    /// approves (upgrades, organization upgrades, release and outbound
+    /// approvals, deleting an organization's...).
+    #[pyo3(signature = (path, body, passkey))]
+    fn post_confirmed(
+        &self,
+        py: Python<'_>,
+        path: &str,
+        body: Option<&Bound<'_, PyAny>>,
+        passkey: &PySoftPasskey,
+    ) -> PyResult<PyObject> {
+        let body = to_json(py, body)?;
+        let body = if body.is_null() {
+            Value::Object(serde_json::Map::new())
+        } else {
+            body
+        };
+        let v = self.confirmed(py, path.trim_start_matches('/').to_owned(), body, passkey)?;
         to_py(py, &v)
     }
 

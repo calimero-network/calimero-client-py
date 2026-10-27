@@ -104,7 +104,7 @@ def test_orgs_and_teams_end_to_end(cluster, wasm):
 
 
 def test_app_directory_access_and_upgrade(cluster, wasm):
-    alice, _ = person(cluster, 0, "alice-apps")
+    alice, alice_pk = person(cluster, 0, "alice-apps")
     carol, _ = person(cluster, 2, "carol-apps")
     bundle = alice.upload_bundle(wasm)
     app = alice.create_app("dir", bundle)
@@ -118,7 +118,11 @@ def test_app_directory_access_and_upgrade(cluster, wasm):
     time.sleep(0.3)
     assert carol.view(app, "get", {"key": "k"})["result"] == "v"
 
-    out = alice.upgrade_app(app, bundle)
+    # The owner approves an upgrade with their passkey; without it the node asks.
+    with pytest.raises(CloudError) as asked:
+        alice.upgrade_app(app, bundle)
+    assert asked.value.args[2] == "CONFIRM_REQUIRED"
+    out = alice.upgrade_app(app, bundle, passkey=alice_pk)
     assert out["status"] == "ok", out
     assert alice.view(app, "get", {"key": "k"})["result"] == "v"
 
@@ -137,12 +141,6 @@ def test_passkey_removal_and_sign_out(cluster):
         laptop.refresh()
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="merod-v2 bug: SystemCmd::UpdateTeam's parent is Option<Option<_>> without "
-    "serde_with's double_option, so the system log turns Some(None) into None and a move "
-    "to the top is dropped",
-)
 def test_a_team_moves_to_the_top(cluster):
     alice, _ = person(cluster, 0, "alice-move")
     org = alice.create_org("Movers")

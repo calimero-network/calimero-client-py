@@ -1,13 +1,13 @@
 """
-CloudClient against a real 3-node merod-v2 cluster (release-v2).
+CloudClient against a real 3-node merod cluster (release-v2).
 
-Needs `merod-v2` and the kv-store fixture from core's `release-v2` branch:
+Needs `merod` and the kv-store fixture from core's `release-v2-parity` branch:
 
-    cargo build -p calimero-cloud-node --bin merod-v2
+    cargo build -p merod
     cargo build -p kv-store --target wasm32-unknown-unknown --profile app-release
 
-Paths default to a sibling `core` checkout; override with MEROD_V2_BINARY and
-KV_STORE_WASM. Skipped when the binary is missing.
+Paths default to a sibling `core` checkout; override with MEROD_BINARY (or
+MEROD_V2_BINARY) and KV_STORE_WASM. Skipped when the binary is missing.
 """
 
 import json
@@ -24,7 +24,11 @@ import pytest
 from calimero_client_py import CloudClient, CloudError, SoftPasskey
 
 CORE = Path(__file__).resolve().parents[2] / "core"
-BINARY = os.environ.get("MEROD_V2_BINARY", str(CORE / "target/debug/merod-v2"))
+BINARY = (
+    os.environ.get("MEROD_BINARY")
+    or os.environ.get("MEROD_V2_BINARY")
+    or str(CORE / "target/debug/merod")
+)
 KV_STORE_WASM = os.environ.get(
     "KV_STORE_WASM",
     str(CORE / "target/wasm32-unknown-unknown/app-release/kv_store.wasm"),
@@ -33,7 +37,7 @@ ORIGIN = "http://localhost:3000"
 
 pytestmark = pytest.mark.skipif(
     not (Path(BINARY).exists() and Path(KV_STORE_WASM).exists()),
-    reason="merod-v2 or the kv-store fixture is not built",
+    reason="merod or the kv-store fixture is not built",
 )
 
 
@@ -51,12 +55,14 @@ class Cluster:
         logs = None if os.environ.get("MEROD_V2_LOGS") else subprocess.DEVNULL
         self.procs = []
         for i, (port, url) in enumerate(zip(ports, self.urls)):
+            # `merod run FLAGS`: a node from flags alone, no `init`.
             args = [
                 BINARY,
+                "run",
                 "--node-id", str(i + 1),
                 "--listen", f"127.0.0.1:{port}",
                 "--public-url", f"{url}/",
-                "--data-dir", tempfile.mkdtemp(prefix="merod-v2-"),
+                "--data-dir", tempfile.mkdtemp(prefix="merod-"),
                 "--peers", peers,
                 "--cluster", "py-test",
                 "--dev",
