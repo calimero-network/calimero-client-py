@@ -209,6 +209,17 @@ def test_blobs_belong_to_their_app(cluster, wasm):
     assert code(e.value) == "NOT_FOUND"
 
 
+def test_a_second_passkey_is_another_device(cluster):
+    laptop, _pk = person(cluster, 0, "alice-devices")
+    phone_key = SoftPasskey()
+    cred = laptop.add_passkey(phone_key)
+    phone = cluster.client(1)
+    phone.sign_in(phone_key)
+    a, b = laptop.me(), phone.me()
+    assert a["accountId"] == b["accountId"]
+    assert b["passkeyId"] == cred != a["passkeyId"]
+
+
 def test_keeps_serving_after_a_node_dies(cluster, wasm):
     alice, pk = person(cluster, 1, "alice-failover")
     app = alice.create_app("kv-ha", alice.upload_bundle(wasm))

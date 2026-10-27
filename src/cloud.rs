@@ -189,6 +189,16 @@ impl PyCloudClient {
         to_py(py, &s)
     }
 
+    /// Add `passkey` (another device) to the signed-in account. Returns its
+    /// credential id.
+    fn add_passkey(&self, py: Python<'_>, passkey: &PySoftPasskey) -> PyResult<String> {
+        let (c, pk) = (Arc::clone(&self.inner), Arc::clone(&passkey.inner));
+        self.run(py, async move {
+            let mut auth = pk.lock().await;
+            c.add_passkey(&mut *auth).await
+        })
+    }
+
     /// Exchange the refresh token for a new session.
     fn refresh(&self, py: Python<'_>) -> PyResult<PyObject> {
         let c = Arc::clone(&self.inner);
