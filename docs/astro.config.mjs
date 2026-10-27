@@ -15,7 +15,7 @@ export default defineConfig({
     starlight({
       title: 'Calimero Python Client',
       description:
-        'The Python client SDK for Calimero Network — connect to a node, manage applications, contexts, blobs, aliases, namespaces and groups, and call app methods over JSON-RPC. Native Rust core via PyO3.',
+        'The Python client SDK for Calimero Cloud (release-v2) — verify a node\'s attestation, sign in, deploy apps, call and view them, and administer organizations and teams. Native Rust core via PyO3.',
       logo: {
         light: './src/assets/logo-light.svg',
         dark: './src/assets/logo-dark.svg',
@@ -51,7 +51,7 @@ export default defineConfig({
           href: 'https://github.com/calimero-network/calimero-client-py',
         },
       ],
-      // Explicit, grouped navigation: Get Started → Guides → Reference.
+      // Explicit, grouped navigation: Get Started → Reference.
       sidebar: [
         { label: 'Home', link: '/' },
         {
@@ -63,20 +63,8 @@ export default defineConfig({
           ],
         },
         {
-          label: 'Guides',
-          items: [
-            'guides/connecting',
-            'guides/authentication',
-            'guides/contexts',
-            'guides/applications-and-blobs',
-            'guides/namespaces-and-groups',
-            'guides/concurrency',
-            'guides/tee-nodes',
-          ],
-        },
-        {
           label: 'Reference',
-          items: ['reference/api', 'reference/cli', 'reference/errors'],
+          items: ['reference/api', 'reference/errors'],
         },
       ],
     }),

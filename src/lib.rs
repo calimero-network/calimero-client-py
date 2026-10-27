@@ -1,61 +1,27 @@
-//! Python bindings for Calimero client using PyO3
+//! Python bindings for the Calimero Cloud (release-v2) client, using PyO3.
 //!
 //! This crate provides Python bindings that can be built independently
 //! without requiring the full Calimero workspace.
 //!
 //! ## Module Structure
 //!
-//! - `error` - PyClientError wrapper
-//! - `auth` - PyAuthMode wrapper
-//! - `token` - PyJwtToken wrapper
-//! - `cache` - Token cache path utilities
-//! - `storage` - MeroboxFileStorage implementation
-//! - `connection` - PyConnectionInfo and create_connection()
-//! - `tee` - TeePolicy, for attested transports to a TEE node
-//! - `client` - PyClient and create_client()
-//! - `utils` - JSON to Python conversion helpers
 //! - `cloud` - CloudClient, SoftPasskey, CloudError for release-v2 clusters
 
-pub mod auth;
-pub mod cache;
-pub mod client;
+// pyo3 0.22's `#[pymethods]` expands each `PyResult` return through an
+// `Into<PyErr>` that newer clippy reports as `useless_conversion`; the lint
+// points at macro-generated code, not ours. pyo3 0.23 fixed it upstream.
+#[allow(clippy::useless_conversion)]
 pub mod cloud;
-pub mod connection;
-pub mod error;
-pub mod request;
-pub mod storage;
-pub mod tee;
-pub mod token;
-pub mod utils;
-mod warrant;
 
 use pyo3::prelude::*;
 
 /// Python module for Calimero client
 #[pymodule]
 fn calimero_client_py(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
-    // Register classes
-    m.add_class::<connection::PyConnectionInfo>()?;
-    m.add_class::<client::PyClient>()?;
-    m.add_class::<token::PyJwtToken>()?;
-    m.add_class::<error::PyClientError>()?;
-    m.add_class::<auth::PyAuthMode>()?;
-    m.add_class::<tee::PyTeePolicy>()?;
     m.add_class::<cloud::PyCloudClient>()?;
     m.add_class::<cloud::PySoftPasskey>()?;
     m.add("CloudError", m.py().get_type_bound::<cloud::CloudError>())?;
 
-    // Register functions
-    m.add_function(wrap_pyfunction!(connection::create_connection, m)?)?;
-    m.add_function(wrap_pyfunction!(client::create_client, m)?)?;
-    m.add_function(wrap_pyfunction!(cache::get_token_cache_path, m)?)?;
-    m.add_function(wrap_pyfunction!(cache::get_token_cache_dir, m)?)?;
-    m.add_function(wrap_pyfunction!(cache::save_token_cache, m)?)?;
-    // Offline: mints a warrant from a device secret and contacts nothing.
-    m.add_function(wrap_pyfunction!(warrant::sign_warrant, m)?)?;
-    m.add_function(wrap_pyfunction!(request::sign_request, m)?)?;
-
-    // Add constants
     m.add("VERSION", env!("CARGO_PKG_VERSION"))?;
 
     Ok(())

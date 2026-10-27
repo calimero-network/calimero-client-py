@@ -6,20 +6,16 @@ build-backend = "maturin"
 name = "calimero-client-py"
 # maturin takes it from Cargo.toml.
 dynamic = ["version"]
-description = "Python client SDK for Calimero Network"
+description = "Python client SDK for Calimero Cloud (release-v2)"
 authors = [{name = "Calimero Network", email = "support@calimero.network"}]
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = []
 
-[project.scripts]
-calimero-client-py = "calimero.cli:cli"
-
 [project.optional-dependencies]
 dev = [
     "pytest",
     "pytest-asyncio>=0.26.0",
-    "merobox>=0.1.0",
     "black==26.3.1",
     "pre-commit",
 ]

@@ -54,18 +54,17 @@ class ClientGenerator:
             "",
             "from typing import Dict, List, Any, Optional, Union",
             "import json",
-            "from calimero import Client, ClientError",
+            "from calimero import CloudClient, CloudError",
             "",
             "from .types import *",
             "",
             f"class {class_name}:",
             '    """Generated client for WASM ABI methods"""',
             "",
-            "    def __init__(self, client: Client, context_id: str, executor_public_key: str):",
-            '        """Initialize with a Calimero client, context ID, and executor public key"""',
+            "    def __init__(self, client: CloudClient, app_id: str):",
+            '        """Initialize with a signed-in CloudClient and the app instance to call"""',
             "        self.client = client",
-            "        self.context_id = context_id",
-            "        self.executor_public_key = executor_public_key",
+            "        self.app_id = app_id",
             "",
         ]
 
@@ -89,46 +88,23 @@ class ClientGenerator:
         docstring = self.type_mapper.get_method_docstring(method)
         lines.append(docstring)
 
-        # Method body
-        lines.append("        try:")
-
-        # Build parameters for the call
+        # Method body: a committed call through the app's Raft log. The ABI does
+        # not mark read-only methods, so `CloudClient.view` is left to the caller.
+        # A CloudError propagates as is: its args are (message, status, code, details).
         param_names = [param.get("name") for param in method.params]
-
-        if param_names:
-            # Create a dict with parameter names and values
-            params_dict = (
-                "{" + ", ".join([f"{name!r}: {name}" for name in param_names]) + "}"
-            )
-            lines.append(f"            # Prepare arguments as JSON")
-            lines.append(f"            args = json.dumps({params_dict})")
-        else:
-            lines.append(f"            # No parameters for this method")
-            lines.append(f"            args = json.dumps({{}})")
-
-        lines.append(f"            # Execute the ABI method")
-        lines.append(f"            result = self.client.execute_function(")
-        lines.append(f"                context_id=self.context_id,")
-        lines.append(f"                method={method.name!r},")
-        lines.append(f"                args=args,")
-        lines.append(f"                executor_public_key=self.executor_public_key")
-        lines.append(f"            )")
+        params_dict = (
+            "{" + ", ".join([f"{name!r}: {name}" for name in param_names]) + "}"
+        )
+        lines.append(f"        args = {params_dict}")
+        lines.append(f"        result = self.client.call(")
+        lines.append(f"            self.app_id, {method.name!r}, args")
+        lines.append(f'        )["result"]')
 
         # Handle return value
         if method.returns:
-            if method.returns_nullable:
-                lines.append(
-                    "            return result if result is not None else None"
-                )
-            else:
-                lines.append("            return result")
+            lines.append("        return result")
         else:
-            lines.append("            return None")
-
-        lines.append("        except ClientError as e:")
-        lines.append(
-            f"            raise ClientError(f'Error calling {method.name}: {{e}}')"
-        )
+            lines.append("        return None")
 
         return "\n".join(lines)
 

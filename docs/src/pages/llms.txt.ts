@@ -10,10 +10,8 @@ const SITE = 'https://calimero-network.github.io';
 const BASE = '/calimero-client-py';
 
 const TRACKS: Record<string, string> = {
-  'get-started': 'Get Started — installation and a first connect-and-call',
-  guides:
-    'Guides — connecting, authentication, contexts, applications and blobs, namespaces and groups',
-  reference: 'Reference — the Python API surface, the CLI, and error handling',
+  'get-started': 'Get Started — installation, a first sign-up-deploy-and-call, and concepts',
+  reference: 'Reference — the Python API surface and error handling',
 };
 
 export const GET: APIRoute = async () => {
@@ -34,10 +32,10 @@ export const GET: APIRoute = async () => {
   const lines: string[] = [
     '# Calimero Python Client',
     '',
-    '> The Python client SDK for Calimero Network. A synchronous, high-level',
-    '> client over a native Rust core (PyO3): connect to a node, manage',
-    '> applications, contexts, blobs, aliases, namespaces and groups, and call',
-    '> application methods over JSON-RPC.',
+    '> The Python client SDK for Calimero Cloud (release-v2). A synchronous',
+    '> client over core\'s Rust cloud client (PyO3): verify a node\'s',
+    '> attestation, sign in with a passkey or API key, deploy apps, call and',
+    '> view them, read their events, and administer organizations and teams.',
     '',
     `Docs site: ${SITE}${BASE}/`,
     '',

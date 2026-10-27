@@ -1,106 +1,71 @@
 ---
 title: Quickstart
-description: Connect to a Calimero node, create a client, list contexts, and call an application method — a minimal end-to-end example.
+description: Connect to a cloud node, sign up with a passkey, deploy an app, call and view it, and read its events.
 sidebar:
   order: 2
 ---
 
-import { Steps, LinkCard, CardGrid } from '@astrojs/starlight/components';
+Every `CloudClient` method is **synchronous**: it blocks (with the GIL released)
+until the node answers and returns a plain Python value. There is nothing to
+`await`.
 
-This page takes you from a fresh install to a working connection and a first
-call. It assumes you have a reachable Calimero node — either a local
-[`merod`](https://calimero-network.github.io/core/) node or a remote one.
-
-:::note[The client is synchronous]
-Every `Client` method blocks until the node responds and returns a plain Python
-value (a `dict`, `list`, `bytes`, or scalar) — there are no coroutines and
-nothing to `await`. Call the methods directly.
-:::
-
-## Connect and list contexts
-
-<Steps>
-
-1. Create a connection to the node's API URL, then a client from it:
-
-   ```python
-   from calimero_client_py import create_connection, create_client
-
-   connection = create_connection(
-       api_url="http://localhost:2428",
-       node_name="local-dev",  # stable name; used for the token cache
-   )
-   client = create_client(connection)
-   ```
-
-2. Ask the node something simple:
-
-   ```python
-   print("connected to", client.get_api_url())
-
-   contexts = client.list_contexts()
-   print(f"found {len(contexts)} contexts")
-   ```
-
-</Steps>
-
-`create_connection` only validates and stores the URL; it does not open a
-socket. The first request the client makes (here `list_contexts`) is what
-actually reaches the node.
-
-## Call an application method
-
-Once you have a context running an application, execute one of its methods over
-JSON-RPC. Arguments are passed as a **JSON string**:
+## Connect
 
 ```python
-result = client.execute_function(
-    context_id="<context-id>",
-    method="set",
-    args='{"key": "greeting", "value": "hello"}',
-)
-print(result)
+from calimero_client_py import CloudClient, CloudError, SoftPasskey
+
+# A development cluster serves mock quotes; production nodes are pinned to a
+# signed mero-tee release instead (tee_profiles=[...]).
+client = CloudClient("http://127.0.0.1:2428", allow_mock=True)
 ```
 
-:::tip
-`execute_function` accepts a trailing `executor_public_key` argument for
-backward compatibility, but it is ignored — the node resolves the owned
-identity for the context automatically. You can omit it.
-:::
+The constructor does not contact the node. The first request fetches its
+attestation, verifies it against the policy, and opens the sealed channel; a
+node that fails the check raises `CloudError` with status `0`.
+
+## Sign in
+
+Scripts and tests against development clusters use an in-memory passkey:
+
+```python
+passkey = SoftPasskey()            # rp_id="localhost", origin="http://localhost:3000"
+session = client.sign_up(passkey, "alice")
+print(client.me()["accountId"])
+```
+
+Services use an API key instead:
+
+```python
+key_id, key = client.create_api_key({"label": "ci", "ttlSecs": 86400})
+service = CloudClient("http://127.0.0.1:2428", allow_mock=True)
+service.use_api_key(key)
+```
+
+## Deploy and call
+
+```python
+wasm = open("kv_store.wasm", "rb").read()
+bundle = client.upload_bundle(wasm)
+app = client.create_app("kv", bundle)
+
+r = client.call(app, "set", {"key": "a", "value": "1"}, idempotency_key="k1")
+print(r["index"], r["result"])
+
+print(client.view(app, "get", {"key": "a"})["result"])
+
+for e in client.events(app, start=0, limit=10, timeout=5):
+    print(e["id"], e["kind"], e["data"])
+```
 
 ## Handle errors
 
-Calls raise a `ValueError` for malformed inputs (an invalid ID, URL, or JSON
-argument) and a `RuntimeError` when the node call itself fails:
-
 ```python
 try:
-    ctx = client.get_context("not-a-real-id")
-except ValueError as e:
-    print("bad input:", e)
-except RuntimeError as e:
-    print("node error:", e)
+    client.get_app("no-such-app")
+except CloudError as e:
+    message, status, code, details = e.args
+    print(status, code)
 ```
 
-See [error handling](/reference/errors/) for the full picture.
-
-## Next steps
-
-<CardGrid>
-  <LinkCard
-    title="Connecting to a node"
-    href="/guides/connecting/"
-    description="Connections, the node_name parameter, and client basics." />
-  <LinkCard
-    title="Working with contexts"
-    href="/guides/contexts/"
-    description="Create contexts, join them, and execute functions." />
-  <LinkCard
-    title="Authentication"
-    href="/guides/authentication/"
-    description="Token persistence and authenticated remote nodes." />
-  <LinkCard
-    title="API reference"
-    href="/reference/api/"
-    description="Every function, class, and method." />
-</CardGrid>
+See the [API reference](/reference/api/) for organizations, teams, invites,
+upgrades and blobs.

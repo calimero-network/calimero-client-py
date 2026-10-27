@@ -1,8 +1,8 @@
 """
 Calimero Client Python Library
 
-A comprehensive Python client library for Calimero Network APIs,
-built with PyO3 for high performance and native integration.
+A Python client for Calimero Cloud (release-v2) clusters, over core's Rust
+`calimero-cloud-client`, built with PyO3.
 """
 
 from importlib.metadata import version as _installed_version
@@ -12,35 +12,13 @@ __version__ = _installed_version("calimero-client-py")
 __author__ = "Calimero Network"
 __email__ = "team@calimero.network"
 
-# Import main functions and classes from the Rust bindings
 from calimero_client_py import (
-    create_connection,
-    create_client,
-    ConnectionInfo,
-    Client,
-    JwtToken,
-    ClientError,
-    AuthMode,
-    get_token_cache_path,
-    get_token_cache_dir,
-    save_token_cache,
     CloudClient,
     CloudError,
     SoftPasskey,
 )
 
-# Re-export main types
 __all__ = [
-    "create_connection",
-    "create_client",
-    "ConnectionInfo",
-    "Client",
-    "JwtToken",
-    "ClientError",
-    "AuthMode",
-    "get_token_cache_path",
-    "get_token_cache_dir",
-    "save_token_cache",
     "CloudClient",
     "CloudError",
     "SoftPasskey",

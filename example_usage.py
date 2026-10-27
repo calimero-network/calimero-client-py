@@ -1,115 +1,51 @@
 #!/usr/bin/env python3
 """
-Example usage of calimero-client-py package
+Example usage of calimero-client-py against a release-v2 cluster.
 
-To use this example:
 1. Install the package: pip install calimero-client-py
    (or from a checkout: maturin develop --release)
-2. Run this script: python example_usage.py
+2. Start a development cluster (see tests/test_cloud_v2.py for `merod run`)
+   and build an app bundle, e.g. core's kv-store fixture.
+3. Run: python example_usage.py http://127.0.0.1:2428 path/to/kv_store.wasm
 
-Note: This example uses the test development node for demonstration
-
-## Important: node_name for Authenticated Connections
-
-The `node_name` parameter is critical for remote authenticated connections:
-
-1. **Must be stable**: Use the same node_name across all sessions to ensure
-   cached JWT tokens are found and reused.
-
-2. **Must be unique per node**: Different remote nodes should have different
-   node_names to avoid token collisions in the cache.
-
-3. **Token caching**: Tokens are stored at ~/.merobox/auth_cache/{node_name}-{hash}.json
-
-Example:
-    # Good: Stable, descriptive names
-    node_name="prod-api-node"
-    node_name="dev-local-node"
-
-    # Bad: Dynamic or non-descriptive names
-    node_name=f"node-{uuid.uuid4()}"  # Different each time!
-    node_name="node"  # Not unique across different servers
-
-For local development without authentication, node_name can be any string or None.
+Development clusters serve mock quotes, so this passes allow_mock=True; a
+production node is pinned to a signed mero-tee release with tee_profiles=[...].
 """
 
-import os
+import sys
 
-import calimero
+from calimero_client_py import CloudClient, CloudError, SoftPasskey
 
 
-def main():
-    """Main example function demonstrating calimero-client-py usage."""
-    print("Calimero Client Python Library Example")
-    print("=" * 40)
+def main() -> int:
+    if len(sys.argv) != 3:
+        print(__doc__)
+        return 2
+    url, wasm_path = sys.argv[1], sys.argv[2]
 
+    client = CloudClient(url, allow_mock=True)
+    passkey = SoftPasskey()
     try:
-        # Create a connection
-        # NOTE: For authenticated remote connections, node_name should be:
-        # - Stable: Same value across sessions (to find cached tokens)
-        # - Unique: Different for each remote node (to avoid token collisions)
-        print("Creating connection...")
-        connection = calimero.create_connection(
-            api_url="https://test.merod.dev.p2p.aws.calimero.network",
-            node_name="test-dev-node",  # Use a stable name for production!
-        )
-        print(f"✓ Connection created: {connection}")
+        client.sign_up(passkey, "example")
+        print("signed in as", client.me()["accountId"])
 
-        # Create a client
-        print("Creating client...")
-        client = calimero.create_client(connection)
-        print("✓ Client created")
+        with open(wasm_path, "rb") as f:
+            bundle = client.upload_bundle(f.read())
+        app = client.create_app("example-kv", bundle)
+        print("created app", app)
 
-        # List contexts
-        print("Listing contexts...")
-        contexts = client.list_contexts()
-        print(f"✓ Found contexts: {contexts}")
+        r = client.call(app, "set", {"key": "greeting", "value": "hello"})
+        print("committed at index", r["index"])
+        print("read back:", client.view(app, "get", {"key": "greeting"})["result"])
 
-        # Example of other operations (commented out as they require specific setup)
-        # print("Listing applications...")
-        # apps = client.list_applications()
-        # print(f"✓ Found applications: {apps}")
-
-    except calimero.ClientError as e:
-        print(f"✗ Client error: {e}")
-    except Exception as e:
-        print(f"✗ Unexpected error: {e}")
-
-
-def demo_token_cache_utilities():
-    """Demonstrate token cache path utilities."""
-    print("\n" + "=" * 40)
-    print("Token Cache Utilities Demo")
-    print("=" * 40)
-
-    try:
-        # Get the cache directory
-        cache_dir = calimero.get_token_cache_dir()
-        print(f"Token cache directory: {cache_dir}")
-
-        # Get the cache path for a specific node
-        node_name = "my-production-node"
-        node_url = "https://my-node.example.com:2428"
-        cache_path = calimero.get_token_cache_path(node_url, node_name)
-        print(f"Token cache path for '{node_name}': {cache_path}")
-
-        # Show how different node names produce different paths
-        print("\nFilename derivation examples:")
-        examples = [
-            "test-dev-node",
-            "https://api.example.com:2428",
-            "my-node",
-            "my-node",  # Same input = same output (stable)
-        ]
-        for name in examples:
-            path = calimero.get_token_cache_path(node_url, name)
-            filename = os.path.basename(path)
-            print(f"  '{name}' -> {filename}")
-
-    except Exception as e:
-        print(f"✗ Error: {e}")
+        for e in client.events(app, start=0, limit=10, timeout=2):
+            print("event", e["id"], e["kind"], e["data"])
+    except CloudError as e:
+        message, status, code, _details = e.args
+        print(f"failed: {status} {code}: {message}")
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
-    main()
-    demo_token_cache_utilities()
+    sys.exit(main())

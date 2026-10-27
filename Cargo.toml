@@ -3,7 +3,7 @@ name = "calimero-client-py"
 version = "0.9.0"
 edition = "2021"
 authors = ["Calimero Limited <info@calimero.network>"]
-description = "Python client library for Calimero Network"
+description = "Python client library for Calimero Cloud (release-v2)"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/calimero-network/core"
 keywords = ["calimero", "blockchain", "api", "client", "web3", "python"]
@@ -26,25 +26,11 @@ name = "calimero_client_py"
 crate-type = ["cdylib"]
 
 [dependencies]
-# Core Calimero crates, tracking master.
+# The release-v2 cloud client, from core's release-v2-parity branch.
 #
-# They move TOGETHER or not at all, including when one is pointed at a feature
-# branch to bind something core has not released yet. Moving one alone makes
-# cargo resolve two copies of `calimero-primitives`, one per source, and the
-# error names types rather than revisions — `expected PrivateKey, found a
-# different PrivateKey` — which reads as a code problem rather than a
-# resolution one.
-calimero-client = { git = "https://github.com/calimero-network/core", branch = "master", features = ["tee"] }
-calimero-primitives = { git = "https://github.com/calimero-network/core", branch = "master" }
-calimero-server-primitives = { git = "https://github.com/calimero-network/core", branch = "master" }
-calimero-context-config = { git = "https://github.com/calimero-network/core", branch = "master" }
-# Warrant minting lives here rather than in a JS client because `Warrant::sign`
-# is already written: binding it costs a call instead of an ed25519-plus-borsh
-# reimplementation that would have to stay byte-identical with the node forever.
-calimero-account = { git = "https://github.com/calimero-network/core", branch = "master" }
-borsh = "1.5"
-# The release-v2 cloud client. It shares no types with the crates above, so
-# tracking a different branch of core does not split them.
+# The two move TOGETHER or not at all: moving one alone makes cargo resolve two
+# copies of the crates they share, and the error names types rather than
+# revisions, which reads as a code problem rather than a resolution one.
 calimero-cloud-client = { git = "https://github.com/calimero-network/core", branch = "release-v2-parity", features = ["testing"] }
 calimero-identity = { git = "https://github.com/calimero-network/core", branch = "release-v2-parity", features = ["testing"] }
 futures-util = "0.3"
@@ -60,24 +46,11 @@ futures-util = "0.3"
 # half-wired.
 pyo3 = { version = "0.22" }
 
-# Additional dependencies that might be needed
-serde = { version = "1.0", features = ["derive"] }
+serde = "1.0"
 serde_json = "1.0"
-tokio = { version = "1.0", features = ["full"] }
+tokio = { version = "1.0", features = ["rt-multi-thread", "sync", "time"] }
 url = "2.5"
-# The HTTP client sealed envelopes travel over when the TLS is not pinned. The
-# same crate `calimero-client` uses, so cargo resolves one copy.
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 hex = "0.4"
-eyre = "0.6"
-sha2 = "0.10"
-dirs = "5.0"
-chrono = { version = "0.4", features = ["serde"] }
-camino = "1.1"
-async-trait = "0.1"
-
-[dev-dependencies]
-tokio-test = "0.4"
 
 [features]
 default = []

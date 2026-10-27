@@ -1,5 +1,48 @@
 # Changelog
 
+## Unreleased
+
+- **feat!: release-v2 only; the v1 client is removed.** Core's release-v2
+  replaced v1's peer-to-peer node with an attested cloud cluster, and this
+  package now binds only that: `CloudClient`, `SoftPasskey` and `CloudError`,
+  over core's `calimero-cloud-client` (branch `release-v2-parity`). The v1
+  client, built on core `master`'s `calimero-client`,
+  `calimero-server-primitives`, `calimero-primitives`,
+  `calimero-context-config` and `calimero-account`, is deleted with those
+  dependencies. What replaces each removed name:
+  - `create_connection`, `ConnectionInfo` → `CloudClient(base_url, ...)`.
+  - `create_client`, `Client` → `CloudClient`'s methods:
+    `install_application`/`install_dev_application` → `upload_bundle`;
+    `create_context` → `create_app`; `list_contexts`/`get_context` →
+    `list_apps`/`get_app`; `execute_function` → `call` (writes) and `view`
+    (reads); `update_context_application` → `upgrade_app`;
+    `upload_blob`/`download_blob` → the same names, scoped to an app;
+    namespaces → organizations (`create_org`, `get_org`, `set_member`,
+    `remove_member`, `set_capabilities`, `invite`, `redeem_invite`); groups →
+    teams (`create_team`, `get_team`, `update_team`, `delete_team`,
+    `set_team_member`, `remove_team_member`); anything else → `get`, `post`,
+    `delete` on the API path. Aliases, context identities, peer counts,
+    syncing, device pairing, intent relays, group upgrades and migrations have
+    no equivalent: they were properties of the peer-to-peer node.
+  - `AuthMode`, `JwtToken`, `get_token_cache_path`, `get_token_cache_dir`,
+    `save_token_cache` (merobox's `~/.merobox/auth_cache` tokens) →
+    `sign_up`/`sign_in` with a passkey, `use_session`, `refresh`, or
+    `use_api_key`. Sessions are not cached on disk.
+  - `TeePolicy` (MRTD/RTMR pins, `from_releases`) → `CloudClient`'s
+    `tee_profiles`, `min_release`, `allow_debug_profiles`, `allow_mock` and
+    `app_hash`; the policy is a signed mero-tee release's profiles.
+  - `sealed=True` → always on: every `CloudClient` request is sealed to the
+    attested node.
+  - `sign_warrant`, `sign_request` → none: v1's relayed execution and request
+    proofs; a cluster authenticates the caller's session or API key.
+  - `ClientError` → `CloudError(message, status, code, details)`.
+  - The `calimero-client-py` command (`calimero.cli`) → none: it wrapped
+    v1's `list-contexts`; `meroctl` is release-v2's command line.
+  - `abi-codegen`'s generated client took a v1 `Client`, a `context_id` and an
+    `executor_public_key` and called `execute_function`; it now takes a
+    `CloudClient` and an `app_id` and calls `call`, letting `CloudError`
+    through unchanged.
+
 ## 0.9.0
 
 - **feat(warrant)!: `sign_warrant` names the executor device key and pins the

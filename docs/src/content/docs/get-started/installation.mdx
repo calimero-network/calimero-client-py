@@ -13,8 +13,7 @@ importable modules are installed:
 
 - **`calimero_client_py`** — the compiled extension: the classes and functions
   documented in the [API reference](/reference/api/).
-- **`calimero`** — a thin Python package that re-exports the same names and
-  provides the [`calimero-client-py` CLI](/reference/cli/).
+- **`calimero`** — a thin Python package that re-exports the same names.
 
 ## Requirements
 
@@ -60,11 +59,7 @@ dependencies.
 python -c "import calimero_client_py; print(calimero_client_py.VERSION)"
 ```
 
-That prints the installed version. The CLI is also on your `PATH`:
-
-```bash
-calimero-client-py --version
-```
+That prints the installed version.
 
 ## Install from source
 
@@ -107,9 +102,9 @@ those too. A network connection is required for the initial build.
   <LinkCard
     title="Quickstart"
     href="/get-started/quickstart/"
-    description="Connect to a node and make your first call." />
+    description="Sign up, deploy an app and make your first call." />
   <LinkCard
-    title="Connecting to a node"
-    href="/guides/connecting/"
-    description="Connections, the node_name parameter, and creating a client." />
+    title="Concepts"
+    href="/get-started/concepts/"
+    description="Attestation, the sealed channel, accounts, apps, organizations and teams." />
 </CardGrid>

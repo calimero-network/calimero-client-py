@@ -81,23 +81,15 @@ def main(input: Path, output: Path, class_name: str, verbose: bool):
         # Show usage example
         console.print(f"\n[blue]Usage example:[/blue]")
         console.print(f"```python")
-        console.print(f"from calimero import create_connection, create_client")
+        console.print(f"from calimero import CloudClient")
         console.print(f"from {output.name} import {class_name}")
         console.print(f"")
-        console.print(f"# Create Calimero connection and client")
-        console.print(
-            f"connection = create_connection(api_url='https://test.merod.dev.p2p.aws.calimero.network', node_name='test-dev-node')"
-        )
-        console.print(f"client = create_client(connection)")
+        console.print(f"# Sign in to a release-v2 cluster")
+        console.print(f"client = CloudClient('https://eu1.cloud.calimero.network')")
+        console.print(f"client.use_api_key('cal_...')")
         console.print(f"")
-        console.print(
-            f"# Create ABI client (you'll need a context_id and executor_public_key)"
-        )
-        console.print(f"abi_client = {class_name}(")
-        console.print(f"    client=client,")
-        console.print(f"    context_id='your-context-id',")
-        console.print(f"    executor_public_key='your-executor-public-key'")
-        console.print(f")")
+        console.print(f"# Create ABI client for an app instance")
+        console.print(f"abi_client = {class_name}(client=client, app_id='your-app-id')")
         console.print(f"")
         console.print(f"# Use ABI methods")
         console.print(f"result = abi_client.echo_string('Hello, World!')")
