@@ -31,7 +31,9 @@ def test_api_keys_are_scoped_listed_and_revoked(cluster, wasm):
     alice, _pk = person(cluster, 0, "alice-keys")
     app = alice.create_app("keyed", alice.upload_bundle(wasm))
     alice.call(app, "set", {"key": "k", "value": "v"})
-    key_id, key = alice.create_api_key({"label": "reader", "apps": [app], "readOnly": True})
+    key_id, key = alice.create_api_key(
+        {"label": "reader", "apps": [app], "readOnly": True}
+    )
     listed = {k["keyId"]: k for k in alice.list_api_keys()}
     assert listed[key_id]["label"] == "reader" and listed[key_id]["readOnly"]
 
@@ -64,7 +66,9 @@ def test_orgs_and_teams_end_to_end(cluster, wasm):
     sub = alice.create_team(org, "backend", join="everyone", parent=team)
     alice.set_team_member(org, team, bob_id, role="readOnly")
     app = alice.create_app(
-        "eng-kv", alice.upload_bundle(wasm), {"org": org, "access": {"kind": "team", "team": team}}
+        "eng-kv",
+        alice.upload_bundle(wasm),
+        {"org": org, "access": {"kind": "team", "team": team}},
     )
     view = bob.get_team(org, team)
     assert view["myRole"] == "readOnly" and sub in view["children"]

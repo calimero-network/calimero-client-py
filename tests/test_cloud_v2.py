@@ -12,6 +12,7 @@ MEROD_V2_BINARY) and KV_STORE_WASM. Skipped when the binary is missing.
 
 import json
 import os
+import shutil
 import socket
 import subprocess
 import tempfile
@@ -54,19 +55,27 @@ class Cluster:
         peers = ",".join(f"{i + 1}={u}/" for i, u in enumerate(self.urls))
         logs = None if os.environ.get("MEROD_V2_LOGS") else subprocess.DEVNULL
         self.procs = []
+        self.dirs = [tempfile.mkdtemp(prefix="merod-") for _ in ports]
         for i, (port, url) in enumerate(zip(ports, self.urls)):
             # `merod run FLAGS`: a node from flags alone, no `init`.
             args = [
                 BINARY,
                 "run",
-                "--node-id", str(i + 1),
-                "--listen", f"127.0.0.1:{port}",
-                "--public-url", f"{url}/",
-                "--data-dir", tempfile.mkdtemp(prefix="merod-"),
-                "--peers", peers,
-                "--cluster", "py-test",
+                "--node-id",
+                str(i + 1),
+                "--listen",
+                f"127.0.0.1:{port}",
+                "--public-url",
+                f"{url}/",
+                "--data-dir",
+                self.dirs[i],
+                "--peers",
+                peers,
+                "--cluster",
+                "py-test",
                 "--dev",
-                "--origins", ORIGIN,
+                "--origins",
+                ORIGIN,
             ]
             if i == 0:
                 args.append("--bootstrap")
@@ -96,6 +105,11 @@ class Cluster:
                 p.kill()
                 p.wait()
                 self.procs[j] = None
+        # The whole cluster stopped: its data goes too (a single node stopped
+        # for a failover test keeps its directory).
+        if i is None:
+            for d in self.dirs:
+                shutil.rmtree(d, ignore_errors=True)
 
 
 @pytest.fixture(scope="module")
@@ -142,11 +156,16 @@ def test_sign_up_deploy_call_view_confirm(cluster, wasm):
     r = alice.call(app, "set", {"key": "a", "value": "1"}, idempotency_key="k1")
     assert r["index"] > 0
     assert len(r["events"]) == 1
-    replay = alice.call(app, "set", {"key": "a", "value": "other"}, idempotency_key="k1")
+    replay = alice.call(
+        app, "set", {"key": "a", "value": "other"}, idempotency_key="k1"
+    )
     assert replay["index"] == r["index"]
 
     assert again.view(app, "get", {"key": "a"})["result"] == "1"
-    assert again.view(app, "get", {"key": "a"}, stale=True, min_index=r["index"])["result"] == "1"
+    assert (
+        again.view(app, "get", {"key": "a"}, stale=True, min_index=r["index"])["result"]
+        == "1"
+    )
 
     events = alice.events(app, limit=1, timeout=5)
     assert len(events) == 1 and events[0]["kind"]
@@ -187,7 +206,9 @@ def test_organizations_gate_apps(cluster, wasm):
     bob_id = bob.me()["accountId"]
     org = alice.post("orgs", {"name": "Acme"})["orgId"]
     team = alice.post(f"orgs/{org}/teams", {"name": "eng", "join": "invite"})["teamId"]
-    token = alice.post(f"orgs/{org}/invites", {"role": "member", "teams": [team]})["token"]
+    token = alice.post(f"orgs/{org}/invites", {"role": "member", "teams": [team]})[
+        "token"
+    ]
     bob.post(f"invites/{token}/redeem")
 
     app = alice.create_app("team-kv", alice.upload_bundle(wasm), {"org": org})
@@ -235,11 +256,15 @@ def test_keeps_serving_after_a_node_dies(cluster, wasm):
     other.sign_in(pk)
     for _ in range(40):
         try:
-            other.call(app, "set", {"key": "k2", "value": "v2"}, idempotency_key="after-failover")
+            other.call(
+                app,
+                "set",
+                {"key": "k2", "value": "v2"},
+                idempotency_key="after-failover",
+            )
             break
         except CloudError:
             time.sleep(0.25)
     else:
         pytest.fail("no write after failover")
     assert other.view(app, "get", {"key": "k"})["result"] == "v"
-

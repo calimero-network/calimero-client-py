@@ -505,8 +505,7 @@ impl PyCloudClient {
         version: Option<&str>,
         passkey: Option<&PySoftPasskey>,
     ) -> PyResult<PyObject> {
-        let body =
-            serde_json::json!({ "bundle": bundle, "version": version, "migrate": migrate });
+        let body = serde_json::json!({ "bundle": bundle, "version": version, "migrate": migrate });
         let path = format!("apps/{}/upgrade", seg(app));
         let v = match passkey {
             Some(pk) => self.confirmed(py, path, body, pk)?,
