@@ -11,6 +11,19 @@ authors = [{name = "Calimero Network", email = "support@calimero.network"}]
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = []
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Rust",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+]
+
+[project.urls]
+Documentation = "https://calimero-network.github.io/calimero-client-py/"
+Repository = "https://github.com/calimero-network/calimero-client-py"
+Changelog = "https://github.com/calimero-network/calimero-client-py/blob/master/CHANGELOG.md"
 
 [project.optional-dependencies]
 dev = [
@@ -35,9 +48,6 @@ module-name = "calimero_client_py"
 python-packages = ["calimero"]
 python-modules = ["calimero_client_py"]
 manifest-path = "Cargo.toml"
-# Configure for source-only distribution
-sdist = true
-wheel = false
 
 [tool.black]
 line-length = 88

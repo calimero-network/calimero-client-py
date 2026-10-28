@@ -8,14 +8,16 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/calimero-network/core"
 keywords = ["calimero", "blockchain", "api", "client", "web3", "python"]
 categories = ["api-bindings", "blockchain", "web-programming"]
-# Ensure source distribution includes all necessary files
+# Ensure source distribution includes all necessary files. Anchored with `/`:
+# these are gitignore-style patterns, and a bare `LICENSE*` also matches every
+# license file under `.venv/` or `docs/node_modules/`.
 include = [
-    "src/**/*.rs",
-    "Cargo.toml",
-    "Cargo.lock",
-    "README.md",
-    "LICENSE*",
-    "CHANGELOG.md",
+    "/src/**/*.rs",
+    "/Cargo.toml",
+    "/Cargo.lock",
+    "/README.md",
+    "/LICENSE*",
+    "/CHANGELOG.md",
 ]
 
 # Make this package standalone, not part of the workspace
@@ -55,7 +57,9 @@ hex = "0.4"
 [features]
 default = []
 # What maturin builds with (see `[tool.maturin] features` in pyproject.toml).
-python = ["pyo3/extension-module"]
+# `abi3-py39`: one wheel per platform, for every CPython from 3.9 on, built
+# against the stable ABI instead of one interpreter's.
+python = ["pyo3/extension-module", "pyo3/abi3-py39"]
 
 [profile.release]
 strip = "symbols"
