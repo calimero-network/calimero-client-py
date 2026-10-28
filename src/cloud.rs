@@ -360,7 +360,10 @@ impl PyCloudClient {
         self.run(py, async move { c.create_app(&name, &bundle, o).await })
     }
 
-    /// Call a method. Returns `{"index", "result", "events"}`.
+    /// Call a method. Returns `{"index", "result", "events"}`. While the node
+    /// answers 503 or cannot be reached, the call is sent again with the same
+    /// idempotency key (`idempotency_key`, else one the client makes), so it
+    /// runs once.
     #[pyo3(signature = (app, method, args = None, idempotency_key = None))]
     fn call(
         &self,

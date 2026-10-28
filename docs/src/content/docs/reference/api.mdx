@@ -70,7 +70,7 @@ until the first request.
 
 | Method | Returns |
 | --- | --- |
-| `call(app, method, args=None, idempotency_key=None)` | `{"index", "result", "events"}`. |
+| `call(app, method, args=None, idempotency_key=None)` | `{"index", "result", "events"}`. Sent again with the same key while the node answers 503 or cannot be reached, so it runs once. |
 | `call_confirmed(app, method, args, passkey)` | The same, for a `confirm` method; `passkey` approves this exact call. |
 | `view(app, method, args=None, stale=False, min_index=0)` | `{"result", ...}`. Strong by default; `stale=True` reads any replica at least as new as `min_index`. |
 | `events(app, start=0, limit=100, timeout=5.0)` | Up to `limit` committed events from index `start`, or as many as arrive within `timeout` seconds: `[{"id", "kind", "data"}]`. |

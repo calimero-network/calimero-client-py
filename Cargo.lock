@@ -470,7 +470,7 @@ dependencies = [
 [[package]]
 name = "calimero-cloud-client"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=release-v2-parity#fea2309513b1391829da4247a7711057344c66a4"
+source = "git+https://github.com/calimero-network/core?branch=release-v2-parity#7bb8561adeefddad316dc481d2c98e2f66d1003f"
 dependencies = [
  "base64 0.23.1",
  "calimero-identity",
@@ -495,7 +495,7 @@ dependencies = [
 [[package]]
 name = "calimero-identity"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=release-v2-parity#fea2309513b1391829da4247a7711057344c66a4"
+source = "git+https://github.com/calimero-network/core?branch=release-v2-parity#7bb8561adeefddad316dc481d2c98e2f66d1003f"
 dependencies = [
  "base64 0.23.1",
  "ciborium",
@@ -508,7 +508,7 @@ dependencies = [
 [[package]]
 name = "calimero-sealed"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=release-v2-parity#fea2309513b1391829da4247a7711057344c66a4"
+source = "git+https://github.com/calimero-network/core?branch=release-v2-parity#7bb8561adeefddad316dc481d2c98e2f66d1003f"
 dependencies = [
  "axum",
  "bytes",
@@ -534,7 +534,7 @@ dependencies = [
 [[package]]
 name = "calimero-tee-attestation"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=release-v2-parity#fea2309513b1391829da4247a7711057344c66a4"
+source = "git+https://github.com/calimero-network/core?branch=release-v2-parity#7bb8561adeefddad316dc481d2c98e2f66d1003f"
 dependencies = [
  "base64 0.23.1",
  "configfs-tsm",
@@ -553,7 +553,7 @@ dependencies = [
 [[package]]
 name = "calimero-tee-release"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?branch=release-v2-parity#fea2309513b1391829da4247a7711057344c66a4"
+source = "git+https://github.com/calimero-network/core?branch=release-v2-parity#7bb8561adeefddad316dc481d2c98e2f66d1003f"
 dependencies = [
  "base64 0.23.1",
  "eyre",
