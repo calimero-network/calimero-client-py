@@ -174,3 +174,32 @@ def test_aliases_org_deletion_and_signing_out_everywhere(cluster, wasm):
     alice.sign_out_everywhere()
     with pytest.raises(CloudError):
         laptop.get("auth/me")
+
+
+def test_blobs_presence_transfer_and_upgrade_runs_have_typed_calls(cluster, wasm):
+    alice, pk = person(cluster, 0, "alice-typed")
+    bob, _ = person(cluster, 1, "bob-typed")
+    bundle = alice.upload_bundle(wasm)
+    app = alice.create_app("typed", bundle)
+
+    up = alice.upload_blob(app, b"hello " * 100)
+    listed = alice.list_blobs(app)
+    assert any(b["id"] == up["id"] for b in listed["blobs"]), listed
+    assert alice.blob_info(app, up["id"])["size"] == 600
+    alice.delete_blob(app, up["id"])
+    with pytest.raises(CloudError) as e:
+        alice.blob_info(app, up["id"])
+    assert code(e.value) == "NOT_FOUND"
+
+    alice.publish_presence(app, 1, b"typing")
+    seen = alice.presence(app)
+    assert seen, seen
+    alice.publish_presence(app, 2)
+
+    with pytest.raises(CloudError) as e:
+        alice.upgrade_run(alice.create_org("Runs"), "no-such-run")
+    assert code(e.value) == "NOT_FOUND"
+
+    bob_id = bob.me()["accountId"]
+    alice.transfer_app(app, bob_id, pk)
+    assert bob.get(f"apps/{app}")["owner"] == bob_id

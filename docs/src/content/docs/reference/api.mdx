@@ -81,6 +81,29 @@ until the first request.
 | --- | --- |
 | `upload_blob(app, data)` | `{"blobId", "id", "size"}` (`blobId` base58, `id` hex). |
 | `download_blob(app, id)` | `bytes`; `id` is base58 or hex. |
+| `list_blobs(app)` | `{"blobs": [{"blobId", "id", "size"}, ...]}`. |
+| `blob_info(app, id)` | The blob's id and size. |
+| `delete_blob(app, id)` | Deletes it (the app's owner or an org admin). |
+
+### Presence
+
+| Method | Returns |
+| --- | --- |
+| `publish_presence(app, seq, state=None)` | Publishes `state` (bytes, at most 4 KiB) for the caller; `None` retracts it. The newest `seq` wins. |
+| `presence(app)` | Who is present in the app now. |
+
+### Transfers, approvals and upgrade runs
+
+Each takes the owner's `passkey`, which answers the node's `412 CONFIRM_REQUIRED`.
+
+| Method | Returns |
+| --- | --- |
+| `transfer_app(app, to, passkey)` | Hands the app to account `to` (an org app only to a member). |
+| `approve_release(version, passkey, org=None)` | Approves a mero-tee release for the org's apps, or the account's own. |
+| `approve_outbound(package, passkey, org=None, prefixes=None, replace=False)` | Approves URL prefixes for the package's publisher: every prefix its manifest declares by default; `replace=True` sets exactly `prefixes` (`[]` revokes). |
+| `upgrade_org(org, package, version, passkey, team=None, cascade=False)` | Starts an org-wide upgrade run: `{"runId", ...}`. |
+| `upgrade_run(org, run)` | The run's status and per-app results. |
+| `retry_upgrade_run(org, run, passkey)` | Runs the failed apps again, as a new run. |
 
 ### Organizations
 

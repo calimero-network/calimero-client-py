@@ -325,6 +325,169 @@ impl PyCloudClient {
             .unbind())
     }
 
+    /// `app`'s blobs: `{"blobs": [{"blobId", "id", "size"}, ...]}`.
+    fn list_blobs(&self, py: Python<'_>, app: &str) -> PyResult<PyObject> {
+        let (c, app) = (Arc::clone(&self.inner), app.to_owned());
+        let v = self.run(py, async move { c.list_blobs(&app).await })?;
+        to_py(py, &v)
+    }
+
+    /// One blob's id and size.
+    fn blob_info(&self, py: Python<'_>, app: &str, id: &str) -> PyResult<PyObject> {
+        let (c, app, id) = (Arc::clone(&self.inner), app.to_owned(), id.to_owned());
+        let v = self.run(py, async move { c.blob_info(&app, &id).await })?;
+        to_py(py, &v)
+    }
+
+    /// Delete one of `app`'s blobs (its owner's or an org admin's).
+    fn delete_blob(&self, py: Python<'_>, app: &str, id: &str) -> PyResult<PyObject> {
+        let (c, app, id) = (Arc::clone(&self.inner), app.to_owned(), id.to_owned());
+        let v = self.run(py, async move { c.delete_blob(&app, &id).await })?;
+        to_py(py, &v)
+    }
+
+    /// Hand `app` to the account `to` (an org app only to one of its members),
+    /// approved with the owner's `passkey`.
+    fn transfer_app(
+        &self,
+        py: Python<'_>,
+        app: &str,
+        to: &str,
+        passkey: &PySoftPasskey,
+    ) -> PyResult<PyObject> {
+        let (c, pk) = (Arc::clone(&self.inner), Arc::clone(&passkey.inner));
+        let (app, to) = (app.to_owned(), to.to_owned());
+        let v = self.run(py, async move {
+            let mut auth = pk.lock().await;
+            c.transfer_app(&app, &to, &mut *auth).await
+        })?;
+        to_py(py, &v)
+    }
+
+    /// Publish this caller's presence in `app`: `state` (bytes, at most 4 KiB),
+    /// or `None` to retract it. The newest `seq` wins.
+    #[pyo3(signature = (app, seq, state = None))]
+    fn publish_presence(
+        &self,
+        py: Python<'_>,
+        app: &str,
+        seq: u64,
+        state: Option<Vec<u8>>,
+    ) -> PyResult<PyObject> {
+        let (c, app) = (Arc::clone(&self.inner), app.to_owned());
+        let v = self.run(py, async move {
+            c.publish_presence(&app, seq, state.as_deref()).await
+        })?;
+        to_py(py, &v)
+    }
+
+    /// Who is present in `app` now.
+    fn presence(&self, py: Python<'_>, app: &str) -> PyResult<PyObject> {
+        let (c, app) = (Arc::clone(&self.inner), app.to_owned());
+        let v = self.run(py, async move { c.presence(&app).await })?;
+        to_py(py, &v)
+    }
+
+    /// Approve the mero-tee release `version` for `org`'s apps (or, without
+    /// `org`, the account's own), with the owner's `passkey`.
+    #[pyo3(signature = (version, passkey, org = None))]
+    fn approve_release(
+        &self,
+        py: Python<'_>,
+        version: &str,
+        passkey: &PySoftPasskey,
+        org: Option<String>,
+    ) -> PyResult<PyObject> {
+        let (c, pk) = (Arc::clone(&self.inner), Arc::clone(&passkey.inner));
+        let version = version.to_owned();
+        let v = self.run(py, async move {
+            let mut auth = pk.lock().await;
+            c.approve_release(org.as_deref(), &version, &mut *auth)
+                .await
+        })?;
+        to_py(py, &v)
+    }
+
+    /// Approve URL prefixes `package`'s publisher may call out to, for `org`'s
+    /// apps (or the account's own): every prefix its manifest declares when
+    /// `prefixes` is `None`; `replace=True` sets exactly these (`[]` revokes).
+    #[pyo3(signature = (package, passkey, org = None, prefixes = None, replace = false))]
+    fn approve_outbound(
+        &self,
+        py: Python<'_>,
+        package: &str,
+        passkey: &PySoftPasskey,
+        org: Option<String>,
+        prefixes: Option<Vec<String>>,
+        replace: bool,
+    ) -> PyResult<PyObject> {
+        let (c, pk) = (Arc::clone(&self.inner), Arc::clone(&passkey.inner));
+        let package = package.to_owned();
+        let v = self.run(py, async move {
+            let mut auth = pk.lock().await;
+            c.approve_outbound(
+                org.as_deref(),
+                &package,
+                prefixes.as_deref(),
+                replace,
+                &mut *auth,
+            )
+            .await
+        })?;
+        to_py(py, &v)
+    }
+
+    /// Upgrade every app of `org` running `package` to `version` (optionally
+    /// only `team`, with `cascade` its subtree), approved with the owner's
+    /// `passkey`. Returns the run (`{"runId", ...}`).
+    #[pyo3(signature = (org, package, version, passkey, team = None, cascade = false))]
+    #[allow(clippy::too_many_arguments)]
+    fn upgrade_org(
+        &self,
+        py: Python<'_>,
+        org: &str,
+        package: &str,
+        version: &str,
+        passkey: &PySoftPasskey,
+        team: Option<String>,
+        cascade: bool,
+    ) -> PyResult<PyObject> {
+        let (c, pk) = (Arc::clone(&self.inner), Arc::clone(&passkey.inner));
+        let org = org.to_owned();
+        let body = serde_json::json!({
+            "package": package, "version": version, "team": team, "cascade": cascade,
+        });
+        let v = self.run(py, async move {
+            let mut auth = pk.lock().await;
+            c.upgrade_org(&org, body, &mut *auth).await
+        })?;
+        to_py(py, &v)
+    }
+
+    /// An upgrade run's status and per-app results.
+    fn upgrade_run(&self, py: Python<'_>, org: &str, run: &str) -> PyResult<PyObject> {
+        let (c, org, run) = (Arc::clone(&self.inner), org.to_owned(), run.to_owned());
+        let v = self.run(py, async move { c.upgrade_run(&org, &run).await })?;
+        to_py(py, &v)
+    }
+
+    /// Run the failed apps of an upgrade run again, as a new run.
+    fn retry_upgrade_run(
+        &self,
+        py: Python<'_>,
+        org: &str,
+        run: &str,
+        passkey: &PySoftPasskey,
+    ) -> PyResult<PyObject> {
+        let (c, pk) = (Arc::clone(&self.inner), Arc::clone(&passkey.inner));
+        let (org, run) = (org.to_owned(), run.to_owned());
+        let v = self.run(py, async move {
+            let mut auth = pk.lock().await;
+            c.retry_upgrade_run(&org, &run, &mut *auth).await
+        })?;
+        to_py(py, &v)
+    }
+
     /// Create an app from a package release (the newest without `version`),
     /// installed from the registry first if the cluster lacks it. `options`
     /// as `create_app`. Returns the app id.
