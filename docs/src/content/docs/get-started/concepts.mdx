@@ -1,11 +1,11 @@
 ---
 title: Concepts
-description: What CloudClient talks to — attested clusters, the sealed channel, accounts and passkeys, API keys, apps, organizations and teams.
+description: What Client talks to — attested clusters, the sealed channel, accounts and passkeys, API keys, apps, organizations and teams.
 sidebar:
   order: 3
 ---
 
-**Cluster.** A release-v2 deployment is a cluster of `merod` nodes running in
+**Cluster.** A Calimero 1.0 deployment is a cluster of `merod` nodes running in
 Intel TDX. Each app instance is replicated by its own Raft log across them, so
 any node answers for any app; `call` commits through the log, `view` reads
 (strongly by default, or from any replica at least as new as `min_index` with

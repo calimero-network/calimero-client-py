@@ -32,8 +32,8 @@ export const GET: APIRoute = async () => {
   const lines: string[] = [
     '# Calimero Python Client',
     '',
-    '> The Python client SDK for Calimero Cloud (release-v2). A synchronous',
-    '> client over core\'s Rust cloud client (PyO3): verify a node\'s',
+    '> The Python client for Calimero 1.0. A synchronous',
+    '> client over core\'s Rust client (PyO3): verify a node\'s',
     '> attestation, sign in with a passkey or API key, deploy apps, call and',
     '> view them, read their events, and administer organizations and teams.',
     '',

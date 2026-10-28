@@ -1,11 +1,11 @@
 [package]
 name = "calimero-client-py"
-version = "0.9.0"
+version = "1.0.0-rc.1"
 edition = "2021"
 authors = ["Calimero Limited <info@calimero.network>"]
-description = "Python client library for Calimero Cloud (release-v2)"
+description = "Python client library for Calimero 1.0"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/calimero-network/core"
+repository = "https://github.com/calimero-network/calimero-client-py"
 keywords = ["calimero", "blockchain", "api", "client", "web3", "python"]
 categories = ["api-bindings", "blockchain", "web-programming"]
 # Ensure source distribution includes all necessary files. Anchored with `/`:

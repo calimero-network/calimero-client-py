@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Example usage of calimero-client-py against a release-v2 cluster.
+Example usage of calimero-client-py against a Calimero 1.0 cluster.
 
 1. Install the package: pip install calimero-client-py
    (or from a checkout: maturin develop --release)
@@ -14,7 +14,7 @@ production node is pinned to a signed mero-tee release with tee_profiles=[...].
 
 import sys
 
-from calimero_client_py import CloudClient, CloudError, SoftPasskey
+from calimero_client_py import Client, CloudError, SoftPasskey
 
 
 def main() -> int:
@@ -23,7 +23,7 @@ def main() -> int:
         return 2
     url, wasm_path = sys.argv[1], sys.argv[2]
 
-    client = CloudClient(url, allow_mock=True)
+    client = Client(url, allow_mock=True)
     passkey = SoftPasskey()
     try:
         client.sign_up(passkey, "example")

@@ -15,7 +15,7 @@ export default defineConfig({
     starlight({
       title: 'Calimero Python Client',
       description:
-        'The Python client SDK for Calimero Cloud (release-v2) — verify a node\'s attestation, sign in, deploy apps, call and view them, and administer organizations and teams. Native Rust core via PyO3.',
+        'The Python client for Calimero 1.0 — verify a node\'s attestation, sign in, deploy apps, call and view them, and administer organizations and teams. Native Rust core via PyO3.',
       logo: {
         light: './src/assets/logo-light.svg',
         dark: './src/assets/logo-dark.svg',

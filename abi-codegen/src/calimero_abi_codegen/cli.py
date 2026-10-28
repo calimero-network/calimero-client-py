@@ -84,7 +84,7 @@ def main(input: Path, output: Path, class_name: str, verbose: bool):
         console.print(f"from calimero import CloudClient")
         console.print(f"from {output.name} import {class_name}")
         console.print(f"")
-        console.print(f"# Sign in to a release-v2 cluster")
+        console.print(f"# Sign in to a Calimero 1.0 cluster")
         console.print(f"client = CloudClient('https://eu1.cloud.calimero.network')")
         console.print(f"client.use_api_key('cal_...')")
         console.print(f"")

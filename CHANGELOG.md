@@ -1,12 +1,16 @@
 # Changelog
 
-## Unreleased
+## 1.0.0-rc.1
 
-- **feat!: release-v2 only; the v1 client is removed.** Core's release-v2
-  replaced v1's peer-to-peer node with an attested cloud cluster, and this
-  package now binds only that: `CloudClient`, `SoftPasskey` and `CloudError`,
-  over core's `calimero-cloud-client` (branch `release-v2-parity`). The v1
-  client, built on core `master`'s `calimero-client`,
+The Python client for Calimero 1.0, and only for it. **Breaking**: every v1
+name is gone (below). On PyPI this is `1.0.0rc1`, a pre-release: `pip install
+--pre calimero-client-py`, or `==1.0.0rc1`.
+
+- **feat!: the Calimero 1.0 client; the v1 client is removed.** Calimero 1.0
+  replaced v1's peer-to-peer node with an attested cluster, and this package
+  now binds only that: `Client` (also `CloudClient`), `SoftPasskey` and
+  `CloudError`, over core 1.0's `calimero-client`. The v1 client, built on
+  core v1's `calimero-client`,
   `calimero-server-primitives`, `calimero-primitives`,
   `calimero-context-config` and `calimero-account`, is deleted with those
   dependencies. What replaces each removed name:
@@ -37,11 +41,44 @@
     proofs; a cluster authenticates the caller's session or API key.
   - `ClientError` → `CloudError(message, status, code, details)`.
   - The `calimero-client-py` command (`calimero.cli`) → none: it wrapped
-    v1's `list-contexts`; `meroctl` is release-v2's command line.
+    v1's `list-contexts`; `meroctl` is Calimero 1.0's command line.
   - `abi-codegen`'s generated client took a v1 `Client`, a `context_id` and an
     `executor_public_key` and called `execute_function`; it now takes a
     `CloudClient` and an `app_id` and calls `call`, letting `CloudError`
     through unchanged.
+- **feat: `Client` is the client's name.** `Client` and `CloudClient` are
+  the same class (`Client is CloudClient`); `Client` is the preferred name,
+  `CloudClient` stays for code that imports it (mdma does). It is not v1's
+  `Client`: it takes a node URL and a trust policy, as `CloudClient` does.
+- **feat: the rest of core 1.0's client.** New methods, each over the
+  `calimero-client` call of the same name: `session`, `usage`,
+  `label_passkey`; aliases (`set_alias`, `alias`, `aliases`, `delete_alias`);
+  packages (`upload_package`, `install_package`, `packages`, `package`,
+  `uninstall_package`); apps (`delete_app`, `set_app_metadata`,
+  `app_storage`, `app_abi`, `verify_app_cluster`, `presence_stream`);
+  organizations (`delete_org`, `set_org_metadata`, `set_member_metadata`);
+  `get_text`. `upgrade_org` takes `migrate=`. `call` and `view` results
+  carry the node's signed `receipt`, which `verify_app_cluster`'s keys check.
+- **feat: the Ops API.** With the node's ops token as the API key:
+  `ops_status`, `ops_metrics`, `ops_register_node`, `ops_remove_node`,
+  `ops_set_replicas`, `ops_backup`, `ops_quotas`, `ops_set_quotas`,
+  `ops_approve_release`, `ops_approve_outbound`, `ops_upgrade_app`,
+  `ops_upgrade_org`, `ops_packages`, `ops_upload_package`,
+  `ops_install_package`, `ops_uninstall_package`. `ops_set_replicas` and
+  `ops_remove_node` follow a `421 NOT_LEADER` to the leader the node names,
+  attested under the client's own policy and sent the same key, so they can be
+  sent to any node (mdma's own redirect keeps working; it no longer fires).
+- **build: wheels for Linux, macOS and Windows.** PyPI used to get an sdist
+  and a Windows wheel only. Each release now carries one `abi3` wheel (any
+  CPython 3.9+) for manylinux2014 x86_64 and aarch64, macOS arm64 and x86_64,
+  and Windows x86_64, built with maturin-action; the publish job refuses to
+  publish if any of them is missing. `[tool.maturin]`'s `sdist = true` /
+  `wheel = false`, which described source-only publishing, is removed.
+- **chore(deps): core 1.0.0-rc.1.** `calimero-client` and
+  `calimero-identity` are pinned to core's `1.0.0-rc.1` tag (before:
+  `calimero-cloud-client` on the `release-v2-parity` branch; the crate was
+  renamed, its API is unchanged). CI's drift check now builds against core
+  `master`.
 
 ## 0.9.0
 

@@ -5,18 +5,18 @@ sidebar:
   order: 2
 ---
 
-Every `CloudClient` method is **synchronous**: it blocks (with the GIL released)
+Every `Client` method is **synchronous**: it blocks (with the GIL released)
 until the node answers and returns a plain Python value. There is nothing to
-`await`.
+`await`. (`Client` is the preferred name; `CloudClient` is the same class.)
 
 ## Connect
 
 ```python
-from calimero_client_py import CloudClient, CloudError, SoftPasskey
+from calimero_client_py import Client, CloudError, SoftPasskey
 
 # A development cluster serves mock quotes; production nodes are pinned to a
 # signed mero-tee release instead (tee_profiles=[...]).
-client = CloudClient("http://127.0.0.1:2428", allow_mock=True)
+client = Client("http://127.0.0.1:2428", allow_mock=True)
 ```
 
 The constructor does not contact the node. The first request fetches its
@@ -37,7 +37,7 @@ Services use an API key instead:
 
 ```python
 key_id, key = client.create_api_key({"label": "ci", "ttlSecs": 86400})
-service = CloudClient("http://127.0.0.1:2428", allow_mock=True)
+service = Client("http://127.0.0.1:2428", allow_mock=True)
 service.use_api_key(key)
 ```
 
@@ -68,4 +68,4 @@ except CloudError as e:
 ```
 
 See the [API reference](/reference/api/) for organizations, teams, invites,
-upgrades and blobs.
+upgrades, blobs and the operator's Ops API.
