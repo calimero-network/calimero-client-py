@@ -1,4 +1,4 @@
-//! Python bindings for the release-v2 cloud client (`calimero-cloud-client`).
+//! Python bindings for core's Calimero 1.0 client (`calimero-client`).
 //!
 //! Attestation, the sealed channel and passkey handling all run in the Rust
 //! client, so Python never re-implements the trust check. Every method blocks
@@ -7,7 +7,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use calimero_cloud_client::{Client, Consistency, Error, Measurements, Policy, Session};
+use calimero_client::{Client, Consistency, Error, Measurements, Policy, Session};
 use calimero_identity::testing::SoftAuthenticator;
 use futures_util::StreamExt;
 use pyo3::exceptions::PyValueError;
