@@ -63,6 +63,14 @@ fn to_json(py: Python<'_>, obj: Option<&Bound<'_, PyAny>>) -> PyResult<Value> {
     serde_json::from_str(&s).map_err(|e| PyValueError::new_err(e.to_string()))
 }
 
+/// Metadata to set: `None` clears it (JSON `null`), anything else as given.
+fn metadata_json(py: Python<'_>, obj: Option<&Bound<'_, PyAny>>) -> PyResult<Value> {
+    match obj {
+        Some(o) if !o.is_none() => to_json(py, Some(o)),
+        _ => Ok(Value::Null),
+    }
+}
+
 /// JSON -> Python object.
 fn to_py(py: Python<'_>, v: &impl serde::Serialize) -> PyResult<PyObject> {
     let s = serde_json::to_string(v).map_err(|e| PyValueError::new_err(e.to_string()))?;
@@ -95,12 +103,23 @@ impl PySoftPasskey {
     }
 }
 
-/// A connection to one node of a Calimero cloud cluster.
+/// A connection to one node of a Calimero 1.0 cluster. Also exported as
+/// `Client`, the preferred name.
 #[pyclass(name = "CloudClient")]
 pub struct PyCloudClient {
     inner: Arc<Client>,
     runtime: Arc<Runtime>,
+    /// The trust policy this client was made with, so a request that must
+    /// run on a leader (`NOT_LEADER`) is sent to a node attested the same way.
+    policy: Policy,
+    /// The API key last given to `use_api_key` (the ops token, for the Ops
+    /// API), which a request sent on to the leader carries too.
+    api_key: std::sync::Mutex<Option<String>>,
 }
+
+/// How many `421 NOT_LEADER` redirects an Ops request follows. A node that
+/// holds no replica names one that may itself redirect once more.
+const LEADER_HOPS: usize = 3;
 
 impl PyCloudClient {
     fn run<T: Send>(
@@ -120,6 +139,14 @@ enum Verb {
     Delete,
 }
 
+async fn send_verb(c: &Client, verb: Verb, path: &str, body: Value) -> Result<Value, Error> {
+    match verb {
+        Verb::Get => c.get(path).await,
+        Verb::Post => c.post(path, body).await,
+        Verb::Delete => c.delete(path).await,
+    }
+}
+
 /// One path segment, percent-encoded, so an id can never reach another route.
 fn seg(s: &str) -> String {
     url::form_urlencoded::byte_serialize(s.as_bytes())
@@ -135,6 +162,13 @@ fn field(v: &Value, name: &str) -> PyResult<String> {
 }
 
 impl PyCloudClient {
+    /// A session replaced the API key as the client's credential.
+    fn forget_api_key(&self) {
+        if let Ok(mut k) = self.api_key.lock() {
+            *k = None;
+        }
+    }
+
     fn confirmed(
         &self,
         py: Python<'_>,
@@ -156,12 +190,47 @@ impl PyCloudClient {
         } else {
             body
         };
+        self.run(py, async move { send_verb(&c, verb, &path, body).await })
+    }
+
+    /// `send`, following `421 NOT_LEADER` to the leader the node names (an
+    /// app group's for replica moves, the system group's for node removal).
+    /// The leader is attested under this client's policy and gets the same
+    /// API key; without one the redirect is raised as it came.
+    fn send_to_leader(
+        &self,
+        py: Python<'_>,
+        verb: Verb,
+        path: String,
+        body: Value,
+    ) -> PyResult<Value> {
+        let key = self
+            .api_key
+            .lock()
+            .map_err(|_| PyValueError::new_err("the API key lock is poisoned"))?
+            .clone();
+        let (policy, first) = (self.policy.clone(), Arc::clone(&self.inner));
         self.run(py, async move {
-            match verb {
-                Verb::Get => c.get(&path).await,
-                Verb::Post => c.post(&path, body).await,
-                Verb::Delete => c.delete(&path).await,
+            let mut c = first;
+            for _ in 0..LEADER_HOPS {
+                match send_verb(&c, verb, &path, body.clone()).await {
+                    Err(e) if e.code() == Some("NOT_LEADER") => {
+                        let leader = e
+                            .details()
+                            .and_then(|d| d["leaderUrl"].as_str())
+                            .map(str::to_owned);
+                        let (Some(url), Some(key)) = (leader, key.as_deref()) else {
+                            return Err(e);
+                        };
+                        let next =
+                            Client::connect(&url, policy.clone()).map_err(Error::Transport)?;
+                        next.use_api_key(key).await;
+                        c = Arc::new(next);
+                    }
+                    done => return done,
+                }
             }
+            send_verb(&c, verb, &path, body).await
         })
     }
 }
@@ -197,31 +266,29 @@ impl PyCloudClient {
             })
             .transpose()?;
         let runtime = Runtime::new().map_err(|e| PyValueError::new_err(e.to_string()))?;
+        let policy = Policy {
+            allow_mock,
+            app_hash,
+            measurements: match tee_profiles {
+                Some(allowed_profiles) if !allowed_profiles.is_empty() => Measurements::Release {
+                    allowed_profiles,
+                    min_version: min_release,
+                },
+                _ => Measurements::None,
+            },
+            allowed_tcb_statuses: Vec::new(),
+            allow_debug_profiles,
+        };
         let inner = {
             let _enter = runtime.enter();
-            Client::connect(
-                base_url,
-                Policy {
-                    allow_mock,
-                    app_hash,
-                    measurements: match tee_profiles {
-                        Some(allowed_profiles) if !allowed_profiles.is_empty() => {
-                            Measurements::Release {
-                                allowed_profiles,
-                                min_version: min_release,
-                            }
-                        }
-                        _ => Measurements::None,
-                    },
-                    allowed_tcb_statuses: Vec::new(),
-                    allow_debug_profiles,
-                },
-            )
-            .map_err(|e| PyValueError::new_err(format!("{e:#}")))?
+            Client::connect(base_url, policy.clone())
+                .map_err(|e| PyValueError::new_err(format!("{e:#}")))?
         };
         Ok(Self {
             inner: Arc::new(inner),
             runtime: Arc::new(runtime),
+            policy,
+            api_key: std::sync::Mutex::new(None),
         })
     }
 
@@ -233,6 +300,7 @@ impl PyCloudClient {
             let mut auth = pk.lock().await;
             c.sign_up(&mut *auth, &name).await
         })?;
+        self.forget_api_key();
         to_py(py, &s)
     }
 
@@ -243,6 +311,7 @@ impl PyCloudClient {
             let mut auth = pk.lock().await;
             c.sign_in(&mut *auth).await
         })?;
+        self.forget_api_key();
         to_py(py, &s)
     }
 
@@ -265,6 +334,11 @@ impl PyCloudClient {
 
     /// Authenticate every request with an API key (`cal_...`).
     fn use_api_key(&self, py: Python<'_>, key: &str) -> PyResult<()> {
+        *self
+            .api_key
+            .lock()
+            .map_err(|_| PyValueError::new_err("the API key lock is poisoned"))? =
+            Some(key.to_owned());
         let (c, key) = (Arc::clone(&self.inner), key.to_owned());
         self.run(py, async move {
             c.use_api_key(&key).await;
@@ -280,7 +354,17 @@ impl PyCloudClient {
         self.run(py, async move {
             c.use_session(s).await;
             Ok(())
-        })
+        })?;
+        self.forget_api_key();
+        Ok(())
+    }
+
+    /// The session in use (`sign_up`, `sign_in`, `refresh`, `use_session`),
+    /// or `None` (none yet, or an API key instead).
+    fn session(&self, py: Python<'_>) -> PyResult<PyObject> {
+        let c = Arc::clone(&self.inner);
+        let s = self.run(py, async move { Ok(c.session().await) })?;
+        to_py(py, &s)
     }
 
     fn me(&self, py: Python<'_>) -> PyResult<PyObject> {
@@ -438,9 +522,10 @@ impl PyCloudClient {
     }
 
     /// Upgrade every app of `org` running `package` to `version` (optionally
-    /// only `team`, with `cascade` its subtree), approved with the owner's
-    /// `passkey`. Returns the run (`{"runId", ...}`).
-    #[pyo3(signature = (org, package, version, passkey, team = None, cascade = false))]
+    /// only `team`, with `cascade` its subtree; `migrate` names the migration
+    /// export), approved with the owner's `passkey`. Returns the run
+    /// (`{"runId", ...}`).
+    #[pyo3(signature = (org, package, version, passkey, team = None, cascade = false, migrate = None))]
     #[allow(clippy::too_many_arguments)]
     fn upgrade_org(
         &self,
@@ -451,11 +536,13 @@ impl PyCloudClient {
         passkey: &PySoftPasskey,
         team: Option<String>,
         cascade: bool,
+        migrate: Option<String>,
     ) -> PyResult<PyObject> {
         let (c, pk) = (Arc::clone(&self.inner), Arc::clone(&passkey.inner));
         let org = org.to_owned();
         let body = serde_json::json!({
             "package": package, "version": version, "team": team, "cascade": cascade,
+            "migrate": migrate,
         });
         let v = self.run(py, async move {
             let mut auth = pk.lock().await;
@@ -1016,6 +1103,480 @@ impl PyCloudClient {
             c.delete_confirmed(&path, &mut *auth).await
         })?;
         to_py(py, &v)
+    }
+
+    // ------------------------------------------------------------ account
+
+    /// What this account uses, with the cluster's quotas.
+    fn usage(&self, py: Python<'_>) -> PyResult<PyObject> {
+        let c = Arc::clone(&self.inner);
+        let v = self.run(py, async move { c.usage().await })?;
+        to_py(py, &v)
+    }
+
+    /// Name one of this account's passkeys; `""` clears the name.
+    fn label_passkey(&self, py: Python<'_>, credential_id: &str, label: &str) -> PyResult<()> {
+        let (c, cred, label) = (
+            Arc::clone(&self.inner),
+            credential_id.to_owned(),
+            label.to_owned(),
+        );
+        self.run(py, async move { c.label_passkey(&cred, &label).await })
+            .map(drop)
+    }
+
+    /// Name `app` for this account (`alias` then reaches it wherever an app id does).
+    fn set_alias(&self, py: Python<'_>, alias: &str, app: &str) -> PyResult<()> {
+        let (c, alias, app) = (Arc::clone(&self.inner), alias.to_owned(), app.to_owned());
+        self.run(py, async move { c.set_alias(&alias, &app).await })
+            .map(drop)
+    }
+
+    /// The app an alias names: `{"alias", "appId"}`.
+    fn alias(&self, py: Python<'_>, alias: &str) -> PyResult<PyObject> {
+        let (c, alias) = (Arc::clone(&self.inner), alias.to_owned());
+        let v = self.run(py, async move { c.alias(&alias).await })?;
+        to_py(py, &v)
+    }
+
+    /// Every alias of this account: `{alias: app_id}`.
+    fn aliases(&self, py: Python<'_>) -> PyResult<PyObject> {
+        let c = Arc::clone(&self.inner);
+        let v = self.run(py, async move { c.aliases().await })?;
+        to_py(py, &v["aliases"])
+    }
+
+    fn delete_alias(&self, py: Python<'_>, alias: &str) -> PyResult<()> {
+        let (c, alias) = (Arc::clone(&self.inner), alias.to_owned());
+        self.run(py, async move { c.delete_alias(&alias).await })
+            .map(drop)
+    }
+
+    // ------------------------------------------------------------ packages
+
+    /// Install a signed `.mpk` package. Returns what the node installed.
+    fn upload_package(&self, py: Python<'_>, mpk: Vec<u8>) -> PyResult<PyObject> {
+        let c = Arc::clone(&self.inner);
+        let v = self.run(py, async move { c.upload_package(mpk).await })?;
+        to_py(py, &v)
+    }
+
+    /// Install `package@version` from the node's package registry.
+    fn install_package(&self, py: Python<'_>, package: &str, version: &str) -> PyResult<PyObject> {
+        let (c, package, version) = (
+            Arc::clone(&self.inner),
+            package.to_owned(),
+            version.to_owned(),
+        );
+        let v = self.run(
+            py,
+            async move { c.install_package(&package, &version).await },
+        )?;
+        to_py(py, &v)
+    }
+
+    /// Installed packages and their versions.
+    fn packages(&self, py: Python<'_>) -> PyResult<PyObject> {
+        let c = Arc::clone(&self.inner);
+        let v = self.run(py, async move { c.packages().await })?;
+        to_py(py, &v)
+    }
+
+    /// One installed package and its versions.
+    fn package(&self, py: Python<'_>, package: &str) -> PyResult<PyObject> {
+        let (c, package) = (Arc::clone(&self.inner), package.to_owned());
+        let v = self.run(py, async move { c.package(&package).await })?;
+        to_py(py, &v)
+    }
+
+    /// Uninstall one version of a package, or (without `version`) all of it.
+    #[pyo3(signature = (package, version = None))]
+    fn uninstall_package(
+        &self,
+        py: Python<'_>,
+        package: &str,
+        version: Option<String>,
+    ) -> PyResult<PyObject> {
+        let (c, package) = (Arc::clone(&self.inner), package.to_owned());
+        let v = self.run(py, async move {
+            c.uninstall_package(&package, version.as_deref()).await
+        })?;
+        to_py(py, &v)
+    }
+
+    // ------------------------------------------------------------ apps (more)
+
+    /// Delete an app (its owner's, or an org admin's).
+    fn delete_app(&self, py: Python<'_>, app: &str) -> PyResult<()> {
+        let (c, app) = (Arc::clone(&self.inner), app.to_owned());
+        self.run(py, async move { c.delete_app(&app).await })
+            .map(drop)
+    }
+
+    /// What the app's storage holds: `{"keys", "bytes", "blobs", "blobBytes"}`.
+    fn app_storage(&self, py: Python<'_>, app: &str) -> PyResult<PyObject> {
+        let (c, app) = (Arc::clone(&self.inner), app.to_owned());
+        let v = self.run(py, async move { c.app_storage(&app).await })?;
+        to_py(py, &v)
+    }
+
+    /// The ABI the app's bundle embeds: `{"bundle", "abi"}`.
+    fn app_abi(&self, py: Python<'_>, app: &str) -> PyResult<PyObject> {
+        let (c, app) = (Arc::clone(&self.inner), app.to_owned());
+        let v = self.run(py, async move { c.app_abi(&app).await })?;
+        to_py(py, &v)
+    }
+
+    /// Set an app's metadata (its owner's, or an org admin's); `None` clears it.
+    #[pyo3(signature = (app, metadata))]
+    fn set_app_metadata(
+        &self,
+        py: Python<'_>,
+        app: &str,
+        metadata: Option<&Bound<'_, PyAny>>,
+    ) -> PyResult<()> {
+        let (c, app, m) = (
+            Arc::clone(&self.inner),
+            app.to_owned(),
+            metadata_json(py, metadata)?,
+        );
+        self.run(py, async move { c.set_app_metadata(&app, m).await })
+            .map(drop)
+    }
+
+    /// Verify every replica of `app`: each one's quote over a fresh nonce,
+    /// held to this client's policy, binding its receipt key and the
+    /// cluster's governance. Returns `{"keys": {node_id: receipt_key_hex},
+    /// "governance": {"releases", "appUpgrades", "outbound"}}`; a call's or
+    /// view's `receipt` is to be trusted only from one of those keys.
+    fn verify_app_cluster(&self, py: Python<'_>, app: &str) -> PyResult<PyObject> {
+        let (c, app) = (Arc::clone(&self.inner), app.to_owned());
+        let cluster = self.run(py, async move { c.verify_app_cluster(&app).await })?;
+        let keys = pyo3::types::PyDict::new_bound(py);
+        for (node, key) in &cluster.keys {
+            keys.set_item(node, hex::encode(key))?;
+        }
+        let out = pyo3::types::PyDict::new_bound(py);
+        out.set_item("keys", keys)?;
+        out.set_item("governance", to_py(py, &cluster.governance)?)?;
+        Ok(out.into_any().unbind())
+    }
+
+    /// Presence as a stream: the snapshot first (`{"kind": "snapshot",
+    /// "data": [...]}`), then one `{"kind": "presence", "data": {...}}` per
+    /// change; up to `limit` of them, or as many as arrive within `timeout`
+    /// seconds.
+    #[pyo3(signature = (app, limit = 100, timeout = 5.0))]
+    fn presence_stream(
+        &self,
+        py: Python<'_>,
+        app: &str,
+        limit: usize,
+        timeout: f64,
+    ) -> PyResult<PyObject> {
+        let (c, app) = (Arc::clone(&self.inner), app.to_owned());
+        let wait = Duration::from_secs_f64(timeout.max(0.0));
+        let out = self.run(py, async move {
+            let stream = c.presence_stream(&app).await?;
+            let mut stream = Box::pin(stream.take(limit));
+            let mut out = Vec::new();
+            let _elapsed = tokio::time::timeout(wait, async {
+                while let Some((_id, kind, data)) = stream.next().await {
+                    out.push(serde_json::json!({ "kind": kind, "data": data }));
+                }
+            })
+            .await;
+            Ok(out)
+        })?;
+        to_py(py, &out)
+    }
+
+    // ------------------------------------------------------------ organizations (more)
+
+    /// Delete an organization with its teams, invites and apps: the owner's,
+    /// approved with their `passkey`.
+    fn delete_org(&self, py: Python<'_>, org: &str, passkey: &PySoftPasskey) -> PyResult<()> {
+        let (c, pk, org) = (
+            Arc::clone(&self.inner),
+            Arc::clone(&passkey.inner),
+            org.to_owned(),
+        );
+        self.run(py, async move {
+            let mut auth = pk.lock().await;
+            c.delete_org(&org, &mut *auth).await
+        })
+        .map(drop)
+    }
+
+    /// Set an organization's metadata (an admin's, or a holder of
+    /// `MANAGE_METADATA`); `None` clears it.
+    #[pyo3(signature = (org, metadata))]
+    fn set_org_metadata(
+        &self,
+        py: Python<'_>,
+        org: &str,
+        metadata: Option<&Bound<'_, PyAny>>,
+    ) -> PyResult<()> {
+        let (c, org, m) = (
+            Arc::clone(&self.inner),
+            org.to_owned(),
+            metadata_json(py, metadata)?,
+        );
+        self.run(py, async move { c.set_org_metadata(&org, m).await })
+            .map(drop)
+    }
+
+    /// Set a member's metadata (their own, or an admin's); `None` clears it.
+    #[pyo3(signature = (org, account, metadata))]
+    fn set_member_metadata(
+        &self,
+        py: Python<'_>,
+        org: &str,
+        account: &str,
+        metadata: Option<&Bound<'_, PyAny>>,
+    ) -> PyResult<()> {
+        let (c, org, account, m) = (
+            Arc::clone(&self.inner),
+            org.to_owned(),
+            account.to_owned(),
+            metadata_json(py, metadata)?,
+        );
+        self.run(
+            py,
+            async move { c.set_member_metadata(&org, &account, m).await },
+        )
+        .map(drop)
+    }
+
+    // ------------------------------------------------------------ Ops API
+    //
+    // The operator's calls, authenticated with the node's ops token:
+    // `client.use_api_key(ops_token)` first. The Ops API has no read path
+    // into apps' data: counts, placement, releases, packages, quotas,
+    // backups and metrics only.
+
+    /// Node, group and directory counts: `{"node", "system", "governance",
+    /// "groups", "nodes", "apps", "accounts"}`.
+    fn ops_status(&self, py: Python<'_>) -> PyResult<PyObject> {
+        let v = self.send(py, Verb::Get, "ops/status".into(), Value::Null)?;
+        to_py(py, &v)
+    }
+
+    /// Prometheus metrics, as text.
+    fn ops_metrics(&self, py: Python<'_>) -> PyResult<String> {
+        let c = Arc::clone(&self.inner);
+        self.run(py, async move { c.get_text("ops/metrics").await })
+    }
+
+    /// Register node `node_id` at `addr` (its URL) in the directory. A node
+    /// started without `--bootstrap` then joins the system group as a
+    /// learner, and replica moves may place apps on it.
+    #[pyo3(signature = (node_id, addr, zone = ""))]
+    fn ops_register_node(
+        &self,
+        py: Python<'_>,
+        node_id: u64,
+        addr: &str,
+        zone: &str,
+    ) -> PyResult<()> {
+        let body = serde_json::json!({ "id": node_id, "addr": addr, "zone": zone });
+        self.send(py, Verb::Post, "ops/nodes".into(), body)
+            .map(drop)
+    }
+
+    /// Remove node `node_id` from the cluster once no app keeps a replica on
+    /// it. Runs on the system leader; a `NOT_LEADER` answer is followed there.
+    /// Returns the system group's status.
+    fn ops_remove_node(&self, py: Python<'_>, node_id: u64) -> PyResult<PyObject> {
+        let v = self.send_to_leader(
+            py,
+            Verb::Delete,
+            format!("ops/nodes/{node_id}"),
+            Value::Null,
+        )?;
+        to_py(py, &v)
+    }
+
+    /// Move `app` to the replica node ids `replicas` (at least 3). Runs on
+    /// the app group's leader; a `NOT_LEADER` answer is followed there.
+    /// Returns the group's status.
+    fn ops_set_replicas(
+        &self,
+        py: Python<'_>,
+        app: &str,
+        replicas: Vec<u64>,
+    ) -> PyResult<PyObject> {
+        let v = self.send_to_leader(
+            py,
+            Verb::Post,
+            format!("ops/apps/{}/replicas", seg(app)),
+            serde_json::json!({ "replicas": replicas }),
+        )?;
+        to_py(py, &v)
+    }
+
+    /// Write encrypted snapshots of the apps this node leads (to the node's
+    /// `--backup-dir`). Returns how many it wrote.
+    fn ops_backup(&self, py: Python<'_>) -> PyResult<u64> {
+        let v = self.send(py, Verb::Post, "ops/backup".into(), Value::Null)?;
+        Ok(v["written"].as_u64().unwrap_or_default())
+    }
+
+    /// The per-account quotas.
+    fn ops_quotas(&self, py: Python<'_>) -> PyResult<PyObject> {
+        let v = self.send(py, Verb::Get, "ops/quotas".into(), Value::Null)?;
+        to_py(py, &v)
+    }
+
+    /// Change the per-account limits `quotas` names; the others stay as they
+    /// are. A key that names no limit is refused (`UNKNOWN_QUOTA`).
+    fn ops_set_quotas(&self, py: Python<'_>, quotas: &Bound<'_, PyAny>) -> PyResult<PyObject> {
+        let body = to_json(py, Some(quotas))?;
+        let v = self.send(py, Verb::Post, "ops/quotas".into(), body)?;
+        to_py(py, &v)
+    }
+
+    /// Approve (or, `withdraw=True`, withdraw) the mero-tee release `version`
+    /// for every app, where the deployment gave the operator release
+    /// approvals (`merod --release-approvals operator`).
+    #[pyo3(signature = (version, withdraw = false))]
+    fn ops_approve_release(
+        &self,
+        py: Python<'_>,
+        version: &str,
+        withdraw: bool,
+    ) -> PyResult<PyObject> {
+        let body = serde_json::json!({ "version": version, "approved": !withdraw });
+        let v = self.send(py, Verb::Post, "ops/releases".into(), body)?;
+        to_py(py, &v)
+    }
+
+    /// Approve URL prefixes `package`'s publisher may call out to, for every
+    /// app, where the operator holds outbound approvals: every prefix its
+    /// manifest declares when `prefixes` is `None`; `replace=True` sets
+    /// exactly these (`[]` revokes).
+    #[pyo3(signature = (package, prefixes = None, replace = false))]
+    fn ops_approve_outbound(
+        &self,
+        py: Python<'_>,
+        package: &str,
+        prefixes: Option<Vec<String>>,
+        replace: bool,
+    ) -> PyResult<PyObject> {
+        let prefixes =
+            prefixes.map_or_else(|| serde_json::json!("manifest"), |p| serde_json::json!(p));
+        let body =
+            serde_json::json!({ "package": package, "prefixes": prefixes, "replace": replace });
+        let v = self.send(py, Verb::Post, "ops/outbound".into(), body)?;
+        to_py(py, &v)
+    }
+
+    /// Upgrade `app` (to an uploaded `bundle`, or `version` of its package,
+    /// optionally moving it to `package`/`service`; `migrate` names the
+    /// migration export), where the operator holds app upgrades.
+    #[allow(clippy::too_many_arguments)]
+    #[pyo3(signature = (app, bundle = None, version = None, package = None, service = None, migrate = None))]
+    fn ops_upgrade_app(
+        &self,
+        py: Python<'_>,
+        app: &str,
+        bundle: Option<&str>,
+        version: Option<&str>,
+        package: Option<&str>,
+        service: Option<&str>,
+        migrate: Option<&str>,
+    ) -> PyResult<PyObject> {
+        let body = serde_json::json!({
+            "bundle": bundle, "version": version, "package": package,
+            "service": service, "migrate": migrate,
+        });
+        let v = self.send(
+            py,
+            Verb::Post,
+            format!("ops/apps/{}/upgrade", seg(app)),
+            body,
+        )?;
+        to_py(py, &v)
+    }
+
+    /// Upgrade every app of `org` running `package` to `version` (optionally
+    /// only `team`, with `cascade` its subtree), where the operator holds app
+    /// upgrades. Returns the run, which `upgrade_run` follows.
+    #[pyo3(signature = (org, package, version, team = None, cascade = false, migrate = None))]
+    #[allow(clippy::too_many_arguments)]
+    fn ops_upgrade_org(
+        &self,
+        py: Python<'_>,
+        org: &str,
+        package: &str,
+        version: &str,
+        team: Option<&str>,
+        cascade: bool,
+        migrate: Option<&str>,
+    ) -> PyResult<PyObject> {
+        let body = serde_json::json!({
+            "package": package, "version": version, "team": team,
+            "cascade": cascade, "migrate": migrate,
+        });
+        let v = self.send(
+            py,
+            Verb::Post,
+            format!("ops/orgs/{}/upgrade", seg(org)),
+            body,
+        )?;
+        to_py(py, &v)
+    }
+
+    /// The packages the operator installed.
+    fn ops_packages(&self, py: Python<'_>) -> PyResult<PyObject> {
+        let v = self.send(py, Verb::Get, "ops/packages".into(), Value::Null)?;
+        to_py(py, &v)
+    }
+
+    /// Install a signed `.mpk` for the operator's upgrades.
+    fn ops_upload_package(&self, py: Python<'_>, mpk: Vec<u8>) -> PyResult<PyObject> {
+        let c = Arc::clone(&self.inner);
+        let v = self.run(py, async move { c.ops_upload_package(mpk).await })?;
+        to_py(py, &v)
+    }
+
+    /// Install `package@version` from the registry for the operator's upgrades.
+    fn ops_install_package(
+        &self,
+        py: Python<'_>,
+        package: &str,
+        version: &str,
+    ) -> PyResult<PyObject> {
+        let (c, package, version) = (
+            Arc::clone(&self.inner),
+            package.to_owned(),
+            version.to_owned(),
+        );
+        let v = self.run(py, async move {
+            c.ops_install_package(&package, &version).await
+        })?;
+        to_py(py, &v)
+    }
+
+    /// Uninstall a package the operator installed (or one `version` of it).
+    #[pyo3(signature = (package, version = None))]
+    fn ops_uninstall_package(
+        &self,
+        py: Python<'_>,
+        package: &str,
+        version: Option<String>,
+    ) -> PyResult<PyObject> {
+        let (c, package) = (Arc::clone(&self.inner), package.to_owned());
+        let v = self.run(py, async move {
+            c.ops_uninstall_package(&package, version.as_deref()).await
+        })?;
+        to_py(py, &v)
+    }
+
+    /// GET any API path whose answer is text (`ops/metrics`).
+    fn get_text(&self, py: Python<'_>, path: &str) -> PyResult<String> {
+        let (c, path) = (Arc::clone(&self.inner), path.to_owned());
+        self.run(py, async move { c.get_text(&path).await })
     }
 
     /// The node's attestation document (unverified, for display).

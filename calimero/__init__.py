@@ -1,8 +1,9 @@
 """
 Calimero Client Python Library
 
-A Python client for Calimero Cloud (release-v2) clusters, over core's Rust
-`calimero-cloud-client`, built with PyO3.
+A Python client for Calimero 1.0 clusters, over core's Rust `calimero-client`,
+built with PyO3. `Client` is the preferred name of the client class;
+`CloudClient` is the same class under the name earlier releases used.
 """
 
 from importlib.metadata import version as _installed_version
@@ -13,12 +14,14 @@ __author__ = "Calimero Network"
 __email__ = "team@calimero.network"
 
 from calimero_client_py import (
+    Client,
     CloudClient,
     CloudError,
     SoftPasskey,
 )
 
 __all__ = [
+    "Client",
     "CloudClient",
     "CloudError",
     "SoftPasskey",

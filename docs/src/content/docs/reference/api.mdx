@@ -1,23 +1,26 @@
 ---
 title: API reference
-description: The public Python API — CloudClient, SoftPasskey, CloudError — with every method's signature.
+description: The public Python API — Client (CloudClient), SoftPasskey, CloudError — with every method's signature.
 sidebar:
   order: 1
 ---
 
 The public surface lives in the `calimero_client_py` module and is re-exported
-from the `calimero` package: `CloudClient`, `SoftPasskey`, `CloudError` and
-`VERSION`. Every method is **synchronous** and returns plain Python values
+from the `calimero` package: `Client`, `CloudClient`, `SoftPasskey`,
+`CloudError` and `VERSION`. Every method is **synchronous** and returns plain Python values
 decoded from the node's JSON (keys are the node's `camelCase`). A failing request
 raises [`CloudError`](/reference/errors/); a malformed argument caught before
 sending raises `ValueError`.
 
-## `CloudClient`
+## `Client`
 
 ```python
-CloudClient(base_url, allow_mock=False, app_hash=None, tee_profiles=None,
-            min_release=None, allow_debug_profiles=False)
+Client(base_url, allow_mock=False, app_hash=None, tee_profiles=None,
+       min_release=None, allow_debug_profiles=False)
 ```
+
+`Client` is the preferred name. `CloudClient` is the same class under the name
+earlier releases used (`Client is CloudClient`), kept so existing imports work.
 
 A connection to one node of a cluster. The node is trusted only once its
 attestation verifies (see [concepts](/get-started/concepts/)); nothing is sent
@@ -42,7 +45,9 @@ until the first request.
 | `sign_out_everywhere()` | `None`; every session of the account ends, on every device. |
 | `use_session(session)` | `None`; authenticates with a session from `sign_up`/`sign_in`. |
 | `use_api_key(key)` | `None`; authenticates every request with a `cal_...` key. |
+| `session()` | The session in use, or `None` (none yet, or an API key instead). |
 | `me()` | The caller: `accountId`, `via`, ... |
+| `usage()` | What the account uses, with the cluster's quotas. |
 
 ### Passkeys and API keys
 
@@ -50,9 +55,29 @@ until the first request.
 | --- | --- |
 | `add_passkey(passkey)` | The added credential's id. |
 | `remove_passkey(credential_id)` | `None`. |
+| `label_passkey(credential_id, label)` | `None`; `""` clears the name. |
 | `create_api_key(options=None)` | `(key_id, key)`; the key is shown once. `options` may set `label`, `apps`, `methods`, `readOnly`, `allowConfirm`, `ttlSecs` (at most a year). |
 | `list_api_keys()` | The key records. |
 | `revoke_api_key(key_id)` | `None`. |
+
+### Aliases
+
+| Method | Returns |
+| --- | --- |
+| `set_alias(alias, app)` | `None`; the alias names `app` for this account. |
+| `alias(alias)` | `{"alias", "appId"}`. |
+| `aliases()` | `{alias: app_id}`. |
+| `delete_alias(alias)` | `None`. |
+
+### Packages
+
+| Method | Returns |
+| --- | --- |
+| `upload_package(mpk)` | Installs a signed `.mpk` (bytes). |
+| `install_package(package, version)` | Installs `package@version` from the node's registry. |
+| `packages()` | Installed packages and their versions. |
+| `package(package)` | One installed package and its versions. |
+| `uninstall_package(package, version=None)` | Uninstalls one version, or all of it. |
 
 ### Apps
 
@@ -63,6 +88,11 @@ until the first request.
 | `create_app_from_package(name, package, version=None, service=None, options=None)` | The app id; the newest release without `version`, installed from the registry first if the cluster lacks it. |
 | `list_apps()` | `[{"appId", "name", "owner", "org", "bundle"}]`. |
 | `get_app(app)` | Its record and state (`ready`, `initError`). |
+| `delete_app(app)` | `None` (the app's owner or an org admin). |
+| `set_app_metadata(app, metadata)` | `None`; `None` clears it. |
+| `app_storage(app)` | `{"keys", "bytes", "blobs", "blobBytes"}`. |
+| `app_abi(app)` | `{"bundle", "abi"}`: the ABI the bundle embeds. |
+| `verify_app_cluster(app)` | Verifies every replica's quote over a fresh nonce under this client's policy: `{"keys": {node_id: receipt_key_hex}, "governance": {"releases", "appUpgrades", "outbound"}}`. A call's or view's `receipt` is to be trusted only from one of those keys. |
 | `set_access(app, access)` | `None`. `access` is `{"kind": "owner" \| "org" \| "public"}`, `{"kind": "accounts", "accounts": [...]}` or `{"kind": "team", "team": id}`. |
 | `upgrade_app(app, bundle=None, migrate=None, version=None, passkey=None, package=None, service=None)` | The upgrade's entry. `passkey` answers the owner's approval where upgrades need one; `package`/`service` move the app to another package or service. A failed migration raises `CloudError` code `UPGRADE_FAILED` (422). |
 
@@ -70,7 +100,7 @@ until the first request.
 
 | Method | Returns |
 | --- | --- |
-| `call(app, method, args=None, idempotency_key=None)` | `{"index", "result", "events"}`. Sent again with the same key while the node answers 503 or cannot be reached, so it runs once. |
+| `call(app, method, args=None, idempotency_key=None)` | `{"index", "result", "events", "receipt"}`. Sent again with the same key while the node answers 503 or cannot be reached, so it runs once. |
 | `call_confirmed(app, method, args, passkey)` | The same, for a `confirm` method; `passkey` approves this exact call. |
 | `view(app, method, args=None, stale=False, min_index=0)` | `{"result", ...}`. Strong by default; `stale=True` reads any replica at least as new as `min_index`. |
 | `events(app, start=0, limit=100, timeout=5.0)` | Up to `limit` committed events from index `start`, or as many as arrive within `timeout` seconds: `[{"id", "kind", "data"}]`. |
@@ -91,6 +121,7 @@ until the first request.
 | --- | --- |
 | `publish_presence(app, seq, state=None)` | Publishes `state` (bytes, at most 4 KiB) for the caller; `None` retracts it. The newest `seq` wins. |
 | `presence(app)` | Who is present in the app now. |
+| `presence_stream(app, limit=100, timeout=5.0)` | The snapshot (`{"kind": "snapshot", "data": [...]}`), then one `{"kind": "presence", "data": {...}}` per change: up to `limit`, or as many as arrive within `timeout` seconds. |
 
 ### Transfers, approvals and upgrade runs
 
@@ -101,7 +132,7 @@ Each takes the owner's `passkey`, which answers the node's `412 CONFIRM_REQUIRED
 | `transfer_app(app, to, passkey)` | Hands the app to account `to` (an org app only to a member). |
 | `approve_release(version, passkey, org=None)` | Approves a mero-tee release for the org's apps, or the account's own. |
 | `approve_outbound(package, passkey, org=None, prefixes=None, replace=False)` | Approves URL prefixes for the package's publisher: every prefix its manifest declares by default; `replace=True` sets exactly `prefixes` (`[]` revokes). |
-| `upgrade_org(org, package, version, passkey, team=None, cascade=False)` | Starts an org-wide upgrade run: `{"runId", ...}`. |
+| `upgrade_org(org, package, version, passkey, team=None, cascade=False, migrate=None)` | Starts an org-wide upgrade run: `{"runId", ...}`. |
 | `upgrade_run(org, run)` | The run's status and per-app results. |
 | `retry_upgrade_run(org, run, passkey)` | Runs the failed apps again, as a new run. |
 
@@ -111,6 +142,9 @@ Each takes the owner's `passkey`, which answers the node's `412 CONFIRM_REQUIRED
 | --- | --- |
 | `create_org(name)` | The organization id; the caller owns it. |
 | `get_org(org)` | Members, roles and the teams the caller can see. |
+| `delete_org(org, passkey)` | `None`; deletes its teams, invites and apps, approved with the owner's passkey. |
+| `set_org_metadata(org, metadata)` | `None`; `None` clears it. |
+| `set_member_metadata(org, account, metadata)` | `None` (the member's own, or an admin's). |
 | `set_member(org, account, role)` | `None`. `role` is `guest`, `member`, `admin` or `owner`. |
 | `remove_member(org, account)` | `None` (yourself, to leave). |
 | `set_capabilities(org, capabilities, account=None, team=None)` | `None`. Capability bits for `account` (in `team`), or the organization's default. |
@@ -128,11 +162,37 @@ Each takes the owner's `passkey`, which answers the node's `412 CONFIRM_REQUIRED
 | `set_team_member(org, team, account, role=None, capabilities=None)` | `None`. `role` is `lead`, `member` or `readOnly`. |
 | `remove_team_member(org, team, account)` | `None`. |
 
+### Ops API
+
+The operator's calls, with the node's ops token: `client.use_api_key(ops_token)`
+first. The Ops API has no read path into apps' data.
+
+| Method | Returns |
+| --- | --- |
+| `ops_status()` | `{"node", "system", "governance", "groups", "nodes", "apps", "accounts"}`. |
+| `ops_metrics()` | Prometheus metrics (`str`). |
+| `ops_register_node(node_id, addr, zone="")` | `None`; a node started without `--bootstrap` then joins as a learner. |
+| `ops_remove_node(node_id)` | The system group's status; refused while an app keeps a replica there. Runs on the system leader. |
+| `ops_set_replicas(app, replicas)` | The app group's status after moving it to these node ids (at least 3). Runs on the app group's leader. |
+| `ops_backup()` | How many encrypted snapshots this node wrote (the apps it leads, to `--backup-dir`). |
+| `ops_quotas()`, `ops_set_quotas(quotas)` | The per-account limits; `ops_set_quotas` changes those it names (an unknown name is `UNKNOWN_QUOTA`). |
+| `ops_approve_release(version, withdraw=False)` | Approves (or withdraws) a mero-tee release for every app, where the operator holds release approvals. |
+| `ops_approve_outbound(package, prefixes=None, replace=False)` | Approves outbound URL prefixes for every app, where the operator holds outbound approvals. |
+| `ops_upgrade_app(app, bundle=None, version=None, package=None, service=None, migrate=None)` | Upgrades an app, where the operator holds app upgrades. |
+| `ops_upgrade_org(org, package, version, team=None, cascade=False, migrate=None)` | Starts an org-wide upgrade run, where the operator holds app upgrades. |
+| `ops_packages()` | The packages the operator installed. |
+| `ops_upload_package(mpk)`, `ops_install_package(package, version)`, `ops_uninstall_package(package, version=None)` | Installs and uninstalls packages for the operator's upgrades. |
+
+`ops_remove_node` and `ops_set_replicas` follow a `421 NOT_LEADER` answer to the
+leader the node names (attested under the same policy, sent the same API key),
+so they can be sent to any node.
+
 ### Anything else
 
 | Method | Returns |
 | --- | --- |
-| `get(path)`, `post(path, body=None)`, `put(path, body=None)`, `delete(path)` | The node's JSON for any API path (`put` sets an alias: `auth/aliases/{alias}`, `{"app": ...}`). |
+| `get(path)`, `post(path, body=None)`, `put(path, body=None)`, `delete(path)` | The node's JSON for any API path. |
+| `get_text(path)` | A text answer (`ops/metrics`). |
 | `post_confirmed(path, body, passkey)` | POST answering a `412 CONFIRM_REQUIRED` with `passkey`'s assertion (owner approvals). |
 | `delete_confirmed(path, passkey)` | The same for a DELETE (deleting an organization). |
 | `attestation()` | The node's attestation document, unverified, for display. |

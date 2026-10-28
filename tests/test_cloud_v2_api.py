@@ -1,8 +1,8 @@
 """
-The rest of merod-v2's API through CloudClient's typed methods: API keys,
+The rest of merod's API through CloudClient's typed methods: API keys,
 organizations and teams, the app directory and access, upgrades, passkeys.
 
-Same requirements as test_cloud_v2.py (a merod-v2 binary and the kv-store
+Same requirements as test_cloud_v2.py (a merod 1.0 binary and the kv-store
 fixture); its own cluster, since that module kills a node.
 """
 
@@ -203,3 +203,71 @@ def test_blobs_presence_transfer_and_upgrade_runs_have_typed_calls(cluster, wasm
     bob_id = bob.me()["accountId"]
     alice.transfer_app(app, bob_id, pk)
     assert bob.get(f"apps/{app}")["owner"] == bob_id
+
+
+def test_receipts_verify_against_the_attested_cluster(cluster, wasm):
+    alice, _pk = person(cluster, 0, "alice-receipts")
+    app = alice.create_app("receipted", alice.upload_bundle(wasm))
+    r = alice.call(app, "set", {"key": "k", "value": "v"})
+    attested = alice.verify_app_cluster(app)
+    assert sorted(attested["keys"]) == [1, 2, 3], attested
+    assert attested["governance"] == {
+        "releases": "owner",
+        "appUpgrades": "owner",
+        "outbound": "owner",
+    }
+    receipt = r["receipt"]
+    assert receipt["key"] == attested["keys"][receipt["node"]]
+
+
+def test_session_aliases_metadata_and_usage(cluster, wasm):
+    alice, pk = person(cluster, 0, "alice-more")
+    session = alice.session()
+    assert session["accountId"] == alice.me()["accountId"]
+    agent = cluster.client(1)
+    assert agent.session() is None
+
+    bundle = alice.upload_bundle(wasm)
+    app = alice.create_app("more", bundle)
+    alice.set_alias("notes", app)
+    assert alice.alias("notes")["appId"] == app
+    assert alice.aliases() == {"notes": app}
+    alice.delete_alias("notes")
+    assert alice.aliases() == {}
+
+    alice.set_app_metadata(app, {"colour": "teal"})
+    assert alice.get_app(app)["metadata"] == {"colour": "teal"}
+    alice.set_app_metadata(app, None)
+    assert alice.get_app(app).get("metadata") is None
+
+    alice.call(app, "set", {"key": "k", "value": "v"})
+    assert alice.app_storage(app)["keys"] >= 1
+    assert "abi" in alice.app_abi(app)
+    assert "quotas" in alice.usage() or alice.usage()
+    assert isinstance(alice.packages(), list)
+
+    alice.label_passkey(pk.credential_id, "laptop")
+    alice.label_passkey(pk.credential_id, "")
+
+    org = alice.create_org("Meta")
+    alice.set_org_metadata(org, {"plan": "team"})
+    assert alice.get_org(org)["metadata"] == {"plan": "team"}
+    alice.set_member_metadata(org, alice.me()["accountId"], {"title": "owner"})
+    alice.delete_org(org, pk)
+    with pytest.raises(CloudError) as e:
+        alice.get_org(org)
+    assert code(e.value) == "NOT_FOUND"
+
+    alice.delete_app(app)
+    time.sleep(0.3)
+    with pytest.raises(CloudError) as e:
+        alice.get_app(app)
+    assert code(e.value) == "NOT_FOUND"
+
+
+def test_presence_streams_a_snapshot_then_changes(cluster, wasm):
+    alice, _pk = person(cluster, 0, "alice-presence")
+    app = alice.create_app("here", alice.upload_bundle(wasm))
+    alice.publish_presence(app, 1, b"typing")
+    frames = alice.presence_stream(app, limit=1, timeout=5)
+    assert frames and frames[0]["kind"] == "snapshot", frames

@@ -1,7 +1,7 @@
 """
-CloudClient against a real 3-node merod cluster (release-v2).
+CloudClient against a real 3-node merod cluster (Calimero 1.0).
 
-Needs `merod` and the kv-store fixture from core's `release-v2-parity` branch:
+Needs `merod` and the kv-store fixture from core 1.0 (tag `1.0.0-rc.1`):
 
     cargo build -p merod
     cargo build -p kv-store --target wasm32-unknown-unknown --profile app-release
@@ -49,7 +49,8 @@ def free_port() -> int:
 
 
 class Cluster:
-    def __init__(self, n: int = 3):
+    def __init__(self, n: int = 3, flags=()):
+        """`flags` are added to every node's `merod run`."""
         ports = [free_port() for _ in range(n)]
         self.urls = [f"http://127.0.0.1:{p}" for p in ports]
         peers = ",".join(f"{i + 1}={u}/" for i, u in enumerate(self.urls))
@@ -77,6 +78,7 @@ class Cluster:
                 "--origins",
                 ORIGIN,
             ]
+            args += list(flags)
             if i == 0:
                 args.append("--bootstrap")
             self.procs.append(subprocess.Popen(args, stdout=logs, stderr=logs))
