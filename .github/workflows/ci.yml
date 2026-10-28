@@ -43,7 +43,6 @@ jobs:
     - name: Install dependencies
       run: |
         pip install maturin==1.15.0
-        pip install merobox==0.6.84
         pip install -e ".[dev]"
     
     - name: Check code formatting with Black
@@ -64,12 +63,8 @@ jobs:
       run: |
         cargo fmt --check
 
-    # This crate is mostly Rust, and until now nothing ran its Rust tests: the
-    # step below builds the extension, so a compile error was caught but a wrong
-    # answer was not. The warrant helpers are the first logic here with
-    # properties worth asserting directly — that reformatting an intent's
-    # arguments cannot change what the signature commits to, above all, since
-    # getting that wrong produces warrants the node reads as forged.
+    # The step below builds the extension, so a compile error is caught there,
+    # but a wrong answer in Rust-only logic (path-segment encoding, say) is not.
     # Without `--features python`, deliberately: that feature turns on pyo3's
     # `extension-module`, which leaves libpython unlinked — right for a wheel's
     # shared object, fatal for a test binary that has no interpreter to borrow
@@ -126,8 +121,11 @@ jobs:
         pytest -o addopts="" scripts/test_check_workflow_hardening.py
         python scripts/check_workflow_hardening.py
 
-  # Cargo.lock pins core, so a field core adds to a request type breaks only the
-  # next lock update. This builds against core master as it is today.
+  # Cargo.toml pins core's 1.0.0-rc.1 tag, so a change on core master to
+  # `calimero-client` (a field added to a request type, a renamed method)
+  # breaks only the next pin bump. This builds against core master as it is
+  # today. `calimero-identity` moves with it, or cargo resolves two copies of
+  # the crates they share.
   core-master:
     runs-on: ubuntu-latest
 
@@ -141,5 +139,7 @@ jobs:
 
     - name: Check against core master
       run: |
-        cargo update -p calimero-client
+        sed -i 's/tag = "[^"]*"/branch = "master"/' Cargo.toml
+        grep -n 'branch = "master"' Cargo.toml
+        cargo update -p calimero-client -p calimero-identity
         cargo check --all-targets

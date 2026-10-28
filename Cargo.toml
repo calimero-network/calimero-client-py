@@ -1,21 +1,23 @@
 [package]
 name = "calimero-client-py"
-version = "0.9.0"
+version = "1.0.0-rc.1"
 edition = "2021"
 authors = ["Calimero Limited <info@calimero.network>"]
-description = "Python client library for Calimero Network"
+description = "Python client library for Calimero 1.0"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/calimero-network/core"
+repository = "https://github.com/calimero-network/calimero-client-py"
 keywords = ["calimero", "blockchain", "api", "client", "web3", "python"]
 categories = ["api-bindings", "blockchain", "web-programming"]
-# Ensure source distribution includes all necessary files
+# Ensure source distribution includes all necessary files. Anchored with `/`:
+# these are gitignore-style patterns, and a bare `LICENSE*` also matches every
+# license file under `.venv/` or `docs/node_modules/`.
 include = [
-    "src/**/*.rs",
-    "Cargo.toml",
-    "Cargo.lock",
-    "README.md",
-    "LICENSE*",
-    "CHANGELOG.md",
+    "/src/**/*.rs",
+    "/Cargo.toml",
+    "/Cargo.lock",
+    "/README.md",
+    "/LICENSE*",
+    "/CHANGELOG.md",
 ]
 
 # Make this package standalone, not part of the workspace
@@ -26,23 +28,14 @@ name = "calimero_client_py"
 crate-type = ["cdylib"]
 
 [dependencies]
-# Core Calimero crates, tracking master.
+# Core's client, from the 1.0.0-rc.1 release tag.
 #
-# They move TOGETHER or not at all, including when one is pointed at a feature
-# branch to bind something core has not released yet. Moving one alone makes
-# cargo resolve two copies of `calimero-primitives`, one per source, and the
-# error names types rather than revisions — `expected PrivateKey, found a
-# different PrivateKey` — which reads as a code problem rather than a
-# resolution one.
-calimero-client = { git = "https://github.com/calimero-network/core", branch = "master", features = ["tee"] }
-calimero-primitives = { git = "https://github.com/calimero-network/core", branch = "master" }
-calimero-server-primitives = { git = "https://github.com/calimero-network/core", branch = "master" }
-calimero-context-config = { git = "https://github.com/calimero-network/core", branch = "master" }
-# Warrant minting lives here rather than in a JS client because `Warrant::sign`
-# is already written: binding it costs a call instead of an ed25519-plus-borsh
-# reimplementation that would have to stay byte-identical with the node forever.
-calimero-account = { git = "https://github.com/calimero-network/core", branch = "master" }
-borsh = "1.5"
+# The two move TOGETHER or not at all: moving one alone makes cargo resolve two
+# copies of the crates they share, and the error names types rather than
+# revisions, which reads as a code problem rather than a resolution one.
+calimero-client = { git = "https://github.com/calimero-network/core", tag = "1.0.0-rc.1", features = ["testing"] }
+calimero-identity = { git = "https://github.com/calimero-network/core", tag = "1.0.0-rc.1", features = ["testing"] }
+futures-util = "0.3"
 
 # Python bindings
 # `extension-module` is enabled by the `python` feature below, not here.
@@ -53,31 +46,20 @@ borsh = "1.5"
 # them lazily); Linux does not, so `cargo test` fails there and only there. The
 # `python` feature already existed and was empty, which is this recipe left
 # half-wired.
-pyo3 = { version = "0.22" }
+pyo3 = { version = "0.22", features = ["multiple-pymethods"] }
 
-# Additional dependencies that might be needed
-serde = { version = "1.0", features = ["derive"] }
+serde = "1.0"
 serde_json = "1.0"
-tokio = { version = "1.0", features = ["full"] }
+tokio = { version = "1.0", features = ["rt-multi-thread", "sync", "time"] }
 url = "2.5"
-# The HTTP client sealed envelopes travel over when the TLS is not pinned. The
-# same crate `calimero-client` uses, so cargo resolves one copy.
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 hex = "0.4"
-eyre = "0.6"
-sha2 = "0.10"
-dirs = "5.0"
-chrono = { version = "0.4", features = ["serde"] }
-camino = "1.1"
-async-trait = "0.1"
-
-[dev-dependencies]
-tokio-test = "0.4"
 
 [features]
 default = []
 # What maturin builds with (see `[tool.maturin] features` in pyproject.toml).
-python = ["pyo3/extension-module"]
+# `abi3-py39`: one wheel per platform, for every CPython from 3.9 on, built
+# against the stable ABI instead of one interpreter's.
+python = ["pyo3/extension-module", "pyo3/abi3-py39"]
 
 [profile.release]
 strip = "symbols"

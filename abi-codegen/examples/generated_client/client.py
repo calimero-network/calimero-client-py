@@ -2,7 +2,7 @@
 
 from typing import Dict, List, Any, Optional, Union
 import json
-from calimero import Client, ClientError
+from calimero import CloudClient, CloudError
 
 from .types import *
 
@@ -10,11 +10,10 @@ from .types import *
 class ABIClient:
     """Generated client for WASM ABI methods"""
 
-    def __init__(self, client: Client, context_id: str, executor_public_key: str):
-        """Initialize with a Calimero client, context ID, and executor public key"""
+    def __init__(self, client: CloudClient, app_id: str):
+        """Initialize with a signed-in CloudClient and the app instance to call"""
         self.client = client
-        self.context_id = context_id
-        self.executor_public_key = executor_public_key
+        self.app_id = app_id
 
     def init(self) -> Any:
         """
@@ -23,19 +22,9 @@ class ABIClient:
         Returns:
             Any: Return value
         """
-        try:
-            # No parameters for this method
-            args = json.dumps({})
-            # Execute the ABI method
-            result = self.client.execute_function(
-                context_id=self.context_id,
-                method="init",
-                args=args,
-                executor_public_key=self.executor_public_key,
-            )
-            return result
-        except ClientError as e:
-            raise ClientError(f"Error calling init: {e}")
+        args = {}
+        result = self.client.call(self.app_id, "init", args)["result"]
+        return result
 
     def noop(self) -> None:
         """
@@ -44,19 +33,9 @@ class ABIClient:
         Returns:
             None: Return value
         """
-        try:
-            # No parameters for this method
-            args = json.dumps({})
-            # Execute the ABI method
-            result = self.client.execute_function(
-                context_id=self.context_id,
-                method="noop",
-                args=args,
-                executor_public_key=self.executor_public_key,
-            )
-            return result
-        except ClientError as e:
-            raise ClientError(f"Error calling noop: {e}")
+        args = {}
+        result = self.client.call(self.app_id, "noop", args)["result"]
+        return result
 
     def echo_bool(self, b: bool) -> bool:
         """
@@ -68,19 +47,9 @@ class ABIClient:
         Returns:
             bool: Return value
         """
-        try:
-            # Prepare arguments as JSON
-            args = json.dumps({"b": b})
-            # Execute the ABI method
-            result = self.client.execute_function(
-                context_id=self.context_id,
-                method="echo_bool",
-                args=args,
-                executor_public_key=self.executor_public_key,
-            )
-            return result
-        except ClientError as e:
-            raise ClientError(f"Error calling echo_bool: {e}")
+        args = {"b": b}
+        result = self.client.call(self.app_id, "echo_bool", args)["result"]
+        return result
 
     def echo_i32(self, x: int) -> int:
         """
@@ -92,19 +61,9 @@ class ABIClient:
         Returns:
             int: Return value
         """
-        try:
-            # Prepare arguments as JSON
-            args = json.dumps({"x": x})
-            # Execute the ABI method
-            result = self.client.execute_function(
-                context_id=self.context_id,
-                method="echo_i32",
-                args=args,
-                executor_public_key=self.executor_public_key,
-            )
-            return result
-        except ClientError as e:
-            raise ClientError(f"Error calling echo_i32: {e}")
+        args = {"x": x}
+        result = self.client.call(self.app_id, "echo_i32", args)["result"]
+        return result
 
     def echo_i64(self, x: int) -> int:
         """
@@ -116,19 +75,9 @@ class ABIClient:
         Returns:
             int: Return value
         """
-        try:
-            # Prepare arguments as JSON
-            args = json.dumps({"x": x})
-            # Execute the ABI method
-            result = self.client.execute_function(
-                context_id=self.context_id,
-                method="echo_i64",
-                args=args,
-                executor_public_key=self.executor_public_key,
-            )
-            return result
-        except ClientError as e:
-            raise ClientError(f"Error calling echo_i64: {e}")
+        args = {"x": x}
+        result = self.client.call(self.app_id, "echo_i64", args)["result"]
+        return result
 
     def echo_u32(self, x: int) -> int:
         """
@@ -140,19 +89,9 @@ class ABIClient:
         Returns:
             int: Return value
         """
-        try:
-            # Prepare arguments as JSON
-            args = json.dumps({"x": x})
-            # Execute the ABI method
-            result = self.client.execute_function(
-                context_id=self.context_id,
-                method="echo_u32",
-                args=args,
-                executor_public_key=self.executor_public_key,
-            )
-            return result
-        except ClientError as e:
-            raise ClientError(f"Error calling echo_u32: {e}")
+        args = {"x": x}
+        result = self.client.call(self.app_id, "echo_u32", args)["result"]
+        return result
 
     def echo_u64(self, x: int) -> int:
         """
@@ -164,19 +103,9 @@ class ABIClient:
         Returns:
             int: Return value
         """
-        try:
-            # Prepare arguments as JSON
-            args = json.dumps({"x": x})
-            # Execute the ABI method
-            result = self.client.execute_function(
-                context_id=self.context_id,
-                method="echo_u64",
-                args=args,
-                executor_public_key=self.executor_public_key,
-            )
-            return result
-        except ClientError as e:
-            raise ClientError(f"Error calling echo_u64: {e}")
+        args = {"x": x}
+        result = self.client.call(self.app_id, "echo_u64", args)["result"]
+        return result
 
     def echo_f32(self, x: float) -> float:
         """
@@ -188,19 +117,9 @@ class ABIClient:
         Returns:
             float: Return value
         """
-        try:
-            # Prepare arguments as JSON
-            args = json.dumps({"x": x})
-            # Execute the ABI method
-            result = self.client.execute_function(
-                context_id=self.context_id,
-                method="echo_f32",
-                args=args,
-                executor_public_key=self.executor_public_key,
-            )
-            return result
-        except ClientError as e:
-            raise ClientError(f"Error calling echo_f32: {e}")
+        args = {"x": x}
+        result = self.client.call(self.app_id, "echo_f32", args)["result"]
+        return result
 
     def echo_f64(self, x: float) -> float:
         """
@@ -212,19 +131,9 @@ class ABIClient:
         Returns:
             float: Return value
         """
-        try:
-            # Prepare arguments as JSON
-            args = json.dumps({"x": x})
-            # Execute the ABI method
-            result = self.client.execute_function(
-                context_id=self.context_id,
-                method="echo_f64",
-                args=args,
-                executor_public_key=self.executor_public_key,
-            )
-            return result
-        except ClientError as e:
-            raise ClientError(f"Error calling echo_f64: {e}")
+        args = {"x": x}
+        result = self.client.call(self.app_id, "echo_f64", args)["result"]
+        return result
 
     def echo_string(self, s: str) -> str:
         """
@@ -236,19 +145,9 @@ class ABIClient:
         Returns:
             str: Return value
         """
-        try:
-            # Prepare arguments as JSON
-            args = json.dumps({"s": s})
-            # Execute the ABI method
-            result = self.client.execute_function(
-                context_id=self.context_id,
-                method="echo_string",
-                args=args,
-                executor_public_key=self.executor_public_key,
-            )
-            return result
-        except ClientError as e:
-            raise ClientError(f"Error calling echo_string: {e}")
+        args = {"s": s}
+        result = self.client.call(self.app_id, "echo_string", args)["result"]
+        return result
 
     def echo_bytes(self, b: bytes) -> bytes:
         """
@@ -260,19 +159,9 @@ class ABIClient:
         Returns:
             bytes: Return value
         """
-        try:
-            # Prepare arguments as JSON
-            args = json.dumps({"b": b})
-            # Execute the ABI method
-            result = self.client.execute_function(
-                context_id=self.context_id,
-                method="echo_bytes",
-                args=args,
-                executor_public_key=self.executor_public_key,
-            )
-            return result
-        except ClientError as e:
-            raise ClientError(f"Error calling echo_bytes: {e}")
+        args = {"b": b}
+        result = self.client.call(self.app_id, "echo_bytes", args)["result"]
+        return result
 
     def opt_u32(self, x: Optional[int]) -> Optional[int]:
         """
@@ -284,19 +173,9 @@ class ABIClient:
         Returns:
             Optional[int]: Return value
         """
-        try:
-            # Prepare arguments as JSON
-            args = json.dumps({"x": x})
-            # Execute the ABI method
-            result = self.client.execute_function(
-                context_id=self.context_id,
-                method="opt_u32",
-                args=args,
-                executor_public_key=self.executor_public_key,
-            )
-            return result if result is not None else None
-        except ClientError as e:
-            raise ClientError(f"Error calling opt_u32: {e}")
+        args = {"x": x}
+        result = self.client.call(self.app_id, "opt_u32", args)["result"]
+        return result
 
     def opt_string(self, x: Optional[str]) -> Optional[str]:
         """
@@ -308,19 +187,9 @@ class ABIClient:
         Returns:
             Optional[str]: Return value
         """
-        try:
-            # Prepare arguments as JSON
-            args = json.dumps({"x": x})
-            # Execute the ABI method
-            result = self.client.execute_function(
-                context_id=self.context_id,
-                method="opt_string",
-                args=args,
-                executor_public_key=self.executor_public_key,
-            )
-            return result if result is not None else None
-        except ClientError as e:
-            raise ClientError(f"Error calling opt_string: {e}")
+        args = {"x": x}
+        result = self.client.call(self.app_id, "opt_string", args)["result"]
+        return result
 
     def opt_record(self, p: Optional[Any]) -> Optional[Any]:
         """
@@ -332,19 +201,9 @@ class ABIClient:
         Returns:
             Optional[Any]: Return value
         """
-        try:
-            # Prepare arguments as JSON
-            args = json.dumps({"p": p})
-            # Execute the ABI method
-            result = self.client.execute_function(
-                context_id=self.context_id,
-                method="opt_record",
-                args=args,
-                executor_public_key=self.executor_public_key,
-            )
-            return result if result is not None else None
-        except ClientError as e:
-            raise ClientError(f"Error calling opt_record: {e}")
+        args = {"p": p}
+        result = self.client.call(self.app_id, "opt_record", args)["result"]
+        return result
 
     def opt_id(self, x: Optional[Any]) -> Optional[Any]:
         """
@@ -356,19 +215,9 @@ class ABIClient:
         Returns:
             Optional[Any]: Return value
         """
-        try:
-            # Prepare arguments as JSON
-            args = json.dumps({"x": x})
-            # Execute the ABI method
-            result = self.client.execute_function(
-                context_id=self.context_id,
-                method="opt_id",
-                args=args,
-                executor_public_key=self.executor_public_key,
-            )
-            return result if result is not None else None
-        except ClientError as e:
-            raise ClientError(f"Error calling opt_id: {e}")
+        args = {"x": x}
+        result = self.client.call(self.app_id, "opt_id", args)["result"]
+        return result
 
     def list_u32(self, xs: List[int]) -> List[int]:
         """
@@ -380,19 +229,9 @@ class ABIClient:
         Returns:
             List[int]: Return value
         """
-        try:
-            # Prepare arguments as JSON
-            args = json.dumps({"xs": xs})
-            # Execute the ABI method
-            result = self.client.execute_function(
-                context_id=self.context_id,
-                method="list_u32",
-                args=args,
-                executor_public_key=self.executor_public_key,
-            )
-            return result
-        except ClientError as e:
-            raise ClientError(f"Error calling list_u32: {e}")
+        args = {"xs": xs}
+        result = self.client.call(self.app_id, "list_u32", args)["result"]
+        return result
 
     def list_strings(self, xs: List[str]) -> List[str]:
         """
@@ -404,19 +243,9 @@ class ABIClient:
         Returns:
             List[str]: Return value
         """
-        try:
-            # Prepare arguments as JSON
-            args = json.dumps({"xs": xs})
-            # Execute the ABI method
-            result = self.client.execute_function(
-                context_id=self.context_id,
-                method="list_strings",
-                args=args,
-                executor_public_key=self.executor_public_key,
-            )
-            return result
-        except ClientError as e:
-            raise ClientError(f"Error calling list_strings: {e}")
+        args = {"xs": xs}
+        result = self.client.call(self.app_id, "list_strings", args)["result"]
+        return result
 
     def list_records(self, ps: List[Any]) -> List[Any]:
         """
@@ -428,19 +257,9 @@ class ABIClient:
         Returns:
             List[Any]: Return value
         """
-        try:
-            # Prepare arguments as JSON
-            args = json.dumps({"ps": ps})
-            # Execute the ABI method
-            result = self.client.execute_function(
-                context_id=self.context_id,
-                method="list_records",
-                args=args,
-                executor_public_key=self.executor_public_key,
-            )
-            return result
-        except ClientError as e:
-            raise ClientError(f"Error calling list_records: {e}")
+        args = {"ps": ps}
+        result = self.client.call(self.app_id, "list_records", args)["result"]
+        return result
 
     def list_ids(self, xs: List[Any]) -> List[Any]:
         """
@@ -452,19 +271,9 @@ class ABIClient:
         Returns:
             List[Any]: Return value
         """
-        try:
-            # Prepare arguments as JSON
-            args = json.dumps({"xs": xs})
-            # Execute the ABI method
-            result = self.client.execute_function(
-                context_id=self.context_id,
-                method="list_ids",
-                args=args,
-                executor_public_key=self.executor_public_key,
-            )
-            return result
-        except ClientError as e:
-            raise ClientError(f"Error calling list_ids: {e}")
+        args = {"xs": xs}
+        result = self.client.call(self.app_id, "list_ids", args)["result"]
+        return result
 
     def map_u32(self, m: Dict[str, int]) -> Dict[str, int]:
         """
@@ -476,19 +285,9 @@ class ABIClient:
         Returns:
             Dict[str, int]: Return value
         """
-        try:
-            # Prepare arguments as JSON
-            args = json.dumps({"m": m})
-            # Execute the ABI method
-            result = self.client.execute_function(
-                context_id=self.context_id,
-                method="map_u32",
-                args=args,
-                executor_public_key=self.executor_public_key,
-            )
-            return result
-        except ClientError as e:
-            raise ClientError(f"Error calling map_u32: {e}")
+        args = {"m": m}
+        result = self.client.call(self.app_id, "map_u32", args)["result"]
+        return result
 
     def map_list_u32(self, m: Dict[str, List[int]]) -> Dict[str, List[int]]:
         """
@@ -500,19 +299,9 @@ class ABIClient:
         Returns:
             Dict[str, List[int]]: Return value
         """
-        try:
-            # Prepare arguments as JSON
-            args = json.dumps({"m": m})
-            # Execute the ABI method
-            result = self.client.execute_function(
-                context_id=self.context_id,
-                method="map_list_u32",
-                args=args,
-                executor_public_key=self.executor_public_key,
-            )
-            return result
-        except ClientError as e:
-            raise ClientError(f"Error calling map_list_u32: {e}")
+        args = {"m": m}
+        result = self.client.call(self.app_id, "map_list_u32", args)["result"]
+        return result
 
     def map_record(self, m: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -524,19 +313,9 @@ class ABIClient:
         Returns:
             Dict[str, Any]: Return value
         """
-        try:
-            # Prepare arguments as JSON
-            args = json.dumps({"m": m})
-            # Execute the ABI method
-            result = self.client.execute_function(
-                context_id=self.context_id,
-                method="map_record",
-                args=args,
-                executor_public_key=self.executor_public_key,
-            )
-            return result
-        except ClientError as e:
-            raise ClientError(f"Error calling map_record: {e}")
+        args = {"m": m}
+        result = self.client.call(self.app_id, "map_record", args)["result"]
+        return result
 
     def make_person(self, p: Any) -> Any:
         """
@@ -548,19 +327,9 @@ class ABIClient:
         Returns:
             Any: Return value
         """
-        try:
-            # Prepare arguments as JSON
-            args = json.dumps({"p": p})
-            # Execute the ABI method
-            result = self.client.execute_function(
-                context_id=self.context_id,
-                method="make_person",
-                args=args,
-                executor_public_key=self.executor_public_key,
-            )
-            return result
-        except ClientError as e:
-            raise ClientError(f"Error calling make_person: {e}")
+        args = {"p": p}
+        result = self.client.call(self.app_id, "make_person", args)["result"]
+        return result
 
     def profile_roundtrip(self, p: Any) -> Any:
         """
@@ -572,19 +341,9 @@ class ABIClient:
         Returns:
             Any: Return value
         """
-        try:
-            # Prepare arguments as JSON
-            args = json.dumps({"p": p})
-            # Execute the ABI method
-            result = self.client.execute_function(
-                context_id=self.context_id,
-                method="profile_roundtrip",
-                args=args,
-                executor_public_key=self.executor_public_key,
-            )
-            return result
-        except ClientError as e:
-            raise ClientError(f"Error calling profile_roundtrip: {e}")
+        args = {"p": p}
+        result = self.client.call(self.app_id, "profile_roundtrip", args)["result"]
+        return result
 
     def act(self, a: Any) -> int:
         """
@@ -596,19 +355,9 @@ class ABIClient:
         Returns:
             int: Return value
         """
-        try:
-            # Prepare arguments as JSON
-            args = json.dumps({"a": a})
-            # Execute the ABI method
-            result = self.client.execute_function(
-                context_id=self.context_id,
-                method="act",
-                args=args,
-                executor_public_key=self.executor_public_key,
-            )
-            return result
-        except ClientError as e:
-            raise ClientError(f"Error calling act: {e}")
+        args = {"a": a}
+        result = self.client.call(self.app_id, "act", args)["result"]
+        return result
 
     def roundtrip_id(self, x: Any) -> Any:
         """
@@ -620,19 +369,9 @@ class ABIClient:
         Returns:
             Any: Return value
         """
-        try:
-            # Prepare arguments as JSON
-            args = json.dumps({"x": x})
-            # Execute the ABI method
-            result = self.client.execute_function(
-                context_id=self.context_id,
-                method="roundtrip_id",
-                args=args,
-                executor_public_key=self.executor_public_key,
-            )
-            return result
-        except ClientError as e:
-            raise ClientError(f"Error calling roundtrip_id: {e}")
+        args = {"x": x}
+        result = self.client.call(self.app_id, "roundtrip_id", args)["result"]
+        return result
 
     def roundtrip_hash(self, h: Any) -> Any:
         """
@@ -644,19 +383,9 @@ class ABIClient:
         Returns:
             Any: Return value
         """
-        try:
-            # Prepare arguments as JSON
-            args = json.dumps({"h": h})
-            # Execute the ABI method
-            result = self.client.execute_function(
-                context_id=self.context_id,
-                method="roundtrip_hash",
-                args=args,
-                executor_public_key=self.executor_public_key,
-            )
-            return result
-        except ClientError as e:
-            raise ClientError(f"Error calling roundtrip_hash: {e}")
+        args = {"h": h}
+        result = self.client.call(self.app_id, "roundtrip_hash", args)["result"]
+        return result
 
     def may_fail(self, flag: bool) -> int:
         """
@@ -668,19 +397,9 @@ class ABIClient:
         Returns:
             int: Return value
         """
-        try:
-            # Prepare arguments as JSON
-            args = json.dumps({"flag": flag})
-            # Execute the ABI method
-            result = self.client.execute_function(
-                context_id=self.context_id,
-                method="may_fail",
-                args=args,
-                executor_public_key=self.executor_public_key,
-            )
-            return result
-        except ClientError as e:
-            raise ClientError(f"Error calling may_fail: {e}")
+        args = {"flag": flag}
+        result = self.client.call(self.app_id, "may_fail", args)["result"]
+        return result
 
     def find_person(self, name: str) -> Any:
         """
@@ -692,16 +411,6 @@ class ABIClient:
         Returns:
             Any: Return value
         """
-        try:
-            # Prepare arguments as JSON
-            args = json.dumps({"name": name})
-            # Execute the ABI method
-            result = self.client.execute_function(
-                context_id=self.context_id,
-                method="find_person",
-                args=args,
-                executor_public_key=self.executor_public_key,
-            )
-            return result
-        except ClientError as e:
-            raise ClientError(f"Error calling find_person: {e}")
+        args = {"name": name}
+        result = self.client.call(self.app_id, "find_person", args)["result"]
+        return result

@@ -45,8 +45,8 @@ def _import_generated(out: Path, abi: dict, class_name: str = "ABIClient"):
         (pkg_dir / name).write_text(code)
 
     stub = types.ModuleType("calimero")
-    stub.Client = object
-    stub.ClientError = type("ClientError", (Exception,), {})
+    stub.CloudClient = object
+    stub.CloudError = type("CloudError", (Exception,), {})
     name = f"gen_{uuid.uuid4().hex}"
     spec = importlib.util.spec_from_file_location(
         name, pkg_dir / "__init__.py", submodule_search_locations=[str(pkg_dir)]
@@ -111,7 +111,7 @@ def test_unsafe_name_is_refused(tmp_path, site, kind):
 @pytest.mark.parametrize(
     "site, name",
     [
-        ("record name", "ClientError"),
+        ("record name", "CloudError"),
         ("variant type name", "Enum"),
         ("record name", "json"),
         ("method name", "client"),

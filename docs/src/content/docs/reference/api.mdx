@@ -1,350 +1,212 @@
 ---
 title: API reference
-description: The complete public Python API surface — module functions, classes, and every Client method with its signature.
+description: The public Python API — Client (CloudClient), SoftPasskey, CloudError — with every method's signature.
 sidebar:
   order: 1
 ---
 
-The public surface lives in the `calimero_client_py` module (also re-exported
-from the `calimero` package). Every `Client` method is **synchronous**: it
-blocks until the node responds and returns a plain Python value — a `dict`,
-`list`, `bytes`, or scalar decoded from the node's JSON response. There are no
-coroutines.
-
-Signatures below use Python conventions; arguments shown with `=` are optional
-with the default given. IDs, URLs, and JSON arguments are validated and raise
-`ValueError` when malformed; a failing node call raises `RuntimeError` (see
-[error handling](/reference/errors/)).
-
-## Response shapes
-
-Return values are the node's admin-API / JSON-RPC response, decoded from JSON
-into native Python (`dict`, `list`, `bytes`, or scalar). Two conventions hold
-across the surface:
-
-- **Keys are `camelCase`** — the node's wire format is passed through verbatim,
-  so you read `contextId`, `blobId`, `applicationId`, and so on (not
-  `context_id`). The method *names* are Pythonic; the *dict keys* are not.
-- **Many admin responses wrap their payload under a top-level `data` key** — for
-  example a list endpoint returns `{"data": [ ... ]}` rather than a bare list.
-
-Because the exact fields track the node's admin API version, the reliable way to
-learn a specific shape is to print a result against your node:
-
-```python
-import json
-print(json.dumps(client.list_contexts(), indent=2))
-```
-
-A few shapes are stable enough to document here (keys as returned):
-
-| Method | Returns |
-| --- | --- |
-| `list_application_versions(id)` | `{"data": [{"version", "blobId", "size", "package"}]}` — each `blobId` doubles as an `app_key` |
-| `resync_context(id, force)` | `{"contextId", "resyncStarted"}` |
-| `reparent_group(id, parent)` | `{"reparented": bool}` (`false` on an idempotent no-op) |
-| `join_subgroup_inheritance(id)` | `{"group_id", "member_public_key", "was_inherited"}` |
-| `get_cascade_status(namespace_id)` | `{"data": [{"groupId", "upgrade", "cascadeHlc"}]}` — one entry per descendant |
-| `get_migration_status(namespace_id)` | `{"targetVersion", "expectedMembers", "rollup", "members"}` |
-| `abort_migration(namespace_id)` | `{"namespaceId", "aborted"}` |
-| `get_node_identity()` | `{"data": {"accountId", "deviceId", "publicKey", "accountRootPublicKey", "deviceAgreementKey", "holdsAccountRoot", "deviceCertified", "accountNamespaceId"}}` |
-| `pair_device_init(...)` | `{"data": {"accountId", "deviceId", "kemPublicKey", "signPublicKey", "statement", "confirmationCode"}}` |
-| `list_account_devices()` | `{"devices": [{"deviceId", "isSelf", "revoked", "applications", "namespaces", ...}]}` - not wrapped in `data` |
-| `list_account_applications()` | `{"applications": [{"applicationId", "namespaces", ...}]}` - not wrapped in `data` |
-
-`download_blob` is the exception to the JSON rule — it returns raw `bytes`.
-
-## Module attributes
-
-- `VERSION: str` — the package version.
-
-## Module functions
-
-- `create_connection(api_url, node_name=None, device_credential=None,
-  device_secret=None, device_session=None, *, tee=None, sealed=False,
-  transport_public_key=None, interactive=False) -> ConnectionInfo` — build a connection to a
-  node's API URL. The device arguments sign every request with a device key.
-  `sealed=True` encrypts every request to a TEE node's attested transport key,
-  attested under `tee` or given as `transport_public_key`; see
-  [TEE nodes](/guides/tee-nodes/). `interactive=True` prompts on stdin for a
-  missing token; see [Authentication](/guides/authentication/#when-no-token-is-stored).
-- `create_client(connection) -> Client` — build a client from a `ConnectionInfo`.
-- `get_token_cache_path(api_url, node_name) -> str` — path to the JWT cache
-  file for a node name at `api_url` (origin and base path).
-- `save_token_cache(api_url, node_name, token)` — write a `JwtToken` to that
-  file, owner-only (`0600`) on Unix.
-- `get_token_cache_dir() -> str` — the base token-cache directory
-  (`~/.merobox/auth_cache`).
-- `sign_warrant(context_id, executor, executor_key, release_bytecode_id,
-  release_version, method, args, nonce, device_secret, credential,
-  valid_for=300) -> dict` - mint a warrant authorising `executor` to run
-  `method(args)` on the signer's behalf, spendable only by its device
-  `executor_key` and only while the relay runs the release `release_bytecode_id`
-  (its semver, `release_version`, is signed and never compared, at most 256
-  bytes). Contacts nothing: it signs with `device_secret` and returns bytes,
-  which is the point - the key that signs a warrant must never reach the node
-  that runs the request. Returns `warrant` (hex, ready for `perform_intent`),
-  plus `authorAccount`, `authorDeviceKey`, `intentHash`, `nonce` and
-  `notAfter`. Every id is 64 hex; read `executor`, `executor_key`,
-  `release_bytecode_id` and `release_version` from the relay's
-  `get_intent_relay`. The author's account is
-  read out of `credential` rather than taken as an argument, so it cannot
-  disagree with the key that signs.
-
-## `ConnectionInfo`
-
-Constructed via `create_connection(...)` or `ConnectionInfo(...)`, which take the same arguments.
-
-**Properties**
-
-- `api_url: str` — the node's API URL.
-- `node_name: str | None` — the connection's node name.
-
-**Methods**
-
-- `get(path) -> object` — issue an authenticated `GET` and return the JSON body.
-- `detect_auth_mode() -> AuthMode` — probe whether the node requires auth.
-
-## `TeePolicy`
-
-`TeePolicy(allowed_mrtd, *, allowed_rtmr0=None, allowed_rtmr1=None,
-allowed_rtmr2=None, allowed_rtmr3=None, allowed_tcb_statuses=None,
-application_id=None, application_hash=None)` — which TEE nodes a connection
-trusts. Quotes are verified locally against Intel's collateral. `allowed_mrtd`
-and `allowed_rtmr1`–`3` are required (48-byte hex measurements): the MRTD
-measures the platform's firmware, which images share, and the image is in
-RTMR1–3. `allowed_rtmr0` is unchecked when left out; `allowed_tcb_statuses`
-defaults to up-to-date platforms only; `application_id` and `application_hash`
-go together. Mock quotes are never accepted. Raises `ValueError` on a policy that
-could accept nothing, leaves an image register out, or holds a value that is not
-a measurement.
-
-`TeePolicy.from_releases(releases, profile, *, application_id=None,
-application_hash=None)` — the policy trusting one profile of the given node
-releases, each the text of its `published-mrtds.json`, with only the TCB
-statuses all of them accept. Raises `ValueError` on no release, a profile a
-release lacks, a KMS manifest or a TCB status it does not know.
-
-**Properties**
-
-- `allowed_mrtd: list[str]` — the MRTDs trusted.
-- `allowed_rtmr1: list[str]`, `allowed_rtmr3: list[str]` — image registers trusted.
-- `allowed_tcb_statuses: list[str]` — TCB statuses accepted.
-
-## `AuthMode`
-
-`AuthMode(mode)` where `mode` is `"required"` or `"none"` (any other value raises
-`ValueError`).
-
-- `value: str` — `"required"` or `"none"`.
-- `str(mode)` / `repr(mode)` — string forms.
-
-## `JwtToken`
-
-`JwtToken(access_token, refresh_token=None, expires_at=None)`.
-
-- `access_token: str`
-- `refresh_token: str | None`
-- `expires_at: int | None` — Unix timestamp (seconds).
-- `is_expired() -> bool` — `True` once `expires_at` has passed; `False` when
-  `expires_at` is unset.
-
-## `ClientError`
-
-`ClientError(error_type, message)` — models the core error taxonomy.
-
-- `error_type: str` — one of `Network`, `Authentication`, `Storage`, `Internal`.
-- `message: str`
-
-:::note
-`Client` methods surface failures as `RuntimeError` and `ValueError`, not as
-`ClientError`. See [error handling](/reference/errors/).
-:::
+The public surface lives in the `calimero_client_py` module and is re-exported
+from the `calimero` package: `Client`, `CloudClient`, `SoftPasskey`,
+`CloudError` and `VERSION`. Every method is **synchronous** and returns plain Python values
+decoded from the node's JSON (keys are the node's `camelCase`). A failing request
+raises [`CloudError`](/reference/errors/); a malformed argument caught before
+sending raises `ValueError`.
 
 ## `Client`
 
-Constructed via `create_client(connection)` or `Client(connection)`.
+```python
+Client(base_url, allow_mock=False, app_hash=None, tee_profiles=None,
+       min_release=None, allow_debug_profiles=False)
+```
 
-### Connection
+`Client` is the preferred name. `CloudClient` is the same class under the name
+earlier releases used (`Client is CloudClient`), kept so existing imports work.
 
-- `get_api_url() -> str`
-- `get_peers_count() -> object` — connected P2P peer count.
+A connection to one node of a cluster. The node is trusted only once its
+attestation verifies (see [concepts](/get-started/concepts/)); nothing is sent
+until the first request.
 
-### Applications
+| Argument | Meaning |
+| --- | --- |
+| `allow_mock` | Accept development (mock) quotes. |
+| `app_hash` | Hex of 32 bytes: the bundle the quote must bind. |
+| `tee_profiles` | Accept real TDX quotes from images a signed mero-tee release lists under one of these profiles. Without it only mock quotes can be accepted. |
+| `min_release` | The oldest mero-tee release accepted. |
+| `allow_debug_profiles` | Accept a release's debug profiles (whose memory the host can read). |
 
-- `get_application(app_id)`
-- `list_applications()`
-- `list_application_versions(application_id)` — retained bytecode versions; each
-  row's `blobId` doubles as the `app_key` for `create_namespace`.
-- `install_application(package, version)` installs from the node's configured
-  registry.
-- `install_dev_application(path)` installs from a local bundle path.
-- `uninstall_application(app_id)`
+### Session
 
-### Blobs
+| Method | Returns |
+| --- | --- |
+| `sign_up(passkey, name)` | The new account's session (`dict`). |
+| `sign_in(passkey)` | The session. |
+| `refresh()` | A new session from the refresh token. |
+| `sign_out()` | `None`; the refresh token stops working. |
+| `sign_out_everywhere()` | `None`; every session of the account ends, on every device. |
+| `use_session(session)` | `None`; authenticates with a session from `sign_up`/`sign_in`. |
+| `use_api_key(key)` | `None`; authenticates every request with a `cal_...` key. |
+| `session()` | The session in use, or `None` (none yet, or an API key instead). |
+| `me()` | The caller: `accountId`, `via`, ... |
+| `usage()` | What the account uses, with the cluster's quotas. |
 
-- `upload_blob(data, context_id=None)` — `data` is `bytes`.
-- `download_blob(blob_id, context_id=None) -> bytes` — returns the raw bytes.
-- `list_blobs()`
-- `get_blob_info(blob_id)`
-- `delete_blob(blob_id)`
+### Passkeys and API keys
 
-### Contexts
-
-- `create_context(application_id, group_id, params=None, service_name=None)`
-- `get_context(context_id)`
-- `list_contexts()`
-- `delete_context(context_id)`
-- `get_context_storage(context_id)`
-- `get_context_identities(context_id)`
-- `sync_context(context_id)`
-- `sync_all_contexts()`
-- `resync_context(context_id, force=False)` — adopt a peer's full-state snapshot;
-  destructive when local heads exist (`force=True`).
-- `update_context_application(context_id, application_id, executor_public_key)`
-- `join_context(context_id)` — join via group membership.
-- `leave_context(context_id)` — local leave; stops sync, reversible.
-- `generate_context_identity()`
-
-### Function execution
-
-- `execute_function(context_id, method, args, executor_public_key="")` — call an
-  app method over JSON-RPC. `args` is a JSON string. `executor_public_key` is
-  accepted for backward compatibility but ignored.
-
-### Delegated authorship
-
-- `get_intent_relay(context_id)` - ask what a warrant for this node must name,
-  before signing one. Its `data` carries `executorAccount`, `executorKey`,
-  `releaseBytecodeId` and `releaseVersion` (the `executor`, `executor_key`,
-  `release_bytecode_id` and `release_version` for `sign_warrant`) and
-  `canAuthorOnBehalf`, whether the node may act here at all. It answers `404`
-  while the context's group names no release.
-- `perform_intent(context_id, method, args, warrant, author_proof)` — ask this
-  node to run one method on a member's behalf, under a warrant that member
-  signed. Supply only the author's half: the warrant and the proof that its
-  signing key is a device of the account it names. The node attaches its own
-  credential, and refuses with a `403` a warrant naming another account or
-  device key, or pinning a release other than the one it is about to run.
-
-  Mint the warrant with `sign_warrant`, which needs no connection. A warrant is
-  single-use — presenting a spent one is refused with a `403` — and the write is
-  attributed to the author's account, not to the node that ran it. The node must
-  hold the `CAN_AUTHOR_ON_BEHALF` capability on the group owning the context;
-  without it the request is refused before anything executes, and that grant is
-  implied by neither membership nor admin.
-
-### Accounts and devices
-
-`get_node_identity`, `pair_device_init`, `pair_device_complete`,
-`relink_device` and `revoke_device` wrap their payload in `data`;
-`list_account_devices` and `list_account_applications` do not.
-
-- `get_node_identity()` - who this node is: `accountId`, `deviceId`, `publicKey`
-  (the device's signing key), `accountRootPublicKey`, and `accountNamespaceId`,
-  the id of the account's own namespace. Takes no namespace, because none of it
-  varies by one.
-- `pair_device_init(account_root_public_key, namespaces, account_namespace=None)` -
-  mint a device on this node for an account held elsewhere. Pass the holder's
-  `accountNamespaceId` as `account_namespace`: a device that follows it learns
-  every namespace the account gains or leaves, so `namespaces` may be `[]`. The
-  node refuses a request naming neither.
-- `pair_device_complete(device_id, kem_public_key, sign_public_key, statement, confirmation_code, applications=None)` -
-  run on the holder with everything `pair_device_init` returned. `applications`
-  scopes the device; `None` means every namespace the holder takes part in.
-- `relink_device(device_id, applications=None)` - repair or widen a certified
-  device. `None` repairs without widening.
-- `list_account_devices()` - every device of this node's account, including
-  revoked ones (`revoked: true`).
-- `list_account_applications()` - the applications the account speaks in, and
-  the namespaces serving each.
-- `revoke_device(namespace_id, device_id, proof=None)` - withdraw a device.
-  `proof` is a hex revocation minted elsewhere by `merod account revoke-proof`.
+| Method | Returns |
+| --- | --- |
+| `add_passkey(passkey)` | The added credential's id. |
+| `remove_passkey(credential_id)` | `None`. |
+| `label_passkey(credential_id, label)` | `None`; `""` clears the name. |
+| `create_api_key(options=None)` | `(key_id, key)`; the key is shown once. `options` may set `label`, `apps`, `methods`, `readOnly`, `allowConfirm`, `ttlSecs` (at most a year). |
+| `list_api_keys()` | The key records. |
+| `revoke_api_key(key_id)` | `None`. |
 
 ### Aliases
 
-Context, context-identity, and application aliases:
+| Method | Returns |
+| --- | --- |
+| `set_alias(alias, app)` | `None`; the alias names `app` for this account. |
+| `alias(alias)` | `{"alias", "appId"}`. |
+| `aliases()` | `{alias: app_id}`. |
+| `delete_alias(alias)` | `None`. |
 
-- `create_context_alias(alias, context_id)`
-- `create_application_alias(alias, application_id)`
-- `create_alias_generic(alias, value, scope=None)` — backward-compatible generic
-  helper (treats `value` as a context id).
-- `delete_context_alias(alias)`
-- `delete_context_identity_alias(alias, context_id)`
-- `delete_application_alias(alias)`
-- `list_context_aliases()`
-- `list_context_identity_aliases(context_id)`
-- `list_application_aliases()`
-- `lookup_context_alias(alias)`
-- `lookup_context_identity_alias(alias, context_id)`
-- `lookup_application_alias(alias)`
-- `resolve_context_alias(alias)`
-- `resolve_context_identity_alias(alias, context_id)`
-- `resolve_application_alias(alias)`
+### Packages
 
-### Namespaces and groups
+| Method | Returns |
+| --- | --- |
+| `upload_package(mpk)` | Installs a signed `.mpk` (bytes). |
+| `install_package(package, version)` | Installs `package@version` from the node's registry. |
+| `packages()` | Installed packages and their versions. |
+| `package(package)` | One installed package and its versions. |
+| `uninstall_package(package, version=None)` | Uninstalls one version, or all of it. |
 
-**Namespaces**
+### Apps
 
-- `create_namespace(application_id, name=None, app_key=None)`
-- `get_namespace(namespace_id)`
-- `list_namespaces()`
-- `delete_namespace(namespace_id)`
-- `list_namespaces_for_application(application_id)`
-- `create_namespace_invitation(namespace_id, recursive=None, expiration_timestamp=None)`
-- `join_namespace(namespace_id, invitation_json)` — `invitation_json` is a JSON
-  string.
-- `list_namespace_groups(namespace_id)`
-- `leave_namespace(namespace_id)`
+| Method | Returns |
+| --- | --- |
+| `upload_bundle(wasm)` | The bundle's hash. |
+| `create_app(name, bundle, options=None)` | The app id. `options` may set `org`, `access`, `confirmMethods`. |
+| `create_app_from_package(name, package, version=None, service=None, options=None)` | The app id; the newest release without `version`, installed from the registry first if the cluster lacks it. |
+| `list_apps()` | `[{"appId", "name", "owner", "org", "bundle"}]`. |
+| `get_app(app)` | Its record and state (`ready`, `initError`). |
+| `delete_app(app)` | `None` (the app's owner or an org admin). |
+| `set_app_metadata(app, metadata)` | `None`; `None` clears it. |
+| `app_storage(app)` | `{"keys", "bytes", "blobs", "blobBytes"}`. |
+| `app_abi(app)` | `{"bundle", "abi"}`: the ABI the bundle embeds. |
+| `verify_app_cluster(app)` | Verifies every replica's quote over a fresh nonce under this client's policy: `{"keys": {node_id: receipt_key_hex}, "governance": {"releases", "appUpgrades", "outbound"}}`. A call's or view's `receipt` is to be trusted only from one of those keys. |
+| `set_access(app, access)` | `None`. `access` is `{"kind": "owner" \| "org" \| "public"}`, `{"kind": "accounts", "accounts": [...]}` or `{"kind": "team", "team": id}`. |
+| `upgrade_app(app, bundle=None, migrate=None, version=None, passkey=None, package=None, service=None)` | The upgrade's entry. `passkey` answers the owner's approval where upgrades need one; `package`/`service` move the app to another package or service. A failed migration raises `CloudError` code `UPGRADE_FAILED` (422). |
 
-**Groups and subgroups**
+### Calls, views and events
 
-- `create_group_in_namespace(namespace_id, group_name=None, visibility=None)`: `visibility` is `"open"` (the default) or `"restricted"`
-- `reparent_group(group_id, new_parent_id)`
-- `list_subgroups(group_id)`
-- `get_group_info(group_id)`
-- `delete_group(group_id)`
-- `join_subgroup_inheritance(group_id)`
-- `leave_group(group_id)`
-- `list_group_members(group_id)`
-- `list_group_contexts(group_id)`
-- `detach_context_from_group(group_id, context_id)`
-- `sync_group(group_id)`
+| Method | Returns |
+| --- | --- |
+| `call(app, method, args=None, idempotency_key=None)` | `{"index", "result", "events", "receipt"}`. Sent again with the same key while the node answers 503 or cannot be reached, so it runs once. |
+| `call_confirmed(app, method, args, passkey)` | The same, for a `confirm` method; `passkey` approves this exact call. |
+| `view(app, method, args=None, stale=False, min_index=0)` | `{"result", ...}`. Strong by default; `stale=True` reads any replica at least as new as `min_index`. |
+| `events(app, start=0, limit=100, timeout=5.0)` | Up to `limit` committed events from index `start`, or as many as arrive within `timeout` seconds: `[{"id", "kind", "data"}]`. |
 
-**Members, roles, and capabilities**
+### Blobs
 
-- `add_group_members(group_id, members_json)` — JSON array of
-  `{"identity", "role"}` (roles `"Admin"`, `"Member"`, `"ReadOnly"`).
-  `identity` is an account (64 hex, what `list_group_members` returns) or a
-  bs58 signing key, for a subject the node holds no account for yet.
-- `remove_group_members(group_id, members_json)` — JSON array of account
-  strings.
-- `update_member_role(group_id, member_id, role)` — `role` is `"admin"`,
-  `"member"`, or `"read-only"` (case-insensitive).
-- `set_member_capabilities(group_id, member_id, capabilities)` — `capabilities`
-  is an `int` bitmask.
-- `get_member_capabilities(group_id, member_id)`
-- `set_default_capabilities(group_id, capabilities)`
-- `set_member_auto_follow(group_id, member_id, auto_follow_contexts, auto_follow_subgroups)`
+| Method | Returns |
+| --- | --- |
+| `upload_blob(app, data)` | `{"blobId", "id", "size"}` (`blobId` base58, `id` hex). |
+| `download_blob(app, id)` | `bytes`; `id` is base58 or hex. |
+| `list_blobs(app)` | `{"blobs": [{"blobId", "id", "size"}, ...]}`. |
+| `blob_info(app, id)` | The blob's id and size. |
+| `delete_blob(app, id)` | Deletes it (the app's owner or an org admin). |
 
-**Settings, visibility, and metadata**
+### Presence
 
-- `set_subgroup_visibility(group_id, visibility)`
-- `set_default_visibility(group_id, visibility)` — deprecated alias for
-  `set_subgroup_visibility`.
-- `set_group_metadata(group_id, body_json)`
-- `set_member_metadata(group_id, member_id, body_json)`
-- `set_context_metadata(group_id, context_id, body_json)`
-- `get_group_metadata(group_id)`
-- `get_member_metadata(group_id, member_id)`
-- `get_context_metadata(group_id, context_id)`
+| Method | Returns |
+| --- | --- |
+| `publish_presence(app, seq, state=None)` | Publishes `state` (bytes, at most 4 KiB) for the caller; `None` retracts it. The newest `seq` wins. |
+| `presence(app)` | Who is present in the app now. |
+| `presence_stream(app, limit=100, timeout=5.0)` | The snapshot (`{"kind": "snapshot", "data": [...]}`), then one `{"kind": "presence", "data": {...}}` per change: up to `limit`, or as many as arrive within `timeout` seconds. |
 
-**Upgrades and migration**
+### Transfers, approvals and upgrade runs
 
-- `upgrade_group(group_id, target_application_id, cascade=False)` — `cascade=True`
-  fans the upgrade out to the whole subtree.
-- `get_group_upgrade_status(group_id)`
-- `get_cascade_status(namespace_id)`
-- `get_migration_status(namespace_id)`
-- `abort_migration(namespace_id)`
-- `retry_group_upgrade(group_id)`
+Each takes the owner's `passkey`, which answers the node's `412 CONFIRM_REQUIRED`.
+
+| Method | Returns |
+| --- | --- |
+| `transfer_app(app, to, passkey)` | Hands the app to account `to` (an org app only to a member). |
+| `approve_release(version, passkey, org=None)` | Approves a mero-tee release for the org's apps, or the account's own. |
+| `approve_outbound(package, passkey, org=None, prefixes=None, replace=False)` | Approves URL prefixes for the package's publisher: every prefix its manifest declares by default; `replace=True` sets exactly `prefixes` (`[]` revokes). |
+| `upgrade_org(org, package, version, passkey, team=None, cascade=False, migrate=None)` | Starts an org-wide upgrade run: `{"runId", ...}`. |
+| `upgrade_run(org, run)` | The run's status and per-app results. |
+| `retry_upgrade_run(org, run, passkey)` | Runs the failed apps again, as a new run. |
+
+### Organizations
+
+| Method | Returns |
+| --- | --- |
+| `create_org(name)` | The organization id; the caller owns it. |
+| `get_org(org)` | Members, roles and the teams the caller can see. |
+| `delete_org(org, passkey)` | `None`; deletes its teams, invites and apps, approved with the owner's passkey. |
+| `set_org_metadata(org, metadata)` | `None`; `None` clears it. |
+| `set_member_metadata(org, account, metadata)` | `None` (the member's own, or an admin's). |
+| `set_member(org, account, role)` | `None`. `role` is `guest`, `member`, `admin` or `owner`. |
+| `remove_member(org, account)` | `None` (yourself, to leave). |
+| `set_capabilities(org, capabilities, account=None, team=None)` | `None`. Capability bits for `account` (in `team`), or the organization's default. |
+| `invite(org, role, teams=[], ttl_secs=None, uses=None)` | The invite token (default a week, one use). |
+| `redeem_invite(token)` | The node's answer (`dict`). |
+
+### Teams
+
+| Method | Returns |
+| --- | --- |
+| `create_team(org, name, join="invite", parent=None)` | The team id. `join` is `"invite"` or `"everyone"`. |
+| `get_team(org, team)` | Its members, sub-teams and apps. |
+| `update_team(org, team, name=None, join=None, metadata=None, parent=None, to_top=False)` | `None`; unset arguments stay as they are. |
+| `delete_team(org, team)` | `None`; takes its sub-teams and their apps. |
+| `set_team_member(org, team, account, role=None, capabilities=None)` | `None`. `role` is `lead`, `member` or `readOnly`. |
+| `remove_team_member(org, team, account)` | `None`. |
+
+### Ops API
+
+The operator's calls, with the node's ops token: `client.use_api_key(ops_token)`
+first. The Ops API has no read path into apps' data.
+
+| Method | Returns |
+| --- | --- |
+| `ops_status()` | `{"node", "system", "governance", "groups", "nodes", "apps", "accounts"}`. |
+| `ops_metrics()` | Prometheus metrics (`str`). |
+| `ops_register_node(node_id, addr, zone="")` | `None`; a node started without `--bootstrap` then joins as a learner. |
+| `ops_remove_node(node_id)` | The system group's status; refused while an app keeps a replica there. Runs on the system leader. |
+| `ops_set_replicas(app, replicas)` | The app group's status after moving it to these node ids (at least 3). Runs on the app group's leader. |
+| `ops_backup()` | How many encrypted snapshots this node wrote (the apps it leads, to `--backup-dir`). |
+| `ops_quotas()`, `ops_set_quotas(quotas)` | The per-account limits; `ops_set_quotas` changes those it names (an unknown name is `UNKNOWN_QUOTA`). |
+| `ops_approve_release(version, withdraw=False)` | Approves (or withdraws) a mero-tee release for every app, where the operator holds release approvals. |
+| `ops_approve_outbound(package, prefixes=None, replace=False)` | Approves outbound URL prefixes for every app, where the operator holds outbound approvals. |
+| `ops_upgrade_app(app, bundle=None, version=None, package=None, service=None, migrate=None)` | Upgrades an app, where the operator holds app upgrades. |
+| `ops_upgrade_org(org, package, version, team=None, cascade=False, migrate=None)` | Starts an org-wide upgrade run, where the operator holds app upgrades. |
+| `ops_packages()` | The packages the operator installed. |
+| `ops_upload_package(mpk)`, `ops_install_package(package, version)`, `ops_uninstall_package(package, version=None)` | Installs and uninstalls packages for the operator's upgrades. |
+
+`ops_remove_node` and `ops_set_replicas` follow a `421 NOT_LEADER` answer to the
+leader the node names (attested under the same policy, sent the same API key),
+so they can be sent to any node.
+
+### Anything else
+
+| Method | Returns |
+| --- | --- |
+| `get(path)`, `post(path, body=None)`, `put(path, body=None)`, `delete(path)` | The node's JSON for any API path. |
+| `get_text(path)` | A text answer (`ops/metrics`). |
+| `post_confirmed(path, body, passkey)` | POST answering a `412 CONFIRM_REQUIRED` with `passkey`'s assertion (owner approvals). |
+| `delete_confirmed(path, passkey)` | The same for a DELETE (deleting an organization). |
+| `attestation()` | The node's attestation document, unverified, for display. |
+
+## `SoftPasskey`
+
+```python
+SoftPasskey(rp_id="localhost", origin="http://localhost:3000")
+```
+
+An in-memory ES256 passkey for scripts and tests against development clusters.
+`credential_id` is its credential id. Real users sign in from a browser;
+services use API keys.
+
+## `VERSION`
+
+The package version, as a string.

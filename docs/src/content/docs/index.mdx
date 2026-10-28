@@ -1,9 +1,9 @@
 ---
 title: Calimero Python Client
-description: The Python client SDK for Calimero Network — connect to a node and manage applications, contexts, blobs, aliases, namespaces and groups, and call app methods over JSON-RPC.
+description: The Python client for Calimero 1.0 — verify a node's attestation, sign in with a passkey or API key, deploy apps, call and view their methods, and administer organizations and teams.
 template: splash
 hero:
-  tagline: A Python client SDK for Calimero Network, over a native Rust core (PyO3). Connect to a node, manage applications and contexts, move blobs, administer namespaces and groups, and call your app's methods over JSON-RPC — all from synchronous Python.
+  tagline: A Python client for Calimero 1.0, over core's Rust client (PyO3). It verifies a node's attestation, talks to it over a sealed channel, and gives you accounts, apps, calls, events, blobs, organizations and teams — all from synchronous Python.
   actions:
     - text: Install it
       link: /get-started/installation/
@@ -17,29 +17,36 @@ hero:
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
-{/* Audience-routed landing — pick your track. */}
-
 <CardGrid>
   <Card title="Get started" icon="rocket">
-    Install the package and make your first connect-and-call against a node.
+    Install the package, sign up, deploy an app and call it.
     [Install it →](/get-started/installation/)
   </Card>
-  <Card title="Guides" icon="open-book">
-    Task guides: connecting, authentication and token persistence, contexts,
-    applications and blobs, namespaces and groups.
-    [Browse the guides →](/guides/connecting/)
+  <Card title="Concepts" icon="open-book">
+    Clusters, attestation, the sealed channel, accounts and passkeys, apps,
+    organizations and teams.
+    [Read the concepts →](/get-started/concepts/)
   </Card>
   <Card title="API reference" icon="list-format">
-    Every module function, class, and `Client` method with its signature.
+    Every `Client` and `SoftPasskey` method with its signature.
     [Open the reference →](/reference/api/)
   </Card>
-  <Card title="CLI" icon="seti:python">
-    The bundled `calimero-client-py` command-line entry point.
-    [See the CLI →](/reference/cli/)
+  <Card title="Errors" icon="warning">
+    `CloudError` and its `(message, status, code, details)` arguments.
+    [Error handling →](/reference/errors/)
   </Card>
 </CardGrid>
 
-The client talks to a [Calimero](https://calimero-network.github.io/core/) node's
-HTTP admin and JSON-RPC APIs. For the protocol those nodes implement — contexts,
-CRDT sync, namespaces and groups — see the
-[Calimero Core docs](https://calimero-network.github.io/core/).
+The client talks to a [Calimero](https://calimero-network.github.io/core/)
+1.0 cluster: each app instance is replicated by its own Raft log across
+attested TDX nodes. Attestation, the sealed channel and passkey handling run in
+core's Rust `calimero-client`, so Python applies the same trust check as every
+other client.
+
+:::note[The v1 client is gone]
+Versions up to 0.9.0 also shipped a client for v1's peer-to-peer node
+(`create_connection`, `create_client`, v1's `Client`, `sign_warrant`, ...).
+Calimero 1.0 deleted that node, and this package deleted its client; see the
+[changelog](https://github.com/calimero-network/calimero-client-py/blob/master/CHANGELOG.md)
+for what replaces each name.
+:::

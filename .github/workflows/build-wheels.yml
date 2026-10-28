@@ -1,4 +1,4 @@
-name: Build and Publish Source Distribution
+name: Build and Publish Wheels
 
 on:
   push:
@@ -43,15 +43,47 @@ jobs:
         path: dist/*.tar.gz
         retention-days: 1
 
-  # Windows has never built this crate. That is not a gap in coverage so much as
-  # a hard block downstream: merobox needs to `pip install` here to drive nodes
-  # on Windows, and with sdist-only publishing that means compiling a pyo3
-  # extension plus `ring` from source on a platform nothing has ever built it
-  # for. This job answers whether that works, and produces the wheel that makes
-  # it unnecessary if it does.
-  build-windows-wheel:
-    name: Build Windows wheel
-    runs-on: windows-latest
+  # One abi3 wheel per platform (`abi3-py39`, set by the `python` feature):
+  # it installs on every CPython from 3.9 on, so nobody compiles a pyo3
+  # extension plus `ring` and `aws-lc-sys` from source. merobox drives nodes on
+  # Windows, mdma runs on Linux, developers on macOS; an sdist-only release
+  # sends each of them back to a Rust toolchain.
+  build-wheels:
+    name: Build wheel (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - name: linux-x86_64
+          os: ubuntu-latest
+          target: x86_64
+          manylinux: '2014'
+          smoke: true
+        # Built on an arm64 runner rather than cross-compiled: aws-lc-sys and
+        # ring build their C and assembly for the host they run on.
+        - name: linux-aarch64
+          os: ubuntu-24.04-arm
+          target: aarch64
+          manylinux: '2014'
+          smoke: true
+        - name: macos-arm64
+          os: macos-latest
+          target: aarch64-apple-darwin
+          manylinux: ''
+          smoke: true
+        # Cross-compiled on the arm64 runner; the x86_64 macOS runners are gone.
+        - name: macos-x86_64
+          os: macos-latest
+          target: x86_64-apple-darwin
+          manylinux: ''
+          smoke: false
+        - name: windows-x86_64
+          os: windows-latest
+          target: x64
+          manylinux: ''
+          smoke: true
+
     steps:
     - name: Checkout code
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -61,31 +93,37 @@ jobs:
       with:
         python-version: '3.13'
 
-    - name: Install Rust toolchain
-      uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
-      with:
-        toolchain: stable
-
-    - name: Install build tools
-      run: |
-        pip install maturin==1.15.0
-
-    # `ring` assembles its x86_64 primitives with NASM on windows-msvc. Harmless
-    # if a future version stops needing it.
+    # `aws-lc-sys` assembles its x86_64 primitives with NASM on windows-msvc.
+    # Harmless if a future version stops needing it.
     - name: Install NASM
+      if: runner.os == 'Windows'
       uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b # v1.5.2
 
     - name: Build the wheel
-      run: maturin build --release --out dist
+      uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
+      with:
+        maturin-version: v1.15.0
+        target: ${{ matrix.target }}
+        manylinux: ${{ matrix.manylinux }}
+        args: --release --out dist
 
     - name: Show what was produced
       shell: bash
       run: ls -la dist/
 
+    # The wheel imports and answers on the machine it was built for (a
+    # cross-compiled one cannot run here).
+    - name: Import the wheel
+      if: matrix.smoke
+      shell: bash
+      run: |
+        python -m pip install --no-index --find-links dist calimero-client-py
+        python -c "import calimero, calimero_client_py as c; assert c.Client is c.CloudClient; print(calimero.__version__, c.VERSION)"
+
     - name: Upload the wheel
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
-        name: windows-wheel
+        name: wheel-${{ matrix.name }}
         path: dist/*.whl
         retention-days: 1
 
@@ -96,7 +134,7 @@ jobs:
     if: github.ref == 'refs/heads/master'
     outputs:
       version-bumped: ${{ steps.check.outputs.bumped }}
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -112,24 +150,24 @@ jobs:
         # Get previous version from git history
         PREVIOUS_VERSION=$(git show HEAD~1:Cargo.toml | grep '^version = ' | cut -d'"' -f2 || echo "0.0.0")
         echo "Previous version: $PREVIOUS_VERSION"
-        
+
         # Check if version was bumped
         if [ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]; then
           echo "Version bumped from $PREVIOUS_VERSION to $CURRENT_VERSION"
-          echo "bumped=true" >> $GITHUB_OUTPUT
+          echo "bumped=true" >> "$GITHUB_OUTPUT"
         else
           echo "No version change detected"
-          echo "bumped=false" >> $GITHUB_OUTPUT
+          echo "bumped=false" >> "$GITHUB_OUTPUT"
         fi
 
   publish-pypi:
     name: Publish to PyPI
     runs-on: ubuntu-latest
-    # The Windows wheel is a hard requirement, not a nice-to-have: merobox
-    # installs this package to drive nodes on Windows, and without a wheel that
-    # means compiling a pyo3 extension plus `ring` from source there. Letting a
-    # release go out sdist-only would silently put that back.
-    needs: [build-source, build-windows-wheel, check-version]
+    # Every wheel is a hard requirement, not a nice-to-have: a platform whose
+    # wheel is missing falls back to the sdist, which means compiling a pyo3
+    # extension plus `ring` and `aws-lc-sys` from source there. `needs` waits
+    # for every matrix entry; one that fails blocks the release.
+    needs: [build-source, build-wheels, check-version]
     if: github.ref == 'refs/heads/master' && needs.check-version.outputs.version-bumped == 'true'
     # PyPI trusts any OIDC token from this workflow; the environment's reviewers are the gate.
     environment: pypi
@@ -144,32 +182,41 @@ jobs:
         name: source-distribution
         path: dist/
 
-    - name: Download the Windows wheel
+    - name: Download the wheels
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
       with:
-        name: windows-wheel
+        pattern: wheel-*
         path: dist/
+        merge-multiple: true
 
     - name: Verify what is about to be published
       run: |
         echo "Artifacts staged for PyPI:"
         ls -la dist/
 
-        # Verify the source distribution
         for file in dist/*.tar.gz; do
           echo "Checking $file"
           tar -tzf "$file" | head -10
         done
 
-        # A wheel that silently failed to arrive would republish sdist-only and
-        # send Windows back to building from source, which is the whole problem
-        # this job exists to stop. `needs` guarantees the job ran; this checks
-        # the artifact actually landed in dist/.
-        if ! ls dist/*win_amd64*.whl >/dev/null 2>&1; then
-          echo "::error::no Windows wheel in dist/ — refusing to publish an sdist-only release"
-          exit 1
-        fi
-        echo "Windows wheel present: $(ls dist/*win_amd64*.whl)"
+        # A wheel that silently failed to arrive would publish a release that
+        # sends its platform back to building from source, which is the whole
+        # problem the wheel jobs exist to stop. `needs` guarantees the jobs
+        # ran; this checks each artifact actually landed in dist/.
+        missing=0
+        # One pattern per platform: the platform tag, any manylinux or macOS
+        # floor (`manylinux_2_17_x86_64.manylinux2014_x86_64`, `macosx_11_0_arm64`).
+        for platform in 'manylinux_*_x86_64' 'manylinux_*_aarch64' 'macosx_*_arm64' 'macosx_*_x86_64' 'win_amd64'; do
+          # shellcheck disable=SC2086 # the pattern is meant to glob
+          found=$(ls dist/*-abi3-$platform*.whl 2>/dev/null || true)
+          if [ -n "$found" ]; then
+            echo "$platform wheel present: $found"
+          else
+            echo "::error::no abi3 $platform wheel in dist/ — refusing to publish a release without it"
+            missing=1
+          fi
+        done
+        exit $missing
 
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2

@@ -1,59 +1,30 @@
 ---
 title: Error handling
-description: What the client raises — ValueError for bad inputs, RuntimeError for node failures — and how the ClientError taxonomy relates.
+description: What the client raises — CloudError for a failed request, ValueError for a malformed argument.
 sidebar:
-  order: 3
+  order: 2
 ---
 
-The client raises standard Python exceptions. Knowing which is which makes
-error handling straightforward.
-
-## What gets raised
-
-- **`ValueError`** — a malformed input caught before the request is sent: an
-  invalid context, application, or blob ID; an unparseable URL; invalid JSON in
-  an `args`, members, or metadata argument; or an unknown enum value (for
-  example an upgrade policy other than `"automatic"` / `"lazy-on-access"`).
-- **`RuntimeError`** — the node call itself failed. The message is prefixed with
-  `Client error:` followed by the underlying reason (network, authentication,
-  storage, or internal).
+- **`CloudError`** — a request failed. Its `args` are
+  `(message, status, code, details)`:
+  - `status` is the node's HTTP status, or `0` when the node could not be
+    reached or attested (`code` is then `"TRANSPORT"`);
+  - `code` is the node's error code, for example `CONFIRM_REQUIRED`;
+  - `details` is a JSON string (`"null"` when there are none).
+- **`ValueError`** — a malformed argument caught before sending (an `app_hash`
+  that is not 32 bytes of hex, an unparseable URL, `parent` and `to_top` given
+  together) or an answer missing a field the method returns.
 
 ```python
+import json
+from calimero_client_py import CloudError
+
 try:
-    ctx = client.get_context(context_id)
-except ValueError as e:
-    print("bad input:", e)      # e.g. malformed context id
-except RuntimeError as e:
-    print("node error:", e)     # e.g. "Client error: ..."
+    client.call(app, "clear")
+except CloudError as e:
+    message, status, code, details = e.args
+    if status == 0:
+        print("node unreachable or not attested:", message)
+    else:
+        print(status, code, json.loads(details))
 ```
-
-## The `ClientError` taxonomy
-
-`ClientError` is exported and models the core error categories via its
-`error_type`: `Network`, `Authentication`, `Storage`, and `Internal`.
-
-:::caution
-In the current bindings, `Client` methods do **not** raise `ClientError` —
-failures surface as `RuntimeError` (message prefixed `Client error:`) and
-`ValueError`. Catch those, not `ClientError`, around client calls.
-:::
-
-## Recommended pattern
-
-Catch both, most specific first:
-
-```python
-def safe_list_contexts(client):
-    try:
-        return client.list_contexts()
-    except ValueError as e:
-        # inputs we constructed are wrong — a bug to fix
-        raise
-    except RuntimeError as e:
-        # the node/network failed — retry, log, or surface to the user
-        print("call failed:", e)
-        return None
-```
-
-See [authentication](/guides/authentication/) for the auth-specific failure
-paths (token expiry and automatic refresh).

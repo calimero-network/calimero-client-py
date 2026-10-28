@@ -1,74 +1,106 @@
 # Calimero Client Python Library
 
-A Python client SDK for [Calimero Network](https://calimero-network.github.io/core/),
-backed by a native Rust core via [PyO3](https://pyo3.rs/). Connect to a node,
-manage applications and contexts, move blobs, administer namespaces and groups,
-and call your app's methods over JSON-RPC — all from synchronous Python.
+The Python client for [Calimero 1.0](https://calimero-network.github.io/core/),
+backed by core's Rust `calimero-client` via [PyO3](https://pyo3.rs/). Verify a
+node's attestation, sign in with a passkey or API key, deploy apps, call and
+view their methods, read their events, administer organizations and teams, and
+run the operator's Ops API — all from synchronous Python.
+
+Up to 0.9.0 this package also shipped a client for v1's peer-to-peer node
+(`create_connection`, `create_client`, v1's `Client`, `sign_warrant`, ...).
+Calimero 1.0 deleted that node and this package deleted its client (1.0.0-rc.1
+is a breaking release); the [changelog](CHANGELOG.md) says what replaces each
+name.
 
 ## Documentation
 
 Full documentation is published at
 **<https://calimero-network.github.io/calimero-client-py/>** — installation,
-quickstart, task guides, and the complete Python API reference. The source lives
+quickstart, concepts, and the complete Python API reference. The source lives
 under [`docs/`](docs/).
 
 ## Installation
 
 ```bash
-pip install calimero-client-py
+pip install --pre calimero-client-py      # 1.0.0rc1, until 1.0.0 is out
 ```
 
-The package is published as a **source distribution** (no prebuilt wheels), so
-installing compiles the native Rust extension on your machine. You need a Rust
-toolchain on `PATH` — install one with [rustup](https://rustup.rs/) if you don't
-already have `cargo`. Python 3.9+ is required. See the
+PyPI carries a prebuilt `abi3` wheel (any CPython 3.9+) for Linux x86_64 and
+aarch64 (manylinux2014), macOS arm64 and x86_64, and Windows x86_64, so nothing
+compiles. Elsewhere pip builds the source distribution, which needs a Rust
+toolchain on `PATH` ([rustup](https://rustup.rs/)). See the
 [installation guide](https://calimero-network.github.io/calimero-client-py/get-started/installation/)
 for details.
 
 ## Quick start
 
-Every `Client` method is **synchronous**: it blocks until the node responds and
-returns a plain Python value (a `dict`, `list`, `bytes`, or scalar). There are no
-coroutines and nothing to `await`.
+`Client` talks to one node of a Calimero 1.0 cluster (`merod`). Every method
+blocks until the node answers and returns a plain Python value. Attestation, the sealed
+channel and passkey handling run in core's Rust `calimero-client`, so Python
+applies the same trust check as every other client. `Client` is the preferred
+name; `CloudClient` is the same class, kept for existing imports.
 
 ```python
-from calimero_client_py import create_connection, create_client
+from calimero_client_py import Client, CloudError
 
-connection = create_connection(
-    api_url="http://localhost:2428",
-    node_name="local-dev",  # stable name; used for the token cache
-)
-client = create_client(connection)
-
-print("connected to", client.get_api_url())
-
-contexts = client.list_contexts()
-print(f"found {len(contexts)} contexts")
-
-# call a method on the app running in a context (args is a JSON string)
-result = client.execute_function(
-    context_id="<context-id>",
-    method="set",
-    args='{"key": "greeting", "value": "hello"}',
-)
-print(result)
+client = Client("https://eu1.cloud.calimero.network")  # allow_mock=True for dev clusters
+client.use_api_key("cal_...")
+r = client.call(app_id, "set", {"key": "a", "value": "1"}, idempotency_key="k1")
+print(client.view(app_id, "get", {"key": "a"})["result"])
+for e in client.events(app_id, start=0, limit=10, timeout=5):
+    print(e["kind"], e["data"])
 ```
 
-See the [quickstart](https://calimero-network.github.io/calimero-client-py/get-started/quickstart/)
-and [guides](https://calimero-network.github.io/calimero-client-py/guides/connecting/)
-for connecting, authentication, contexts, blobs, and namespaces & groups.
+Organizations, teams and invites:
 
-## CLI
-
-Installing the package puts a small `calimero-client-py` command on your `PATH`
-for quick checks:
-
-```bash
-calimero-client-py --version
-calimero-client-py --base-url http://localhost:2428 list-contexts
+```python
+org = client.create_org("Acme")
+token = client.invite(org, "member", teams=[], ttl_secs=86400, uses=1)  # hand it over
+other.redeem_invite(token)
+team = client.create_team(org, "eng", join="invite")      # or join="everyone", parent=...
+client.set_team_member(org, team, account_id, role="readOnly")
+app = client.create_app("eng-kv", client.upload_bundle(wasm),
+                        {"org": org, "access": {"kind": "team", "team": team}})
+client.update_team(org, team, name="engineering", metadata={"colour": "teal"})
+client.delete_team(org, team)                               # takes its sub-teams and apps
 ```
 
-See the [CLI reference](https://calimero-network.github.io/calimero-client-py/reference/cli/).
+| Area | Methods |
+| --- | --- |
+| Session | `sign_up`, `sign_in`, `refresh`, `sign_out`, `sign_out_everywhere`, `use_session`, `use_api_key`, `session`, `me`, `usage` |
+| Devices (passkeys) | `add_passkey`, `remove_passkey`, `label_passkey` |
+| API keys | `create_api_key({label, apps, methods, readOnly, allowConfirm, ttlSecs})`, `list_api_keys`, `revoke_api_key` |
+| Aliases | `set_alias`, `alias`, `aliases`, `delete_alias` |
+| Packages | `upload_package`, `install_package`, `packages`, `package`, `uninstall_package` |
+| Apps | `upload_bundle`, `create_app`, `create_app_from_package`, `list_apps`, `get_app`, `delete_app`, `set_access`, `set_app_metadata`, `app_storage`, `app_abi`, `upgrade_app`, `transfer_app`, `verify_app_cluster` |
+| Approvals | `approve_release`, `approve_outbound` (the owner's passkey) |
+| Upgrade runs | `upgrade_org`, `upgrade_run`, `retry_upgrade_run` |
+| Presence | `publish_presence`, `presence`, `presence_stream` |
+| Calls | `call`, `call_confirmed`, `view`, `events` |
+| Blobs | `upload_blob`, `download_blob`, `list_blobs`, `blob_info`, `delete_blob` |
+| Organizations | `create_org`, `get_org`, `delete_org`, `set_org_metadata`, `set_member`, `set_member_metadata`, `remove_member`, `set_capabilities`, `invite`, `redeem_invite` |
+| Teams | `create_team`, `get_team`, `update_team`, `delete_team`, `set_team_member`, `remove_team_member` |
+| Ops API (ops token via `use_api_key`) | `ops_status`, `ops_metrics`, `ops_register_node`, `ops_remove_node`, `ops_set_replicas`, `ops_backup`, `ops_quotas`, `ops_set_quotas`, `ops_approve_release`, `ops_approve_outbound`, `ops_upgrade_app`, `ops_upgrade_org`, `ops_packages`, `ops_upload_package`, `ops_install_package`, `ops_uninstall_package` |
+| Anything else | `get`, `get_text`, `post`, `put`, `delete` on any API path; `post_confirmed`, `delete_confirmed` where the node asks for a passkey (`412`); `attestation` |
+
+`SoftPasskey` is an in-memory passkey for scripts and tests against development
+clusters (`client.sign_up(SoftPasskey(), "alice")`, `client.call_confirmed(...)`).
+Errors raise `CloudError(message, status, code, details)`.
+Operators authenticate with the node's ops token:
+
+```python
+ops = Client(node_url, tee_profiles=["..."])
+ops.use_api_key(ops_token)
+print(ops.ops_status()["nodes"])
+ops.ops_register_node(4, "https://node4.example/", zone="eu1-b")
+ops.ops_set_replicas(app_id, [1, 2, 4])   # sent on to the app group's leader
+print(ops.ops_backup(), "snapshots written")
+```
+
+`tests/test_cloud_v2.py`, `tests/test_cloud_v2_api.py` and
+`tests/test_cloud_v2_ops.py` run against a local 3-node cluster of core 1.0's
+`merod` (set `MEROD_BINARY` and `KV_STORE_WASM`, or keep a `core` checkout
+beside this one).
 
 ## Development
 
@@ -87,7 +119,8 @@ cargo test          # Rust unit tests
 pytest              # Python tests
 ```
 
-The Rust core depends on Calimero crates pulled from
+The Rust core depends on `calimero-client` and `calimero-identity` from core's
+`1.0.0-rc.1` tag on
 [`github.com/calimero-network/core`](https://github.com/calimero-network/core),
 so the first build fetches and compiles those too (a network connection is
 required for the initial build).

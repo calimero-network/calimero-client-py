@@ -12,10 +12,10 @@ from .parser import WASMABISchema, ABIType, ABIMethod
 # Names the generated modules import, or read in annotations, at module level.
 MODULE_NAMES = frozenset(
     {"Any", "Dict", "List", "Optional", "Union", "dataclass", "Enum", "json"}
-    | {"Client", "ClientError", "bool", "int", "float", "str", "bytes"}
+    | {"CloudClient", "CloudError", "bool", "int", "float", "str", "bytes"}
 )
 # Attributes of the generated client class.
-CLIENT_MEMBERS = frozenset({"client", "context_id", "executor_public_key"})
+CLIENT_MEMBERS = frozenset({"client", "app_id"})
 # Names a generated method body binds or reads besides its parameters.
 METHOD_LOCALS = MODULE_NAMES | {"self", "args", "result", "e"}
 

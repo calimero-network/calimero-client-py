@@ -1,74 +1,36 @@
-//! Python wrapper for ClientError
+//! `CloudError`, the one exception the bindings raise for a node's answer.
 
-use calimero_client::ClientError;
-use pyo3::prelude::*;
+use calimero_client::Error;
+use pyo3::PyErr;
 
-/// Python wrapper for ClientError
-#[pyclass(name = "ClientError")]
-#[derive(Debug)]
-pub struct PyClientError {
-    error_type: String,
-    message: String,
+// pyo3 0.22's macro checks a `gil-refs` feature this crate does not declare.
+#[allow(unexpected_cfgs)]
+mod exception {
+    use pyo3::create_exception;
+    use pyo3::exceptions::PyException;
+
+    create_exception!(
+        calimero_client_py,
+        CloudError,
+        PyException,
+        "An error from a cloud node: args are (message, status, code, details); status is 0 when the node could not be reached or attested."
+    );
 }
+pub use exception::CloudError;
 
-#[pymethods]
-impl PyClientError {
-    #[new]
-    pub fn new(error_type: &str, message: &str) -> Self {
-        Self {
-            error_type: error_type.to_string(),
-            message: message.to_string(),
-        }
-    }
-
-    #[getter]
-    pub fn error_type(&self) -> &str {
-        &self.error_type
-    }
-
-    #[getter]
-    pub fn message(&self) -> &str {
-        &self.message
-    }
-
-    fn __str__(&self) -> String {
-        format!("{}: {}", self.error_type, self.message)
-    }
-
-    fn __repr__(&self) -> String {
-        format!(
-            "ClientError(error_type='{}', message='{}')",
-            self.error_type, self.message
-        )
-    }
-}
-
-impl From<ClientError> for PyClientError {
-    fn from(err: ClientError) -> Self {
-        match err {
-            ClientError::Network { message } => Self {
-                error_type: "Network".to_string(),
-                message,
-            },
-            ClientError::Authentication { message } => Self {
-                error_type: "Authentication".to_string(),
-                message,
-            },
-            ClientError::Storage { message } => Self {
-                error_type: "Storage".to_string(),
-                message,
-            },
-            // The status is already rendered into `message` upstream, but keep it
-            // in the error_type so a caller can classify without parsing prose —
-            // which is the reason the variant carries it separately at all.
-            ClientError::Http { status, message } => Self {
-                error_type: format!("Http{status}"),
-                message,
-            },
-            ClientError::Internal { message } => Self {
-                error_type: "Internal".to_string(),
-                message,
-            },
-        }
+pub(crate) fn cloud_err(e: Error) -> PyErr {
+    match e {
+        Error::Api {
+            status,
+            code,
+            message,
+            details,
+        } => CloudError::new_err((
+            format!("{status} {code}: {message}"),
+            status,
+            code,
+            details.to_string(),
+        )),
+        Error::Transport(r) => CloudError::new_err((format!("{r:#}"), 0_u16, "TRANSPORT", "null")),
     }
 }
