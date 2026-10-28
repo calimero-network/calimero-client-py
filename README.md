@@ -65,15 +65,15 @@ client.delete_team(org, team)                               # takes its sub-team
 
 | Area | Methods |
 | --- | --- |
-| Session | `sign_up`, `sign_in`, `refresh`, `sign_out`, `use_session`, `use_api_key`, `me` |
+| Session | `sign_up`, `sign_in`, `refresh`, `sign_out`, `sign_out_everywhere`, `use_session`, `use_api_key`, `me` |
 | Devices (passkeys) | `add_passkey`, `remove_passkey` |
 | API keys | `create_api_key({label, apps, methods, readOnly, allowConfirm, ttlSecs})`, `list_api_keys`, `revoke_api_key` |
-| Apps | `upload_bundle`, `create_app`, `list_apps`, `get_app`, `set_access`, `upgrade_app` |
+| Apps | `upload_bundle`, `create_app`, `create_app_from_package`, `list_apps`, `get_app`, `set_access`, `upgrade_app` |
 | Calls | `call`, `call_confirmed`, `view`, `events` |
 | Blobs | `upload_blob`, `download_blob` |
 | Organizations | `create_org`, `get_org`, `set_member`, `remove_member`, `set_capabilities`, `invite`, `redeem_invite` |
 | Teams | `create_team`, `get_team`, `update_team`, `delete_team`, `set_team_member`, `remove_team_member` |
-| Anything else | `get`, `post`, `delete` on any API path; `attestation` |
+| Anything else | `get`, `post`, `put`, `delete` on any API path; `post_confirmed`, `delete_confirmed` where the node asks for a passkey (`412`); `attestation` |
 
 `SoftPasskey` is an in-memory passkey for scripts and tests against development
 clusters (`client.sign_up(SoftPasskey(), "alice")`, `client.call_confirmed(...)`).

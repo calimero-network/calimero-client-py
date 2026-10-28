@@ -39,6 +39,7 @@ until the first request.
 | `sign_in(passkey)` | The session. |
 | `refresh()` | A new session from the refresh token. |
 | `sign_out()` | `None`; the refresh token stops working. |
+| `sign_out_everywhere()` | `None`; every session of the account ends, on every device. |
 | `use_session(session)` | `None`; authenticates with a session from `sign_up`/`sign_in`. |
 | `use_api_key(key)` | `None`; authenticates every request with a `cal_...` key. |
 | `me()` | The caller: `accountId`, `via`, ... |
@@ -59,10 +60,11 @@ until the first request.
 | --- | --- |
 | `upload_bundle(wasm)` | The bundle's hash. |
 | `create_app(name, bundle, options=None)` | The app id. `options` may set `org`, `access`, `confirmMethods`. |
+| `create_app_from_package(name, package, version=None, service=None, options=None)` | The app id; the newest release without `version`, installed from the registry first if the cluster lacks it. |
 | `list_apps()` | `[{"appId", "name", "owner", "org", "bundle"}]`. |
 | `get_app(app)` | Its record and state (`ready`, `initError`). |
 | `set_access(app, access)` | `None`. `access` is `{"kind": "owner" \| "org" \| "public"}`, `{"kind": "accounts", "accounts": [...]}` or `{"kind": "team", "team": id}`. |
-| `upgrade_app(app, bundle=None, migrate=None, version=None, passkey=None)` | `{"index", "status", "error"}`. `passkey` answers the owner's approval where upgrades need one. |
+| `upgrade_app(app, bundle=None, migrate=None, version=None, passkey=None, package=None, service=None)` | The upgrade's entry. `passkey` answers the owner's approval where upgrades need one; `package`/`service` move the app to another package or service. A failed migration raises `CloudError` code `UPGRADE_FAILED` (422). |
 
 ### Calls, views and events
 
@@ -107,8 +109,9 @@ until the first request.
 
 | Method | Returns |
 | --- | --- |
-| `get(path)`, `post(path, body=None)`, `delete(path)` | The node's JSON for any API path. |
+| `get(path)`, `post(path, body=None)`, `put(path, body=None)`, `delete(path)` | The node's JSON for any API path (`put` sets an alias: `auth/aliases/{alias}`, `{"app": ...}`). |
 | `post_confirmed(path, body, passkey)` | POST answering a `412 CONFIRM_REQUIRED` with `passkey`'s assertion (owner approvals). |
+| `delete_confirmed(path, passkey)` | The same for a DELETE (deleting an organization). |
 | `attestation()` | The node's attestation document, unverified, for display. |
 
 ## `SoftPasskey`

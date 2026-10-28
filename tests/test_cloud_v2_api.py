@@ -152,3 +152,25 @@ def test_a_team_moves_to_the_top(cluster):
     sub = alice.create_team(org, "sub", parent=top)
     alice.update_team(org, sub, to_top=True)
     assert alice.get_team(org, sub)["parent"] is None
+
+
+def test_aliases_org_deletion_and_signing_out_everywhere(cluster, wasm):
+    alice, pk = person(cluster, 0, "alice-everywhere")
+    bundle = alice.upload_bundle(wasm)
+    app = alice.create_app("kv-alias", bundle)
+    alice.put("auth/aliases/notes", {"app": app})
+    assert alice.get("auth/aliases")["aliases"] == {"notes": app}
+
+    org = alice.create_org("Doomed")
+    with pytest.raises(CloudError) as e:
+        alice.delete(f"orgs/{org}")
+    assert code(e.value) == "CONFIRM_REQUIRED"
+    alice.delete_confirmed(f"orgs/{org}", pk)
+    with pytest.raises(CloudError):
+        alice.get(f"orgs/{org}")
+
+    laptop = cluster.client(1)
+    laptop.sign_in(pk)
+    alice.sign_out_everywhere()
+    with pytest.raises(CloudError):
+        laptop.get("auth/me")

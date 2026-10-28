@@ -325,6 +325,27 @@ impl PyCloudClient {
             .unbind())
     }
 
+    /// Create an app from a package release (the newest without `version`),
+    /// installed from the registry first if the cluster lacks it. `options`
+    /// as `create_app`. Returns the app id.
+    #[pyo3(signature = (name, package, version = None, service = None, options = None))]
+    fn create_app_from_package(
+        &self,
+        py: Python<'_>,
+        name: &str,
+        package: &str,
+        version: Option<String>,
+        service: Option<String>,
+        options: Option<&Bound<'_, PyAny>>,
+    ) -> PyResult<String> {
+        let (c, o) = (Arc::clone(&self.inner), to_json(py, options)?);
+        let (name, package) = (name.to_owned(), package.to_owned());
+        self.run(py, async move {
+            c.create_app_from_package(&name, &package, version.as_deref(), service.as_deref(), o)
+                .await
+        })
+    }
+
     /// Create an app from a bundle. `options` may set `org`, `access`, `confirmMethods`.
     #[pyo3(signature = (name, bundle, options = None))]
     fn create_app(
@@ -440,6 +461,13 @@ impl PyCloudClient {
             .map(drop)
     }
 
+    /// End every session of this account, on every device.
+    fn sign_out_everywhere(&self, py: Python<'_>) -> PyResult<()> {
+        let c = Arc::clone(&self.inner);
+        self.run(py, async move { c.sign_out_everywhere().await })
+            .map(drop)
+    }
+
     /// Remove a passkey (a device) from the signed-in account.
     fn remove_passkey(&self, py: Python<'_>, credential_id: &str) -> PyResult<()> {
         self.send(
@@ -494,8 +522,11 @@ impl PyCloudClient {
     /// The node plans the migration from the two bundles' ABIs (`migrate`
     /// names an export to use instead). Where the app's owner approves
     /// upgrades, `passkey` is theirs: it answers the node's challenge over
-    /// this exact upgrade. Returns `{"index", "status", "error"}`.
-    #[pyo3(signature = (app, bundle = None, migrate = None, version = None, passkey = None))]
+    /// this exact upgrade. `package` and `service` move it to another package
+    /// or service. A failed migration raises `CloudError` with code
+    /// `UPGRADE_FAILED` (422).
+    #[allow(clippy::too_many_arguments)]
+    #[pyo3(signature = (app, bundle = None, migrate = None, version = None, passkey = None, package = None, service = None))]
     fn upgrade_app(
         &self,
         py: Python<'_>,
@@ -504,8 +535,16 @@ impl PyCloudClient {
         migrate: Option<&str>,
         version: Option<&str>,
         passkey: Option<&PySoftPasskey>,
+        package: Option<&str>,
+        service: Option<&str>,
     ) -> PyResult<PyObject> {
-        let body = serde_json::json!({ "bundle": bundle, "version": version, "migrate": migrate });
+        let body = serde_json::json!({
+            "bundle": bundle,
+            "version": version,
+            "migrate": migrate,
+            "package": package,
+            "service": service,
+        });
         let path = format!("apps/{}/upgrade", seg(app));
         let v = match passkey {
             Some(pk) => self.confirmed(py, path, body, pk)?,
@@ -780,6 +819,36 @@ impl PyCloudClient {
     fn delete(&self, py: Python<'_>, path: &str) -> PyResult<PyObject> {
         let (c, path) = (Arc::clone(&self.inner), path.to_owned());
         let v = self.run(py, async move { c.delete(&path).await })?;
+        to_py(py, &v)
+    }
+
+    /// PUT any API path (an alias: `auth/aliases/{alias}` with `{"app": ...}`).
+    #[pyo3(signature = (path, body = None))]
+    fn put(
+        &self,
+        py: Python<'_>,
+        path: &str,
+        body: Option<&Bound<'_, PyAny>>,
+    ) -> PyResult<PyObject> {
+        let (c, b, path) = (Arc::clone(&self.inner), to_json(py, body)?, path.to_owned());
+        let v = self.run(py, async move { c.put(&path, b).await })?;
+        to_py(py, &v)
+    }
+
+    /// DELETE `path`, answering `412 CONFIRM_REQUIRED` (deleting an
+    /// organization) with `passkey`, as `post_confirmed` does.
+    fn delete_confirmed(
+        &self,
+        py: Python<'_>,
+        path: &str,
+        passkey: &PySoftPasskey,
+    ) -> PyResult<PyObject> {
+        let (c, pk) = (Arc::clone(&self.inner), Arc::clone(&passkey.inner));
+        let path = path.trim_start_matches('/').to_owned();
+        let v = self.run(py, async move {
+            let mut auth = pk.lock().await;
+            c.delete_confirmed(&path, &mut *auth).await
+        })?;
         to_py(py, &v)
     }
 
