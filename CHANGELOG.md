@@ -20,6 +20,10 @@
   `Client.operator_public_key(seed)` gives the `--operator-key` the nodes
   take. Builds against core's `claude/proofs-at-apply` branch until #4791
   merges.
+- **feat: `delete(path, body=None)`** sends `body` as JSON on a DELETE, for
+  a caller that makes its own proof (`{"operatorProof": ...}` on
+  `ops/nodes/{id}`, `{"confirm": ...}` on a passkey, member or team row);
+  `delete(path)` is unchanged.
 
 - **feat: survive a lost issuing node and `421 WRONG_NODE`** (for core #4774's
   node-signed sessions). A `401 UNAUTHENTICATED` to a request made with a

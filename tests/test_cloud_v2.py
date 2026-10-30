@@ -225,6 +225,15 @@ def test_organizations_gate_apps(cluster, wasm):
     app = alice.create_app("team-kv", alice.upload_bundle(wasm), {"org": org})
     bob.call(app, "set", {"key": "from", "value": "bob"})
 
+    # A DELETE with no body is asked for the passkey; one carrying a proof
+    # (here a stale one) is judged on that proof: the body reaches the node.
+    with pytest.raises(CloudError) as e:
+        alice.delete(f"orgs/{org}/members/{bob_id}")
+    assert code(e.value) == "CONFIRM_REQUIRED"
+    stale = {"confirm": {"challengeId": "1.none", "assertion": {}}}
+    with pytest.raises(CloudError) as e:
+        alice.delete(f"orgs/{org}/members/{bob_id}", stale)
+    assert code(e.value) != "CONFIRM_REQUIRED", e.value.args
     alice.delete_confirmed(f"orgs/{org}/members/{bob_id}", alice_pk)
     time.sleep(0.3)
     with pytest.raises(CloudError) as e:

@@ -82,7 +82,7 @@ client.delete_team(org, team)                               # takes its sub-team
 | Organizations | `create_org`, `get_org`, `delete_org`, `set_org_metadata`, `set_member`, `set_member_metadata`, `remove_member`, `set_capabilities`, `invite`, `redeem_invite` |
 | Teams | `create_team`, `get_team`, `update_team`, `delete_team`, `set_team_member`, `remove_team_member` |
 | Ops API (ops token via `use_api_key`, decisions signed after `use_operator_key`) | `ops_status`, `ops_metrics`, `ops_register_node`, `ops_remove_node`, `ops_set_replicas`, `ops_backup`, `ops_quotas`, `ops_set_quotas`, `ops_approve_release`, `ops_approve_outbound`, `ops_upgrade_app`, `ops_upgrade_org`, `ops_packages`, `ops_upload_package`, `ops_install_package`, `ops_uninstall_package` |
-| Anything else | `get`, `get_text`, `post`, `put`, `delete` on any API path; `post_confirmed`, `delete_confirmed` where the node asks for a passkey (`412`); `post_operator_signed`, `delete_operator_signed` where it asks for the operator's signature (`428`); `attestation` |
+| Anything else | `get`, `get_text`, `post`, `put`, `delete(path, body=None)` on any API path; `post_confirmed`, `delete_confirmed` where the node asks for a passkey (`412`); `post_operator_signed`, `delete_operator_signed` where it asks for the operator's signature (`428`); `attestation` |
 
 `SoftPasskey` is an in-memory passkey for scripts and tests against development
 clusters (`client.sign_up(SoftPasskey(), "alice")`, `client.call_confirmed(...)`).

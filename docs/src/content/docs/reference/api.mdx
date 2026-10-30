@@ -213,7 +213,7 @@ so they can be sent to any node.
 
 | Method | Returns |
 | --- | --- |
-| `get(path)`, `post(path, body=None)`, `put(path, body=None)`, `delete(path)` | The node's JSON for any API path. |
+| `get(path)`, `post(path, body=None)`, `put(path, body=None)`, `delete(path, body=None)` | The node's JSON for any API path; a DELETE sends `body` as JSON when given (a proof the caller made: `confirm`, `operatorProof`). |
 | `get_text(path)` | A text answer (`ops/metrics`). |
 | `post_confirmed(path, body, passkey)` | POST answering a `412 CONFIRM_REQUIRED` with `passkey`'s assertion (owner approvals). |
 | `delete_confirmed(path, passkey)` | The same for a DELETE (an organization, a member, a passkey). |

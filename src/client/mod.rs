@@ -392,10 +392,26 @@ impl PyCloudClient {
         to_py(py, &v)
     }
 
-    /// DELETE any API path.
-    fn delete(&self, py: Python<'_>, path: &str) -> PyResult<PyObject> {
+    /// DELETE any API path; `body`, when given, goes as JSON (a proof the
+    /// caller made itself: `{"confirm": ...}` for a passkey, a member or a
+    /// team row, `{"operatorProof": ...}` for `ops/nodes/{id}`). Without one
+    /// the DELETE carries no body, as before.
+    #[pyo3(signature = (path, body = None))]
+    fn delete(
+        &self,
+        py: Python<'_>,
+        path: &str,
+        body: Option<&Bound<'_, PyAny>>,
+    ) -> PyResult<PyObject> {
         let path = path.to_owned();
-        let v = self.run(py, async |c| c.delete(&path).await)?;
+        let body = match body {
+            Some(b) if !b.is_none() => Some(to_json(py, Some(b))?),
+            _ => None,
+        };
+        let v = self.run(py, async |c| match &body {
+            None => c.delete(&path).await,
+            Some(b) => c.delete_with_body(&path, b.clone()).await,
+        })?;
         to_py(py, &v)
     }
 
