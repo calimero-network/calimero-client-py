@@ -32,6 +32,22 @@ pub struct PyCloudClient {
     /// The trust policy this client was made with, so a request that must
     /// run on a leader (`NOT_LEADER`) is sent to a node attested the same way.
     policy: Policy,
+    /// The operator's Ed25519 key (`use_operator_key`): the Ops API's
+    /// decisions answer `428 OPERATOR_SIGNATURE_REQUIRED` with it.
+    operator_key: Arc<std::sync::Mutex<Option<OperatorKey>>>,
+}
+
+/// The operator's signing key, as the node's `--operator-key` names its
+/// verify half.
+pub(crate) type OperatorKey = ed25519_dalek::SigningKey;
+
+/// An operator key from its 32-byte seed, hex.
+pub(crate) fn operator_key_from_hex(seed: &str) -> PyResult<OperatorKey> {
+    hex::decode(seed.trim())
+        .ok()
+        .and_then(|v| <[u8; 32]>::try_from(v).ok())
+        .map(|seed| OperatorKey::from_bytes(&seed))
+        .ok_or_else(|| PyValueError::new_err("operator_key must be a 32-byte Ed25519 seed, hex"))
 }
 
 /// How many `421 NOT_LEADER` redirects an Ops request follows. A node that
@@ -95,6 +111,29 @@ async fn send_verb(c: &Client, verb: Verb, path: &str, body: Value) -> Result<Va
     }
 }
 
+/// [`send_verb`] for an operator decision: with `key`, a `428
+/// OPERATOR_SIGNATURE_REQUIRED` is answered with its signature over the bytes
+/// the node names (the Rust client's `post_operator_signed` /
+/// `delete_operator_signed`); without one the `428` is raised as it came.
+async fn send_signed(
+    c: &Client,
+    verb: Verb,
+    path: &str,
+    body: Value,
+    key: Option<&OperatorKey>,
+) -> Result<Value, Error> {
+    use ed25519_dalek::Signer;
+    let Some(key) = key else {
+        return send_verb(c, verb, path, body).await;
+    };
+    let sign = |message: &[u8]| key.sign(message).to_bytes().to_vec();
+    match verb {
+        Verb::Get => c.get(path).await,
+        Verb::Post => c.post_operator_signed(path, body, &sign).await,
+        Verb::Delete => c.delete_operator_signed(path, &sign).await,
+    }
+}
+
 impl PyCloudClient {
     /// A session replaced the API key as the client's credential.
     fn forget_api_key(&self) {
@@ -115,6 +154,20 @@ impl PyCloudClient {
         })
     }
 
+    /// DELETE `path`, answering `412 CONFIRM_REQUIRED` with `passkey`.
+    fn confirmed_delete(
+        &self,
+        py: Python<'_>,
+        path: String,
+        passkey: &PySoftPasskey,
+    ) -> PyResult<Value> {
+        let pk = Arc::clone(&passkey.inner);
+        self.run(py, async |c| {
+            let mut auth = pk.lock().await;
+            c.delete_confirmed(&path, &mut *auth).await
+        })
+    }
+
     fn send(&self, py: Python<'_>, verb: Verb, path: String, body: Value) -> PyResult<Value> {
         let body = if body.is_null() {
             Value::Object(serde_json::Map::new())
@@ -124,10 +177,39 @@ impl PyCloudClient {
         self.run(py, async |c| send_verb(&c, verb, &path, body.clone()).await)
     }
 
-    /// `send`, following `421 NOT_LEADER` to the leader the node names (an
-    /// app group's for replica moves, the system group's for node removal).
-    /// The leader is attested under this client's policy and gets the same
-    /// API key; without one the redirect is raised as it came.
+    /// The operator key `use_operator_key` set, if any.
+    fn operator_key(&self) -> Option<OperatorKey> {
+        self.operator_key
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone()
+    }
+
+    /// `send` for an operator decision, signed with the operator key (see
+    /// [`send_signed`]).
+    fn send_operator(
+        &self,
+        py: Python<'_>,
+        verb: Verb,
+        path: String,
+        body: Value,
+    ) -> PyResult<Value> {
+        let body = if body.is_null() {
+            Value::Object(serde_json::Map::new())
+        } else {
+            body
+        };
+        let key = self.operator_key();
+        self.run(py, async |c| {
+            send_signed(&c, verb, &path, body.clone(), key.as_ref()).await
+        })
+    }
+
+    /// `send_operator`, following `421 NOT_LEADER` to the leader the node
+    /// names (an app group's for replica moves, the system group's for node
+    /// removal). The leader is attested under this client's policy and gets
+    /// the same API key, and the decision is signed again there; without a
+    /// key the redirect is raised as it came.
     fn send_to_leader(
         &self,
         py: Python<'_>,
@@ -136,11 +218,12 @@ impl PyCloudClient {
         body: Value,
     ) -> PyResult<Value> {
         let key = self.nodes.api_key();
+        let operator = self.operator_key();
         let (policy, first) = (self.policy.clone(), self.client());
         self.block(py, async move {
             let mut c = first;
             for _ in 0..LEADER_HOPS {
-                match send_verb(&c, verb, &path, body.clone()).await {
+                match send_signed(&c, verb, &path, body.clone(), operator.as_ref()).await {
                     Err(e) if e.code() == Some("NOT_LEADER") => {
                         let leader = e
                             .details()
@@ -157,8 +240,34 @@ impl PyCloudClient {
                     done => return done,
                 }
             }
-            send_verb(&c, verb, &path, body).await
+            send_signed(&c, verb, &path, body, operator.as_ref()).await
         })
+    }
+}
+
+impl PyCloudClient {
+    fn operator_signed(
+        &self,
+        py: Python<'_>,
+        verb: Verb,
+        path: &str,
+        body: Value,
+        operator_key: Option<&str>,
+    ) -> PyResult<PyObject> {
+        let key = match operator_key {
+            Some(seed) => Some(operator_key_from_hex(seed)?),
+            None => self.operator_key(),
+        };
+        let path = path.trim_start_matches('/').to_owned();
+        let body = if body.is_null() {
+            Value::Object(serde_json::Map::new())
+        } else {
+            body
+        };
+        let v = self.run(py, async |c| {
+            send_signed(&c, verb, &path, body.clone(), key.as_ref()).await
+        })?;
+        to_py(py, &v)
     }
 }
 
@@ -237,6 +346,7 @@ impl PyCloudClient {
             nodes: Arc::new(Nodes::new(clients)),
             runtime: Arc::new(runtime),
             policy,
+            operator_key: Arc::new(std::sync::Mutex::new(None)),
         })
     }
 
@@ -317,6 +427,56 @@ impl PyCloudClient {
             c.delete_confirmed(&path, &mut *auth).await
         })?;
         to_py(py, &v)
+    }
+
+    /// Sign the Ops API's decisions with the operator's Ed25519 key (its
+    /// 32-byte seed, hex; the nodes were started with `--operator-key` set to
+    /// its verify key): a `428 OPERATOR_SIGNATURE_REQUIRED` from `ops_*` is
+    /// then answered with the signature. `None` forgets it.
+    #[pyo3(signature = (seed))]
+    fn use_operator_key(&self, seed: Option<&str>) -> PyResult<()> {
+        let key = seed.map(operator_key_from_hex).transpose()?;
+        *self
+            .operator_key
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = key;
+        Ok(())
+    }
+
+    /// The operator key's verify half (hex), what the nodes take as
+    /// `--operator-key`, from its 32-byte seed (hex; `secrets.token_hex(32)`
+    /// makes one).
+    #[staticmethod]
+    fn operator_public_key(seed: &str) -> PyResult<String> {
+        Ok(hex::encode(
+            operator_key_from_hex(seed)?.verifying_key().to_bytes(),
+        ))
+    }
+
+    /// POST an operator decision to `path`, answering `428
+    /// OPERATOR_SIGNATURE_REQUIRED` with `operator_key` (a seed, hex), else
+    /// the key `use_operator_key` set.
+    #[pyo3(signature = (path, body = None, operator_key = None))]
+    fn post_operator_signed(
+        &self,
+        py: Python<'_>,
+        path: &str,
+        body: Option<&Bound<'_, PyAny>>,
+        operator_key: Option<&str>,
+    ) -> PyResult<PyObject> {
+        self.operator_signed(py, Verb::Post, path, to_json(py, body)?, operator_key)
+    }
+
+    /// DELETE an operator decision (`ops/nodes/{id}`), signed as
+    /// `post_operator_signed`.
+    #[pyo3(signature = (path, operator_key = None))]
+    fn delete_operator_signed(
+        &self,
+        py: Python<'_>,
+        path: &str,
+        operator_key: Option<&str>,
+    ) -> PyResult<PyObject> {
+        self.operator_signed(py, Verb::Delete, path, Value::Null, operator_key)
     }
 
     /// GET any API path whose answer is text (`ops/metrics`).

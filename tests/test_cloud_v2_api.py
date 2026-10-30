@@ -28,11 +28,11 @@ def wasm() -> bytes:
 
 
 def test_api_keys_are_scoped_listed_and_revoked(cluster, wasm):
-    alice, _pk = person(cluster, 0, "alice-keys")
+    alice, pk = person(cluster, 0, "alice-keys")
     app = alice.create_app("keyed", alice.upload_bundle(wasm))
     alice.call(app, "set", {"key": "k", "value": "v"})
     key_id, key = alice.create_api_key(
-        {"label": "reader", "apps": [app], "readOnly": True}
+        {"label": "reader", "apps": [app], "readOnly": True}, pk
     )
     listed = {k["keyId"]: k for k in alice.list_api_keys()}
     assert listed[key_id]["label"] == "reader" and listed[key_id]["readOnly"]
@@ -52,11 +52,11 @@ def test_api_keys_are_scoped_listed_and_revoked(cluster, wasm):
 
 
 def test_orgs_and_teams_end_to_end(cluster, wasm):
-    alice, _ = person(cluster, 0, "alice-teams")
+    alice, pk = person(cluster, 0, "alice-teams")
     bob, _ = person(cluster, 1, "bob-teams")
     bob_id = bob.me()["accountId"]
     org = alice.create_org("Initech")
-    token = alice.invite(org, "member", ttl_secs=600, uses=1)
+    token = alice.invite(org, "member", pk, ttl_secs=600, uses=1)
     bob.redeem_invite(token)
     assert alice.get_org(org)["members"][bob_id] == "member"
     with pytest.raises(CloudError):
@@ -64,7 +64,7 @@ def test_orgs_and_teams_end_to_end(cluster, wasm):
 
     team = alice.create_team(org, "eng")  # restricted by default
     sub = alice.create_team(org, "backend", join="everyone", parent=team)
-    alice.set_team_member(org, team, bob_id, role="readOnly")
+    alice.set_team_member(org, team, bob_id, pk, role="readOnly")
     app = alice.create_app(
         "eng-kv",
         alice.upload_bundle(wasm),
@@ -77,7 +77,7 @@ def test_orgs_and_teams_end_to_end(cluster, wasm):
         bob.call(app, "set", {"key": "k", "value": "bob"})
     assert e.value.args[1] == 403
 
-    alice.set_team_member(org, team, bob_id, role="member")
+    alice.set_team_member(org, team, bob_id, pk, role="member")
     bob.call(app, "set", {"key": "k", "value": "bob"})
 
     alice.update_team(org, team, name="engineering", metadata={"colour": "teal"})
@@ -87,10 +87,10 @@ def test_orgs_and_teams_end_to_end(cluster, wasm):
     alice.update_team(org, sub, parent=other)
     assert alice.get_team(org, sub)["parent"] == other
 
-    alice.set_capabilities(org, 0, account=bob_id)
+    alice.set_capabilities(org, 0, pk, account=bob_id)
     assert alice.get_org(org)["capabilities"][bob_id] == 0
 
-    alice.remove_team_member(org, team, bob_id)
+    alice.remove_team_member(org, team, bob_id, pk)
     time.sleep(0.3)
     with pytest.raises(CloudError) as e:
         bob.get_team(org, team)
@@ -102,7 +102,7 @@ def test_orgs_and_teams_end_to_end(cluster, wasm):
         alice.get_app(app)
     assert code(e.value) == "NOT_FOUND"
 
-    alice.remove_member(org, bob_id)
+    alice.remove_member(org, bob_id, pk)
     time.sleep(0.3)
     assert bob_id not in alice.get_org(org)["members"]
 
@@ -132,10 +132,10 @@ def test_app_directory_access_and_upgrade(cluster, wasm):
 
 
 def test_passkey_removal_and_sign_out(cluster):
-    laptop, _pk = person(cluster, 0, "alice-signout")
+    laptop, laptop_key = person(cluster, 0, "alice-signout")
     phone_key = SoftPasskey()
-    cred = laptop.add_passkey(phone_key)
-    laptop.remove_passkey(cred)
+    cred = laptop.add_passkey(phone_key, laptop_key)
+    laptop.remove_passkey(cred, laptop_key)
     time.sleep(0.3)
     with pytest.raises(CloudError):
         cluster.client(1).sign_in(phone_key)
