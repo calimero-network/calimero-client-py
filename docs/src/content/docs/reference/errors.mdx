@@ -54,15 +54,16 @@ answer `401` — not because the user signed out. The client answers that itself
   `WrongNode` is raised with the node's `details`.
 
 Sending a request again is safe, a call too: the node answers `401` and `421`
-while it judges the credential, before it runs anything. Two are never sent
-again, because a node refuses them only after spending something single-use:
+while it judges the credential, before it runs anything. A node also answers
+`421` to the ceremonies that mint a session before it spends their passkey
+challenge or refresh token, and:
 
-- `sign_in` and `sign_up` answered `421` spent the passkey challenge. The client
-  moves to the next node and raises `WrongNode`; sign in again.
-- `refresh` answered `421` spent the refresh token, so it is not sent to another
-  node (which would revoke the session). It is raised as `LoginRequired` with
-  `"refusedWith": "WRONG_NODE"` in `details`; the next sign-in goes to the next
-  node.
+- `sign_in` and `sign_up` answered `421` are not sent again, since they need the
+  passkey again: the client moves to the next node and raises `WrongNode`; sign
+  in again.
+- `refresh` answered `421` is sent, with the same refresh token, to each next
+  node in turn, at most once per node. Only when every node refuses is
+  `WrongNode` raised.
 
 ```python
 from calimero_client_py import Client, LoginRequired, WrongNode

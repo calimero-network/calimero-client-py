@@ -53,7 +53,8 @@ impl PyCloudClient {
     }
 
     /// [`run`](Self::run) for a sign-in or sign-up, sent once: a node that
-    /// answers it `421` has spent the passkey challenge already.
+    /// answers it `421` moves the client on, and the caller signs in again
+    /// with the passkey.
     fn run_once<T: Send>(
         &self,
         py: Python<'_>,

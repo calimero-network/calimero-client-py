@@ -20,16 +20,16 @@
 //!   the request there.
 //!
 //! Repeating is safe for any request, a call too: the node answers `401` and
-//! `421` while judging the credential, before it runs anything. Sign-in,
-//! sign-up and refresh are the exception: a node answers them `421` only
-//! after spending the passkey challenge or the refresh token, so they go
-//! through [`Nodes::run_once`] and are never repeated.
+//! `421` while judging the credential, before it runs anything, and answers
+//! the ceremonies that mint a session `421` before it spends their challenge
+//! or refresh token. A sign-in or sign-up goes through [`Nodes::run_once`]: it
+//! needs the passkey again, so its caller repeats it. A refresh answered `421`
+//! goes on to each next node with the same token, once per node.
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use calimero_client::{Client, Error, Session};
-use serde_json::{json, Value};
 
 /// What the recovery needs of one node's client. [`Client`] in the bindings; a
 /// stand-in in the tests below.
@@ -164,7 +164,7 @@ impl<N: Node> Nodes<N> {
             } else if unauthenticated(&e) && !refreshed {
                 if let Some(token) = token {
                     refreshed = true;
-                    self.renew(&node, &token).await?;
+                    self.renew(&token).await?;
                     continue;
                 }
             }
@@ -188,46 +188,39 @@ impl<N: Node> Nodes<N> {
 
     /// A fresh session in place of the one `token` belonged to: the one a
     /// refresh by another request made meanwhile, or a refresh now.
-    async fn renew(&self, node: &N, token: &str) -> Result<(), Error> {
+    async fn renew(&self, token: &str) -> Result<(), Error> {
         let _one = self.refreshing.lock().await;
-        if self.session_token(node).await.as_deref() != Some(token) {
+        // The node in use, not the one that refused: a refresh that moved on
+        // left the new session on the node it moved to.
+        let (_, node) = self.current();
+        if self.session_token(&node).await.as_deref() != Some(token) {
             return Ok(());
         }
-        self.exchange(node).await.map(drop)
+        self.exchange().await.map(drop)
     }
 
     /// Exchange the refresh token for a new session on the node in use, one at
     /// a time with every other refresh of this client.
     pub(crate) async fn refresh(&self) -> Result<Session, Error> {
         let _one = self.refreshing.lock().await;
-        let (_, node) = self.current();
-        self.exchange(&node).await
+        self.exchange().await
     }
 
-    async fn exchange(&self, node: &N) -> Result<Session, Error> {
-        let at = self.at.load(Ordering::SeqCst);
-        match node.refresh().await {
-            Err(e) if wrong_node(&e) => {
-                // This node took the refresh token before it found it may not
-                // serve the account, so the token is spent: sent to another
-                // node it would read as a copy and revoke the session. Sign in
-                // again, on the next node.
-                let _moved = self.move_on(at).await;
-                let mut details = e.details().cloned().unwrap_or(Value::Null);
-                if !details.is_object() {
-                    details = json!({});
+    /// A node that may not serve the account answers `421 WRONG_NODE` before
+    /// it spends the refresh token (core #4774), so the same token goes on to
+    /// the next node (which [`move_on`](Self::move_on) hands the session),
+    /// once per node at most. Every node refusing is the caller's `WrongNode`.
+    async fn exchange(&self) -> Result<Session, Error> {
+        let mut tried = 1;
+        loop {
+            let (at, node) = self.current();
+            match node.refresh().await {
+                Err(e) if wrong_node(&e) && tried < self.nodes.len() => {
+                    tried += 1;
+                    let _moved = self.move_on(at).await;
                 }
-                details["refusedWith"] = json!("WRONG_NODE");
-                Err(Error::Api {
-                    status: 401,
-                    code: "UNAUTHENTICATED".to_owned(),
-                    message:
-                        "the refresh reached a node that may not serve this account; sign in again"
-                            .to_owned(),
-                    details,
-                })
+                answer => return answer,
             }
-            answer => answer,
         }
     }
 }
@@ -237,6 +230,7 @@ mod tests {
     use std::sync::atomic::AtomicU32;
     use std::time::Duration;
 
+    use serde_json::json;
     use tokio::sync::RwLock;
 
     use super::*;
@@ -487,7 +481,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn a_refresh_refused_wrong_node_is_not_sent_elsewhere() {
+    async fn a_refresh_refused_wrong_node_goes_to_the_next_node_with_the_same_token() {
         let nodes = signed_in(vec![
             Stand {
                 refuse_refresh: Some((421, "WRONG_NODE")),
@@ -496,10 +490,50 @@ mod tests {
             issuer_lost(),
         ])
         .await;
-        let e = nodes.run(async |n| n.ask().await).await.unwrap_err();
-        assert!(unauthenticated(&e), "{e}");
-        assert_eq!(e.details().unwrap()["refusedWith"], "WRONG_NODE");
-        assert_eq!(nodes.nodes[1].refreshes.load(Ordering::SeqCst), 0);
+        assert_eq!(nodes.run(async |n| n.ask().await).await.unwrap(), "v1");
         assert_eq!(nodes.url(), "http://node-1");
+        assert_eq!(nodes.nodes[0].refreshes.load(Ordering::SeqCst), 1);
+        // Node 1's stand-in exchanges only `rt_old`: the token was not spent.
+        assert_eq!(nodes.nodes[1].refreshes.load(Ordering::SeqCst), 1);
+        let (_, node) = nodes.current();
+        assert_eq!(node.session().await.unwrap().session_token, "v2.new");
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn concurrent_requests_share_a_refresh_that_moved_on() {
+        let nodes = Arc::new(
+            signed_in(vec![
+                Stand {
+                    refuse_refresh: Some((421, "WRONG_NODE")),
+                    ..issuer_lost()
+                },
+                issuer_lost(),
+            ])
+            .await,
+        );
+        let tasks: Vec<_> = (0..8)
+            .map(|_| {
+                let nodes = Arc::clone(&nodes);
+                tokio::spawn(async move { nodes.run(async |n| n.ask().await).await })
+            })
+            .collect();
+        for task in tasks {
+            assert_eq!(task.await.unwrap().unwrap(), "v1");
+        }
+        assert_eq!(nodes.nodes[1].refreshes.load(Ordering::SeqCst), 1);
+    }
+
+    #[tokio::test]
+    async fn a_refresh_every_node_refuses_wrong_node_is_tried_once_per_node() {
+        let refusing = || Stand {
+            refuse_refresh: Some((421, "WRONG_NODE")),
+            ..issuer_lost()
+        };
+        let nodes = signed_in(vec![refusing(), refusing(), refusing()]).await;
+        let e = nodes.refresh().await.unwrap_err();
+        assert!(wrong_node(&e), "{e}");
+        for node in &nodes.nodes {
+            assert_eq!(node.refreshes.load(Ordering::SeqCst), 1);
+        }
     }
 }

@@ -7,8 +7,9 @@
   session is answered by one refresh, shared by the requests refused at the
   same time, and the request is sent again; a `421 WRONG_NODE` moves the client
   to the next of the new `nodes` argument (`Client(base_url, nodes=[...])`,
-  `node_url` names the node in use) and sends it there once. `sign_in`,
-  `sign_up` and `refresh` are never sent again. New `CloudError` subclasses
+  `node_url` names the node in use) and sends it there once. A refresh
+  answered `421` goes on to each next node with the same token, once per node;
+  `sign_in` and `sign_up` are never sent again. New `CloudError` subclasses
   `LoginRequired` (`401`) and `WrongNode` (`421 WRONG_NODE`).
 
 ## 1.0.0-rc.1
