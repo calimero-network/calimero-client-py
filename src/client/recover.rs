@@ -1,13 +1,15 @@
-//! What a node restart, or a node on the wrong release, does to a session.
+//! What losing the node that issued a session, or a node on the wrong
+//! release, does to a session.
 //!
-//! Since core #4774 a session token is signed by the node that issued it, with
-//! a receipt key that node makes when it starts. When that node restarts or is
-//! replaced (every rolling deploy), the cluster's other nodes answer its tokens
-//! `401 UNAUTHENTICATED`: the user did not sign out, and `POST /auth/refresh`
-//! on any node gives a fresh session. A node whose mero-tee release the
-//! account's owners have not approved answers `421 WRONG_NODE` instead: it
-//! neither issues nor takes the account's sessions, so the client moves to
-//! another node rather than refreshing there.
+//! Since core #4774 a session token is signed by the node that issued it, and
+//! the cluster's other nodes take it only while they can vouch for that node's
+//! signing key. When the issuer is replaced, removed or out of reach (a rolling
+//! deploy, an image rollout), they answer its tokens `401 UNAUTHENTICATED`:
+//! the user did not sign out, and `POST /auth/refresh` on any node gives a
+//! fresh session. A node whose mero-tee release the account's owners have not
+//! approved answers `421 WRONG_NODE` instead: it neither issues nor takes the
+//! account's sessions, so the client moves to another node rather than
+//! refreshing there.
 //!
 //! [`Nodes::run`] answers both, once each per request:
 //!
@@ -315,8 +317,8 @@ mod tests {
         }
     }
 
-    /// A node that restarted since it issued `v2.old`: it takes only `v2.new`.
-    fn restarted() -> Stand {
+    /// A node that can no longer vouch for `v2.old`'s issuer: it takes only `v2.new`.
+    fn issuer_lost() -> Stand {
         Stand {
             valid: vec!["v2.new"],
             ..Stand::default()
@@ -340,8 +342,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn a_401_after_a_restart_refreshes_once_and_repeats_the_request() {
-        let nodes = signed_in(vec![restarted()]).await;
+    async fn a_401_for_a_lost_issuer_refreshes_once_and_repeats_the_request() {
+        let nodes = signed_in(vec![issuer_lost()]).await;
         let answer = nodes.run(async |n| n.ask().await).await;
         assert_eq!(answer.unwrap(), "v1");
         let (_, node) = nodes.current();
@@ -354,7 +356,7 @@ mod tests {
     async fn a_refused_refresh_is_login_required_and_the_request_is_not_repeated() {
         let nodes = signed_in(vec![Stand {
             refuse_refresh: Some((401, "UNAUTHENTICATED")),
-            ..restarted()
+            ..issuer_lost()
         }])
         .await;
         let e = nodes.run(async |n| n.ask().await).await.unwrap_err();
@@ -366,7 +368,7 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
     async fn requests_refused_at_the_same_time_share_one_refresh() {
-        let nodes = Arc::new(signed_in(vec![restarted()]).await);
+        let nodes = Arc::new(signed_in(vec![issuer_lost()]).await);
         let tasks: Vec<_> = (0..8)
             .map(|_| {
                 let nodes = Arc::clone(&nodes);
@@ -392,7 +394,7 @@ mod tests {
 
     #[tokio::test]
     async fn an_api_key_is_not_refreshed() {
-        let nodes = signed_in(vec![restarted()]).await;
+        let nodes = signed_in(vec![issuer_lost()]).await;
         nodes.set_api_key(Some("cal_key".to_owned()));
         nodes.current().1.use_api_key("cal_key").await;
         let e = nodes.run(async |n| n.ask().await).await.unwrap_err();
@@ -489,9 +491,9 @@ mod tests {
         let nodes = signed_in(vec![
             Stand {
                 refuse_refresh: Some((421, "WRONG_NODE")),
-                ..restarted()
+                ..issuer_lost()
             },
-            restarted(),
+            issuer_lost(),
         ])
         .await;
         let e = nodes.run(async |n| n.ask().await).await.unwrap_err();

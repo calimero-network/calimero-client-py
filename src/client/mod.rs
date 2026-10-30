@@ -40,7 +40,7 @@ const LEADER_HOPS: usize = 3;
 
 impl PyCloudClient {
     /// Run `op` on the node in use with the GIL released, answering a `401`
-    /// after the issuing node restarted (refresh once, repeat) and a `421
+    /// once the issuing node is lost (refresh once, repeat) and a `421
     /// WRONG_NODE` (the next node, repeat) as [`Nodes::run`] does. The future
     /// runs on this thread (`block_on`), so it need not be `Send`.
     fn run<T: Send>(
