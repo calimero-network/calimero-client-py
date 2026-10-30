@@ -3,8 +3,9 @@ The Ops API through CloudClient: what mdma (and any operator) runs against a
 merod 1.0 cluster with the node's ops token.
 
 Same requirements as test_cloud_v2.py; its own cluster, started with an ops
-token, a backup directory and every decision given to the operator, so the
-operator's release, outbound and upgrade calls are allowed.
+token, the operator's key, a backup directory and every decision given to the
+operator, so the operator's release, outbound and upgrade calls are allowed.
+Every operator decision is signed with that key (`use_operator_key`).
 """
 
 import tempfile
@@ -17,6 +18,8 @@ from calimero_client_py import Client, CloudError
 from test_cloud_v2 import KV_STORE_WASM, Cluster, code, person, pytestmark  # noqa: F401
 
 OPS_TOKEN = "py-test-ops-token"
+# The operator's Ed25519 seed; the nodes get its verify key (--operator-key).
+OPERATOR_SEED = "11" * 32
 
 
 @pytest.fixture(scope="module")
@@ -27,6 +30,8 @@ def cluster():
         flags=[
             "--ops-token",
             OPS_TOKEN,
+            "--operator-key",
+            Client.operator_public_key(OPERATOR_SEED),
             "--backup-dir",
             backups,
             "--release-approvals",
@@ -46,10 +51,29 @@ def wasm() -> bytes:
     return Path(KV_STORE_WASM).read_bytes()
 
 
-def operator(cluster, i: int = 0) -> Client:
+def operator(cluster, i: int = 0, signed: bool = True) -> Client:
     c = Client(cluster.urls[i], allow_mock=True)
     c.use_api_key(OPS_TOKEN)
+    if signed:
+        c.use_operator_key(OPERATOR_SEED)
     return c
+
+
+def test_decisions_need_the_operators_signature(cluster):
+    unsigned = operator(cluster, signed=False)
+    name, value = next(
+        (k, v) for k, v in unsigned.ops_quotas().items() if isinstance(v, int)
+    )
+    with pytest.raises(CloudError) as e:
+        unsigned.ops_set_quotas({name: value})
+    assert (e.value.args[1], code(e.value)) == (428, "OPERATOR_SIGNATURE_REQUIRED")
+    # A signature by another key is refused.
+    with pytest.raises(CloudError) as e:
+        unsigned.post_operator_signed(
+            "ops/quotas", {name: value}, operator_key="22" * 32
+        )
+    assert e.value.args[1] == 403, e.value.args
+    unsigned.post_operator_signed("ops/quotas", {name: value}, OPERATOR_SEED)
 
 
 def test_status_metrics_and_quotas(cluster):
@@ -89,11 +113,12 @@ def test_replica_moves_follow_the_leader(cluster, wasm):
         out = operator(cluster, i).ops_set_replicas(app, [1, 2, 3])
         assert "status" in out, out
     assert alice.view(app, "get", {"key": "k"})["result"] == "v"
-    # Without the redirect, the nodes that do not lead refuse it.
+    # Without the redirect, the nodes that do not lead refuse it (once
+    # signed: the signature is asked for first).
     refused = 0
     for i in range(3):
         try:
-            operator(cluster, i).post(
+            operator(cluster, i).post_operator_signed(
                 f"ops/apps/{app}/replicas", {"replicas": [1, 2, 3]}
             )
         except CloudError as e:

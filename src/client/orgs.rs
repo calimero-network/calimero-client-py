@@ -1,4 +1,6 @@
-//! Organizations, their members and teams, and invites.
+//! Organizations, their members and teams, and invites. What grants access
+//! (members, roles, capabilities, team rows, invites) is approved with the
+//! acting account's `passkey`: the node answers `412 CONFIRM_REQUIRED` first.
 
 use super::prelude::*;
 
@@ -22,44 +24,54 @@ impl PyCloudClient {
     }
 
     /// Add `account` to the organization, or change its role
-    /// (`guest`, `member`, `admin`, `owner`).
-    fn set_member(&self, py: Python<'_>, org: &str, account: &str, role: &str) -> PyResult<()> {
+    /// (`guest`, `member`, `admin`, `owner`), approved with `passkey`.
+    fn set_member(
+        &self,
+        py: Python<'_>,
+        org: &str,
+        account: &str,
+        role: &str,
+        passkey: &PySoftPasskey,
+    ) -> PyResult<()> {
         let body = serde_json::json!({ "account": account, "role": role });
-        self.send(py, Verb::Post, format!("orgs/{}/members", seg(org)), body)
+        self.confirmed(py, format!("orgs/{}/members", seg(org)), body, passkey)
             .map(drop)
     }
 
-    /// Remove `account` from the organization (yourself, to leave it).
-    fn remove_member(&self, py: Python<'_>, org: &str, account: &str) -> PyResult<()> {
-        self.send(
+    /// Remove `account` from the organization (yourself, to leave it),
+    /// approved with `passkey`.
+    fn remove_member(
+        &self,
+        py: Python<'_>,
+        org: &str,
+        account: &str,
+        passkey: &PySoftPasskey,
+    ) -> PyResult<()> {
+        self.confirmed_delete(
             py,
-            Verb::Delete,
             format!("orgs/{}/members/{}", seg(org), seg(account)),
-            Value::Null,
+            passkey,
         )
         .map(drop)
     }
 
     /// Set capability bits (v1's `MemberCapabilities`): for `account` (in
-    /// `team`, if given), or, with no account, the organization's default.
-    #[pyo3(signature = (org, capabilities, account = None, team = None))]
+    /// `team`, if given), or, with no account, the organization's default;
+    /// approved with `passkey`.
+    #[pyo3(signature = (org, capabilities, passkey, account = None, team = None))]
     fn set_capabilities(
         &self,
         py: Python<'_>,
         org: &str,
         capabilities: u32,
+        passkey: &PySoftPasskey,
         account: Option<&str>,
         team: Option<&str>,
     ) -> PyResult<()> {
         let body =
             serde_json::json!({ "capabilities": capabilities, "account": account, "team": team });
-        self.send(
-            py,
-            Verb::Post,
-            format!("orgs/{}/capabilities", seg(org)),
-            body,
-        )
-        .map(drop)
+        self.confirmed(py, format!("orgs/{}/capabilities", seg(org)), body, passkey)
+            .map(drop)
     }
 
     /// Create a team: `join="everyone"` (open: whoever reaches the parent is a
@@ -143,15 +155,18 @@ impl PyCloudClient {
         .map(drop)
     }
 
-    /// Add `account` to a team, or change its row: `role` is `lead`, `member`
-    /// or `readOnly`; `capabilities` overrides the organization's default.
-    #[pyo3(signature = (org, team, account, role = None, capabilities = None))]
+    /// Add `account` to a team, or change its row, approved with `passkey`:
+    /// `role` is `lead`, `member` or `readOnly`; `capabilities` overrides the
+    /// organization's default.
+    #[pyo3(signature = (org, team, account, passkey, role = None, capabilities = None))]
+    #[allow(clippy::too_many_arguments)]
     fn set_team_member(
         &self,
         py: Python<'_>,
         org: &str,
         team: &str,
         account: &str,
+        passkey: &PySoftPasskey,
         role: Option<&str>,
         capabilities: Option<u32>,
     ) -> PyResult<()> {
@@ -160,54 +175,56 @@ impl PyCloudClient {
             "role": role,
             "capabilities": capabilities,
         });
-        self.send(
+        self.confirmed(
             py,
-            Verb::Post,
             format!("orgs/{}/teams/{}/members", seg(org), seg(team)),
             body,
+            passkey,
         )
         .map(drop)
     }
 
-    /// Remove `account` from a team. It does not come back through an open
-    /// parent until it is added again.
+    /// Remove `account` from a team, approved with `passkey`. It does not
+    /// come back through an open parent until it is added again.
     fn remove_team_member(
         &self,
         py: Python<'_>,
         org: &str,
         team: &str,
         account: &str,
+        passkey: &PySoftPasskey,
     ) -> PyResult<()> {
-        self.send(
+        self.confirmed_delete(
             py,
-            Verb::Delete,
             format!(
                 "orgs/{}/teams/{}/members/{}",
                 seg(org),
                 seg(team),
                 seg(account)
             ),
-            Value::Null,
+            passkey,
         )
         .map(drop)
     }
 
-    /// Invite someone into the organization with `role`, and into `teams`.
-    /// Returns the token to hand them (valid `ttl_secs`, default a week, for
-    /// `uses` redemptions, default one).
-    #[pyo3(signature = (org, role, teams = Vec::new(), ttl_secs = None, uses = None))]
+    /// Invite someone into the organization with `role`, and into `teams`,
+    /// approved with `passkey`. Returns the token to hand them (valid
+    /// `ttl_secs`, default a week, for `uses` redemptions, default one).
+    #[pyo3(signature = (org, role, passkey, teams = Vec::new(), ttl_secs = None, uses = None))]
+    #[allow(clippy::too_many_arguments)]
     fn invite(
         &self,
         py: Python<'_>,
         org: &str,
         role: &str,
+        passkey: &PySoftPasskey,
         teams: Vec<String>,
         ttl_secs: Option<u64>,
         uses: Option<u32>,
     ) -> PyResult<String> {
         let body =
             serde_json::json!({ "role": role, "teams": teams, "ttlSecs": ttl_secs, "uses": uses });
-        let v = self.send(py, Verb::Post, format!("orgs/{}/invites", seg(org)), body)?;
+        let v = self.confirmed(py, format!("orgs/{}/invites", seg(org)), body, passkey)?;
         field(&v, "token")
     }
 

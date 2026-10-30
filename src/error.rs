@@ -52,6 +52,12 @@ pub(crate) fn cloud_err(e: Error) -> PyErr {
                 _ => CloudError::new_err(args),
             }
         }
+        Error::WrongNode { message, details } => WrongNode::new_err((
+            format!("421 WRONG_NODE: {message}"),
+            421_u16,
+            "WRONG_NODE".to_owned(),
+            details.to_string(),
+        )),
         Error::Transport(r) => CloudError::new_err((format!("{r:#}"), 0_u16, "TRANSPORT", "null")),
     }
 }

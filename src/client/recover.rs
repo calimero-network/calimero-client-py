@@ -60,9 +60,11 @@ pub(crate) fn unauthenticated(e: &Error) -> bool {
     matches!(e, Error::Api { status: 401, code, .. } if code == "UNAUTHENTICATED")
 }
 
-/// `421 WRONG_NODE`, and not another 421 (`NOT_LEADER` names a leader to follow).
+/// `421 WRONG_NODE`, and not another 421 (`NOT_LEADER` names a leader to
+/// follow). Core's client reports it as its own variant.
 pub(crate) fn wrong_node(e: &Error) -> bool {
-    matches!(e, Error::Api { status: 421, code, .. } if code == "WRONG_NODE")
+    matches!(e, Error::WrongNode { .. })
+        || matches!(e, Error::Api { status: 421, code, .. } if code == "WRONG_NODE")
 }
 
 /// The nodes of one cluster a client may use, the one in use, and its credential.

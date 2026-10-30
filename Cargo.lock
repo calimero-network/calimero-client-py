@@ -455,9 +455,10 @@ checksum = "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"
 [[package]]
 name = "calimero-client"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?tag=1.0.0-rc.1#eae4cc50cf26220d78775873ac998fcce2075f1a"
+source = "git+https://github.com/calimero-network/core?branch=claude%2Fproofs-at-apply#cfce2b45b7203d460d78c8da6b6c386f428c9c23"
 dependencies = [
  "base64 0.23.1",
+ "bytes",
  "calimero-identity",
  "calimero-sealed",
  "calimero-tee-attestation",
@@ -483,6 +484,7 @@ version = "1.0.0-rc.1"
 dependencies = [
  "calimero-client",
  "calimero-identity",
+ "ed25519-dalek 3.0.0",
  "futures-util",
  "hex",
  "pyo3",
@@ -495,7 +497,7 @@ dependencies = [
 [[package]]
 name = "calimero-identity"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?tag=1.0.0-rc.1#eae4cc50cf26220d78775873ac998fcce2075f1a"
+source = "git+https://github.com/calimero-network/core?branch=claude%2Fproofs-at-apply#cfce2b45b7203d460d78c8da6b6c386f428c9c23"
 dependencies = [
  "base64 0.23.1",
  "ciborium",
@@ -508,7 +510,7 @@ dependencies = [
 [[package]]
 name = "calimero-sealed"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?tag=1.0.0-rc.1#eae4cc50cf26220d78775873ac998fcce2075f1a"
+source = "git+https://github.com/calimero-network/core?branch=claude%2Fproofs-at-apply#cfce2b45b7203d460d78c8da6b6c386f428c9c23"
 dependencies = [
  "axum",
  "bytes",
@@ -534,7 +536,7 @@ dependencies = [
 [[package]]
 name = "calimero-tee-attestation"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?tag=1.0.0-rc.1#eae4cc50cf26220d78775873ac998fcce2075f1a"
+source = "git+https://github.com/calimero-network/core?branch=claude%2Fproofs-at-apply#cfce2b45b7203d460d78c8da6b6c386f428c9c23"
 dependencies = [
  "base64 0.23.1",
  "configfs-tsm",
@@ -553,7 +555,7 @@ dependencies = [
 [[package]]
 name = "calimero-tee-release"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?tag=1.0.0-rc.1#eae4cc50cf26220d78775873ac998fcce2075f1a"
+source = "git+https://github.com/calimero-network/core?branch=claude%2Fproofs-at-apply#cfce2b45b7203d460d78c8da6b6c386f428c9c23"
 dependencies = [
  "base64 0.23.1",
  "eyre",

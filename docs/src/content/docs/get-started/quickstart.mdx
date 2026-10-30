@@ -36,7 +36,7 @@ print(client.me()["accountId"])
 Services use an API key instead:
 
 ```python
-key_id, key = client.create_api_key({"label": "ci", "ttlSecs": 86400})
+key_id, key = client.create_api_key({"label": "ci", "ttlSecs": 86400}, passkey)  # approved with the passkey
 service = Client("http://127.0.0.1:2428", allow_mock=True)
 service.use_api_key(key)
 ```

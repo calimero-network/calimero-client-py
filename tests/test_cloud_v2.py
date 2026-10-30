@@ -1,7 +1,8 @@
 """
 CloudClient against a real 3-node merod cluster (Calimero 1.0).
 
-Needs `merod` and the kv-store fixture from core 1.0 (tag `1.0.0-rc.1`):
+Needs `merod` and the kv-store fixture from the core the client builds against
+(Cargo.toml's pin):
 
     cargo build -p merod
     cargo build -p kv-store --target wasm32-unknown-unknown --profile app-release
@@ -186,7 +187,11 @@ def test_sign_up_deploy_call_view_confirm(cluster, wasm):
     assert code(e.value) == "NOT_FOUND"
 
     # A read-only API key reads, never writes.
-    _key_id, key = alice.create_api_key({"readOnly": True, "apps": [app]})
+    # An API key is approved with the account's passkey (412 first).
+    with pytest.raises(CloudError) as e:
+        alice.post("auth/apikeys", {"readOnly": True, "apps": [app]})
+    assert code(e.value) == "CONFIRM_REQUIRED"
+    _key_id, key = alice.create_api_key({"readOnly": True, "apps": [app]}, pk)
     agent = cluster.client(2)
     agent.use_api_key(key)
     agent.view(app, "len")
@@ -203,20 +208,33 @@ def test_sign_up_deploy_call_view_confirm(cluster, wasm):
 
 
 def test_organizations_gate_apps(cluster, wasm):
-    alice, _ = person(cluster, 0, "alice-org")
+    alice, alice_pk = person(cluster, 0, "alice-org")
     bob, _ = person(cluster, 1, "bob-org")
     bob_id = bob.me()["accountId"]
     org = alice.post("orgs", {"name": "Acme"})["orgId"]
     team = alice.post(f"orgs/{org}/teams", {"name": "eng", "join": "invite"})["teamId"]
-    token = alice.post(f"orgs/{org}/invites", {"role": "member", "teams": [team]})[
-        "token"
-    ]
+    # An invite grants access: the node asks for the inviter's passkey first.
+    with pytest.raises(CloudError) as e:
+        alice.post(f"orgs/{org}/invites", {"role": "member", "teams": [team]})
+    assert code(e.value) == "CONFIRM_REQUIRED"
+    token = alice.post_confirmed(
+        f"orgs/{org}/invites", {"role": "member", "teams": [team]}, alice_pk
+    )["token"]
     bob.post(f"invites/{token}/redeem")
 
     app = alice.create_app("team-kv", alice.upload_bundle(wasm), {"org": org})
     bob.call(app, "set", {"key": "from", "value": "bob"})
 
-    alice.delete(f"orgs/{org}/members/{bob_id}")
+    # A DELETE with no body is asked for the passkey; one carrying a proof
+    # (here a stale one) is judged on that proof: the body reaches the node.
+    with pytest.raises(CloudError) as e:
+        alice.delete(f"orgs/{org}/members/{bob_id}")
+    assert code(e.value) == "CONFIRM_REQUIRED"
+    stale = {"confirm": {"challengeId": "1.none", "assertion": {}}}
+    with pytest.raises(CloudError) as e:
+        alice.delete(f"orgs/{org}/members/{bob_id}", stale)
+    assert code(e.value) != "CONFIRM_REQUIRED", e.value.args
+    alice.delete_confirmed(f"orgs/{org}/members/{bob_id}", alice_pk)
     time.sleep(0.3)
     with pytest.raises(CloudError) as e:
         bob.call(app, "set", {"key": "x", "value": "y"})
@@ -239,9 +257,12 @@ def test_blobs_belong_to_their_app(cluster, wasm):
 
 
 def test_a_second_passkey_is_another_device(cluster):
-    laptop, _pk = person(cluster, 0, "alice-devices")
+    laptop, laptop_key = person(cluster, 0, "alice-devices")
     phone_key = SoftPasskey()
-    cred = laptop.add_passkey(phone_key)
+    # Approved by a passkey the account already has, never the new one.
+    with pytest.raises(ValueError):
+        laptop.add_passkey(phone_key, phone_key)
+    cred = laptop.add_passkey(phone_key, laptop_key)
     phone = cluster.client(1)
     phone.sign_in(phone_key)
     a, b = laptop.me(), phone.me()

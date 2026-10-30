@@ -55,10 +55,11 @@ Organizations, teams and invites:
 
 ```python
 org = client.create_org("Acme")
-token = client.invite(org, "member", teams=[], ttl_secs=86400, uses=1)  # hand it over
+# What grants access is approved with the acting account's passkey (412 first).
+token = client.invite(org, "member", passkey, teams=[], ttl_secs=86400, uses=1)
 other.redeem_invite(token)
 team = client.create_team(org, "eng", join="invite")      # or join="everyone", parent=...
-client.set_team_member(org, team, account_id, role="readOnly")
+client.set_team_member(org, team, account_id, passkey, role="readOnly")
 app = client.create_app("eng-kv", client.upload_bundle(wasm),
                         {"org": org, "access": {"kind": "team", "team": team}})
 client.update_team(org, team, name="engineering", metadata={"colour": "teal"})
@@ -68,8 +69,8 @@ client.delete_team(org, team)                               # takes its sub-team
 | Area | Methods |
 | --- | --- |
 | Session | `sign_up`, `sign_in`, `refresh`, `sign_out`, `sign_out_everywhere`, `use_session`, `use_api_key`, `session`, `me`, `usage` |
-| Devices (passkeys) | `add_passkey`, `remove_passkey`, `label_passkey` |
-| API keys | `create_api_key({label, apps, methods, readOnly, allowConfirm, ttlSecs})`, `list_api_keys`, `revoke_api_key` |
+| Devices (passkeys) | `add_passkey(new, approver)`, `remove_passkey(credential_id, passkey)`, `label_passkey` |
+| API keys | `create_api_key({label, apps, methods, readOnly, allowConfirm, ttlSecs}, passkey)`, `list_api_keys`, `revoke_api_key` |
 | Aliases | `set_alias`, `alias`, `aliases`, `delete_alias` |
 | Packages | `upload_package`, `install_package`, `packages`, `package`, `uninstall_package` |
 | Apps | `upload_bundle`, `create_app`, `create_app_from_package`, `list_apps`, `get_app`, `delete_app`, `set_access`, `set_app_metadata`, `app_storage`, `app_abi`, `upgrade_app`, `transfer_app`, `verify_app_cluster` |
@@ -80,19 +81,24 @@ client.delete_team(org, team)                               # takes its sub-team
 | Blobs | `upload_blob`, `download_blob`, `list_blobs`, `blob_info`, `delete_blob` |
 | Organizations | `create_org`, `get_org`, `delete_org`, `set_org_metadata`, `set_member`, `set_member_metadata`, `remove_member`, `set_capabilities`, `invite`, `redeem_invite` |
 | Teams | `create_team`, `get_team`, `update_team`, `delete_team`, `set_team_member`, `remove_team_member` |
-| Ops API (ops token via `use_api_key`) | `ops_status`, `ops_metrics`, `ops_register_node`, `ops_remove_node`, `ops_set_replicas`, `ops_backup`, `ops_quotas`, `ops_set_quotas`, `ops_approve_release`, `ops_approve_outbound`, `ops_upgrade_app`, `ops_upgrade_org`, `ops_packages`, `ops_upload_package`, `ops_install_package`, `ops_uninstall_package` |
-| Anything else | `get`, `get_text`, `post`, `put`, `delete` on any API path; `post_confirmed`, `delete_confirmed` where the node asks for a passkey (`412`); `attestation` |
+| Ops API (ops token via `use_api_key`, decisions signed after `use_operator_key`) | `ops_status`, `ops_metrics`, `ops_register_node`, `ops_remove_node`, `ops_set_replicas`, `ops_backup`, `ops_quotas`, `ops_set_quotas`, `ops_approve_release`, `ops_approve_outbound`, `ops_upgrade_app`, `ops_upgrade_org`, `ops_packages`, `ops_upload_package`, `ops_install_package`, `ops_uninstall_package` |
+| Anything else | `get`, `get_text`, `post`, `put`, `delete(path, body=None)` on any API path; `post_confirmed`, `delete_confirmed` where the node asks for a passkey (`412`); `post_operator_signed`, `delete_operator_signed` where it asks for the operator's signature (`428`); `attestation` |
 
 `SoftPasskey` is an in-memory passkey for scripts and tests against development
 clusters (`client.sign_up(SoftPasskey(), "alice")`, `client.call_confirmed(...)`).
 Errors raise `CloudError(message, status, code, details)`; `LoginRequired`
 (`401` the client's own refresh did not answer) and `WrongNode` (`421
 WRONG_NODE` with no other node to move to, given in `nodes`) are its subclasses.
-Operators authenticate with the node's ops token:
+Operators authenticate with the node's ops token, and sign their decisions
+(nodes, quotas, replica moves, and the releases, outbound approvals and
+upgrades governance gives them) with the operator's Ed25519 key, whose verify
+half the nodes were started with (`merod --operator-key
+$(python -c 'from calimero_client_py import Client; print(Client.operator_public_key("<seed hex>"))')`):
 
 ```python
 ops = Client(node_url, tee_profiles=["..."])
 ops.use_api_key(ops_token)
+ops.use_operator_key(operator_seed_hex)   # answers 428 OPERATOR_SIGNATURE_REQUIRED
 print(ops.ops_status()["nodes"])
 ops.ops_register_node(4, "https://node4.example/", zone="eu1-b")
 ops.ops_set_replicas(app_id, [1, 2, 4])   # sent on to the app group's leader
@@ -122,7 +128,7 @@ pytest              # Python tests
 ```
 
 The Rust core depends on `calimero-client` and `calimero-identity` from core's
-`1.0.0-rc.1` tag on
+`claude/proofs-at-apply` branch (until core #4791 merges; then master) on
 [`github.com/calimero-network/core`](https://github.com/calimero-network/core),
 so the first build fetches and compiles those too (a network connection is
 required for the initial build).
