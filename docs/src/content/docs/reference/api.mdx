@@ -7,7 +7,7 @@ sidebar:
 
 The public surface lives in the `calimero_client_py` module and is re-exported
 from the `calimero` package: `Client`, `CloudClient`, `SoftPasskey`,
-`CloudError` and `VERSION`. Every method is **synchronous** and returns plain Python values
+`CloudError` (with its subclasses `LoginRequired` and `WrongNode`) and `VERSION`. Every method is **synchronous** and returns plain Python values
 decoded from the node's JSON (keys are the node's `camelCase`). A failing request
 raises [`CloudError`](/reference/errors/); a malformed argument caught before
 sending raises `ValueError`.
@@ -16,7 +16,7 @@ sending raises `ValueError`.
 
 ```python
 Client(base_url, allow_mock=False, app_hash=None, tee_profiles=None,
-       min_release=None, allow_debug_profiles=False)
+       min_release=None, allow_debug_profiles=False, nodes=None)
 ```
 
 `Client` is the preferred name. `CloudClient` is the same class under the name
@@ -33,6 +33,18 @@ until the first request.
 | `tee_profiles` | Accept real TDX quotes from images a signed mero-tee release lists under one of these profiles. Without it only mock quotes can be accepted. |
 | `min_release` | The oldest mero-tee release accepted. |
 | `allow_debug_profiles` | Accept a release's debug profiles (whose memory the host can read). |
+| `nodes` | Other nodes of the same cluster, in the order to move to them when a node answers `421 WRONG_NODE`. Each is attested under the same policy. `node_url` names the node in use. |
+
+A request made with a session that the node answers `401 UNAUTHENTICATED` is
+refreshed once and sent again: the node that signed the session may only have
+been replaced or be out of reach, and any node takes the refresh. Requests
+refused at the same time share that one refresh (a refresh token is used once).
+`421 WRONG_NODE` moves the client to the next of `nodes` and sends the request
+there once. Both refusals come before the node runs anything, so sending a call
+again is safe. `sign_in` and `sign_up` answered `421` are not sent again (they
+need the passkey again); a refresh answered `421` goes, with the same unspent
+refresh token, to each next node in turn, once per node. See
+[errors](/reference/errors/#restarts-and-other-nodes).
 
 ### Session
 
@@ -40,7 +52,7 @@ until the first request.
 | --- | --- |
 | `sign_up(passkey, name)` | The new account's session (`dict`). |
 | `sign_in(passkey)` | The session. |
-| `refresh()` | A new session from the refresh token. |
+| `refresh()` | A new session from the refresh token (one at a time with the client's own refreshes). |
 | `sign_out()` | `None`; the refresh token stops working. |
 | `sign_out_everywhere()` | `None`; every session of the account ends, on every device. |
 | `use_session(session)` | `None`; authenticates with a session from `sign_up`/`sign_in`. |

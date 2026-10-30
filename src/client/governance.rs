@@ -14,9 +14,9 @@ impl PyCloudClient {
         passkey: &PySoftPasskey,
         org: Option<String>,
     ) -> PyResult<PyObject> {
-        let (c, pk) = (Arc::clone(&self.inner), Arc::clone(&passkey.inner));
+        let pk = Arc::clone(&passkey.inner);
         let version = version.to_owned();
-        let v = self.run(py, async move {
+        let v = self.run(py, async |c| {
             let mut auth = pk.lock().await;
             c.approve_release(org.as_deref(), &version, &mut *auth)
                 .await
@@ -37,9 +37,9 @@ impl PyCloudClient {
         prefixes: Option<Vec<String>>,
         replace: bool,
     ) -> PyResult<PyObject> {
-        let (c, pk) = (Arc::clone(&self.inner), Arc::clone(&passkey.inner));
+        let pk = Arc::clone(&passkey.inner);
         let package = package.to_owned();
-        let v = self.run(py, async move {
+        let v = self.run(py, async |c| {
             let mut auth = pk.lock().await;
             c.approve_outbound(
                 org.as_deref(),
@@ -70,23 +70,23 @@ impl PyCloudClient {
         cascade: bool,
         migrate: Option<String>,
     ) -> PyResult<PyObject> {
-        let (c, pk) = (Arc::clone(&self.inner), Arc::clone(&passkey.inner));
+        let pk = Arc::clone(&passkey.inner);
         let org = org.to_owned();
         let body = serde_json::json!({
             "package": package, "version": version, "team": team, "cascade": cascade,
             "migrate": migrate,
         });
-        let v = self.run(py, async move {
+        let v = self.run(py, async |c| {
             let mut auth = pk.lock().await;
-            c.upgrade_org(&org, body, &mut *auth).await
+            c.upgrade_org(&org, body.clone(), &mut *auth).await
         })?;
         to_py(py, &v)
     }
 
     /// An upgrade run's status and per-app results.
     fn upgrade_run(&self, py: Python<'_>, org: &str, run: &str) -> PyResult<PyObject> {
-        let (c, org, run) = (Arc::clone(&self.inner), org.to_owned(), run.to_owned());
-        let v = self.run(py, async move { c.upgrade_run(&org, &run).await })?;
+        let (org, run) = (org.to_owned(), run.to_owned());
+        let v = self.run(py, async |c| c.upgrade_run(&org, &run).await)?;
         to_py(py, &v)
     }
 
@@ -98,9 +98,9 @@ impl PyCloudClient {
         run: &str,
         passkey: &PySoftPasskey,
     ) -> PyResult<PyObject> {
-        let (c, pk) = (Arc::clone(&self.inner), Arc::clone(&passkey.inner));
+        let pk = Arc::clone(&passkey.inner);
         let (org, run) = (org.to_owned(), run.to_owned());
-        let v = self.run(py, async move {
+        let v = self.run(py, async |c| {
             let mut auth = pk.lock().await;
             c.retry_upgrade_run(&org, &run, &mut *auth).await
         })?;

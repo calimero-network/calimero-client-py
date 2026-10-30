@@ -15,21 +15,23 @@ mod ops;
 mod orgs;
 mod packages;
 mod prelude;
+mod recover;
 
 use prelude::*;
+use recover::Nodes;
 
-/// A connection to one node of a Calimero 1.0 cluster. Also exported as
-/// `Client`, the preferred name.
+/// A connection to one node of a Calimero 1.0 cluster (and, given `nodes`,
+/// the others it may move to). Also exported as `Client`, the preferred name.
 #[pyclass(name = "CloudClient")]
 pub struct PyCloudClient {
-    inner: Arc<Client>,
+    /// The nodes this client may use, the one in use, and the credential
+    /// (the API key, the ops token for the Ops API, which a request sent on
+    /// to the leader carries too). See [`recover`].
+    nodes: Arc<Nodes<Client>>,
     runtime: Arc<Runtime>,
     /// The trust policy this client was made with, so a request that must
     /// run on a leader (`NOT_LEADER`) is sent to a node attested the same way.
     policy: Policy,
-    /// The API key last given to `use_api_key` (the ops token, for the Ops
-    /// API), which a request sent on to the leader carries too.
-    api_key: std::sync::Mutex<Option<String>>,
 }
 
 /// How many `421 NOT_LEADER` redirects an Ops request follows. A node that
@@ -37,13 +39,44 @@ pub struct PyCloudClient {
 const LEADER_HOPS: usize = 3;
 
 impl PyCloudClient {
+    /// Run `op` on the node in use with the GIL released, answering a `401`
+    /// once the issuing node is lost (refresh once, repeat) and a `421
+    /// WRONG_NODE` (the next node, repeat) as [`Nodes::run`] does. The future
+    /// runs on this thread (`block_on`), so it need not be `Send`.
     fn run<T: Send>(
+        &self,
+        py: Python<'_>,
+        op: impl AsyncFn(Arc<Client>) -> Result<T, Error> + Send,
+    ) -> PyResult<T> {
+        let (rt, nodes) = (Arc::clone(&self.runtime), Arc::clone(&self.nodes));
+        py.allow_threads(move || rt.block_on(nodes.run(op)).map_err(cloud_err))
+    }
+
+    /// [`run`](Self::run) for a sign-in or sign-up, sent once: a node that
+    /// answers it `421` moves the client on, and the caller signs in again
+    /// with the passkey.
+    fn run_once<T: Send>(
+        &self,
+        py: Python<'_>,
+        op: impl AsyncFnOnce(Arc<Client>) -> Result<T, Error> + Send,
+    ) -> PyResult<T> {
+        let (rt, nodes) = (Arc::clone(&self.runtime), Arc::clone(&self.nodes));
+        py.allow_threads(move || rt.block_on(nodes.run_once(op)).map_err(cloud_err))
+    }
+
+    /// Block on `f` with the GIL released, as it is: no recovery.
+    fn block<T: Send>(
         &self,
         py: Python<'_>,
         f: impl std::future::Future<Output = Result<T, Error>> + Send,
     ) -> PyResult<T> {
         let rt = Arc::clone(&self.runtime);
         py.allow_threads(move || rt.block_on(f).map_err(cloud_err))
+    }
+
+    /// The node in use.
+    fn client(&self) -> Arc<Client> {
+        self.nodes.current().1
     }
 }
 
@@ -65,9 +98,7 @@ async fn send_verb(c: &Client, verb: Verb, path: &str, body: Value) -> Result<Va
 impl PyCloudClient {
     /// A session replaced the API key as the client's credential.
     fn forget_api_key(&self) {
-        if let Ok(mut k) = self.api_key.lock() {
-            *k = None;
-        }
+        self.nodes.set_api_key(None);
     }
 
     fn confirmed(
@@ -77,21 +108,20 @@ impl PyCloudClient {
         body: Value,
         passkey: &PySoftPasskey,
     ) -> PyResult<Value> {
-        let (c, pk) = (Arc::clone(&self.inner), Arc::clone(&passkey.inner));
-        self.run(py, async move {
+        let pk = Arc::clone(&passkey.inner);
+        self.run(py, async |c| {
             let mut auth = pk.lock().await;
-            c.post_confirmed(&path, body, &mut *auth).await
+            c.post_confirmed(&path, body.clone(), &mut *auth).await
         })
     }
 
     fn send(&self, py: Python<'_>, verb: Verb, path: String, body: Value) -> PyResult<Value> {
-        let c = Arc::clone(&self.inner);
         let body = if body.is_null() {
             Value::Object(serde_json::Map::new())
         } else {
             body
         };
-        self.run(py, async move { send_verb(&c, verb, &path, body).await })
+        self.run(py, async |c| send_verb(&c, verb, &path, body.clone()).await)
     }
 
     /// `send`, following `421 NOT_LEADER` to the leader the node names (an
@@ -105,13 +135,9 @@ impl PyCloudClient {
         path: String,
         body: Value,
     ) -> PyResult<Value> {
-        let key = self
-            .api_key
-            .lock()
-            .map_err(|_| PyValueError::new_err("the API key lock is poisoned"))?
-            .clone();
-        let (policy, first) = (self.policy.clone(), Arc::clone(&self.inner));
-        self.run(py, async move {
+        let key = self.nodes.api_key();
+        let (policy, first) = (self.policy.clone(), self.client());
+        self.block(py, async move {
             let mut c = first;
             for _ in 0..LEADER_HOPS {
                 match send_verb(&c, verb, &path, body.clone()).await {
@@ -142,6 +168,14 @@ impl PyCloudClient {
     /// verifies; `allow_mock` accepts development (mock) quotes, `app_hash`
     /// (hex) pins the bundle the quote must bind.
     ///
+    /// `nodes` are other nodes of the same cluster, in the order to move to
+    /// them when a node answers `421 WRONG_NODE` (its release may not serve
+    /// the account); each is attested under the same policy before anything
+    /// is sent to it. Without them that answer is raised as `WrongNode`.
+    /// A `401` to a request made with a session is answered by one refresh
+    /// (any node takes it) and the request sent again; `LoginRequired` is
+    /// raised only when that does not help.
+    ///
     /// A real TDX quote is accepted only from an image the policy names:
     /// `tee_profiles` admits nodes whose signed mero-tee release lists their
     /// measurements under one of those profiles (`min_release` is a floor).
@@ -149,7 +183,8 @@ impl PyCloudClient {
     /// release's debug profiles (whose memory the host can read) are refused
     /// unless `allow_debug_profiles`.
     #[new]
-    #[pyo3(signature = (base_url, allow_mock = false, app_hash = None, tee_profiles = None, min_release = None, allow_debug_profiles = false))]
+    #[pyo3(signature = (base_url, allow_mock = false, app_hash = None, tee_profiles = None, min_release = None, allow_debug_profiles = false, nodes = None))]
+    #[allow(clippy::too_many_arguments)]
     fn new(
         base_url: &str,
         allow_mock: bool,
@@ -157,6 +192,7 @@ impl PyCloudClient {
         tee_profiles: Option<Vec<String>>,
         min_release: Option<String>,
         allow_debug_profiles: bool,
+        nodes: Option<Vec<String>>,
     ) -> PyResult<Self> {
         let app_hash = app_hash
             .map(|h| {
@@ -180,16 +216,27 @@ impl PyCloudClient {
             allowed_tcb_statuses: Vec::new(),
             allow_debug_profiles,
         };
-        let inner = {
+        let mut urls: Vec<String> = Vec::new();
+        for url in std::iter::once(base_url.to_owned()).chain(nodes.unwrap_or_default()) {
+            let url = url.trim_end_matches('/').to_owned();
+            if !urls.contains(&url) {
+                urls.push(url);
+            }
+        }
+        let clients = {
             let _enter = runtime.enter();
-            Client::connect(base_url, policy.clone())
-                .map_err(|e| PyValueError::new_err(format!("{e:#}")))?
+            urls.into_iter()
+                .map(|url| {
+                    let client = Client::connect(&url, policy.clone())
+                        .map_err(|e| PyValueError::new_err(format!("{e:#}")))?;
+                    Ok((url, client))
+                })
+                .collect::<PyResult<Vec<_>>>()?
         };
         Ok(Self {
-            inner: Arc::new(inner),
+            nodes: Arc::new(Nodes::new(clients)),
             runtime: Arc::new(runtime),
             policy,
-            api_key: std::sync::Mutex::new(None),
         })
     }
 
@@ -223,22 +270,22 @@ impl PyCloudClient {
         path: &str,
         body: Option<&Bound<'_, PyAny>>,
     ) -> PyResult<PyObject> {
-        let (c, b, path) = (Arc::clone(&self.inner), to_json(py, body)?, path.to_owned());
-        let v = self.run(py, async move { c.post(&path, b).await })?;
+        let (b, path) = (to_json(py, body)?, path.to_owned());
+        let v = self.run(py, async |c| c.post(&path, b.clone()).await)?;
         to_py(py, &v)
     }
 
     /// GET any API path.
     fn get(&self, py: Python<'_>, path: &str) -> PyResult<PyObject> {
-        let (c, path) = (Arc::clone(&self.inner), path.to_owned());
-        let v = self.run(py, async move { c.get(&path).await })?;
+        let path = path.to_owned();
+        let v = self.run(py, async |c| c.get(&path).await)?;
         to_py(py, &v)
     }
 
     /// DELETE any API path.
     fn delete(&self, py: Python<'_>, path: &str) -> PyResult<PyObject> {
-        let (c, path) = (Arc::clone(&self.inner), path.to_owned());
-        let v = self.run(py, async move { c.delete(&path).await })?;
+        let path = path.to_owned();
+        let v = self.run(py, async |c| c.delete(&path).await)?;
         to_py(py, &v)
     }
 
@@ -250,8 +297,8 @@ impl PyCloudClient {
         path: &str,
         body: Option<&Bound<'_, PyAny>>,
     ) -> PyResult<PyObject> {
-        let (c, b, path) = (Arc::clone(&self.inner), to_json(py, body)?, path.to_owned());
-        let v = self.run(py, async move { c.put(&path, b).await })?;
+        let (b, path) = (to_json(py, body)?, path.to_owned());
+        let v = self.run(py, async |c| c.put(&path, b.clone()).await)?;
         to_py(py, &v)
     }
 
@@ -263,9 +310,9 @@ impl PyCloudClient {
         path: &str,
         passkey: &PySoftPasskey,
     ) -> PyResult<PyObject> {
-        let (c, pk) = (Arc::clone(&self.inner), Arc::clone(&passkey.inner));
+        let pk = Arc::clone(&passkey.inner);
         let path = path.trim_start_matches('/').to_owned();
-        let v = self.run(py, async move {
+        let v = self.run(py, async |c| {
             let mut auth = pk.lock().await;
             c.delete_confirmed(&path, &mut *auth).await
         })?;
@@ -274,14 +321,20 @@ impl PyCloudClient {
 
     /// GET any API path whose answer is text (`ops/metrics`).
     fn get_text(&self, py: Python<'_>, path: &str) -> PyResult<String> {
-        let (c, path) = (Arc::clone(&self.inner), path.to_owned());
-        self.run(py, async move { c.get_text(&path).await })
+        let path = path.to_owned();
+        self.run(py, async |c| c.get_text(&path).await)
+    }
+
+    /// The URL of the node in use: `base_url`, until a `421 WRONG_NODE`
+    /// moved the client to the next of `nodes`.
+    #[getter]
+    fn node_url(&self) -> String {
+        self.nodes.url().to_owned()
     }
 
     /// The node's attestation document (unverified, for display).
     fn attestation(&self, py: Python<'_>) -> PyResult<PyObject> {
-        let c = Arc::clone(&self.inner);
-        let v = self.run(py, async move { c.attestation().await })?;
+        let v = self.run(py, async |c| c.attestation().await)?;
         to_py(py, &v)
     }
 }

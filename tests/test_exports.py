@@ -10,7 +10,14 @@ half-wired. `Client` is a name again, for the 1.0 client: the same class as
 import calimero
 import calimero_client_py
 
-CLIENT = {"Client", "CloudClient", "CloudError", "SoftPasskey"}
+CLIENT = {
+    "Client",
+    "CloudClient",
+    "CloudError",
+    "LoginRequired",
+    "SoftPasskey",
+    "WrongNode",
+}
 
 V1 = {
     "create_connection",
@@ -48,6 +55,19 @@ def test_no_v1_name_is_left():
 
 def test_cloud_error_is_an_exception():
     assert issubclass(calimero_client_py.CloudError, Exception)
+
+
+def test_login_required_and_wrong_node_are_cloud_errors():
+    # Code that catches `CloudError` keeps catching both.
+    for name in ("LoginRequired", "WrongNode"):
+        assert issubclass(
+            getattr(calimero_client_py, name), calimero_client_py.CloudError
+        )
+
+
+def test_the_client_names_the_node_in_use():
+    # A property: `base_url` until a `421 WRONG_NODE` moved the client on.
+    assert hasattr(calimero_client_py.Client, "node_url")
 
 
 def test_client_is_the_cloud_client():

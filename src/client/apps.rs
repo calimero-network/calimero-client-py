@@ -6,8 +6,7 @@ use super::prelude::*;
 impl PyCloudClient {
     /// Upload a WASM bundle. Returns its hash.
     fn upload_bundle(&self, py: Python<'_>, wasm: Vec<u8>) -> PyResult<String> {
-        let c = Arc::clone(&self.inner);
-        self.run(py, async move { c.upload_bundle(wasm).await })
+        self.run(py, async |c| c.upload_bundle(wasm.clone()).await)
     }
 
     /// Hand `app` to the account `to` (an org app only to one of its members),
@@ -19,9 +18,9 @@ impl PyCloudClient {
         to: &str,
         passkey: &PySoftPasskey,
     ) -> PyResult<PyObject> {
-        let (c, pk) = (Arc::clone(&self.inner), Arc::clone(&passkey.inner));
+        let pk = Arc::clone(&passkey.inner);
         let (app, to) = (app.to_owned(), to.to_owned());
-        let v = self.run(py, async move {
+        let v = self.run(py, async |c| {
             let mut auth = pk.lock().await;
             c.transfer_app(&app, &to, &mut *auth).await
         })?;
@@ -38,8 +37,8 @@ impl PyCloudClient {
         seq: u64,
         state: Option<Vec<u8>>,
     ) -> PyResult<PyObject> {
-        let (c, app) = (Arc::clone(&self.inner), app.to_owned());
-        let v = self.run(py, async move {
+        let app = app.to_owned();
+        let v = self.run(py, async |c| {
             c.publish_presence(&app, seq, state.as_deref()).await
         })?;
         to_py(py, &v)
@@ -47,8 +46,8 @@ impl PyCloudClient {
 
     /// Who is present in `app` now.
     fn presence(&self, py: Python<'_>, app: &str) -> PyResult<PyObject> {
-        let (c, app) = (Arc::clone(&self.inner), app.to_owned());
-        let v = self.run(py, async move { c.presence(&app).await })?;
+        let app = app.to_owned();
+        let v = self.run(py, async |c| c.presence(&app).await)?;
         to_py(py, &v)
     }
 
@@ -65,11 +64,17 @@ impl PyCloudClient {
         service: Option<String>,
         options: Option<&Bound<'_, PyAny>>,
     ) -> PyResult<String> {
-        let (c, o) = (Arc::clone(&self.inner), to_json(py, options)?);
+        let o = to_json(py, options)?;
         let (name, package) = (name.to_owned(), package.to_owned());
-        self.run(py, async move {
-            c.create_app_from_package(&name, &package, version.as_deref(), service.as_deref(), o)
-                .await
+        self.run(py, async |c| {
+            c.create_app_from_package(
+                &name,
+                &package,
+                version.as_deref(),
+                service.as_deref(),
+                o.clone(),
+            )
+            .await
         })
     }
 
@@ -82,9 +87,9 @@ impl PyCloudClient {
         bundle: &str,
         options: Option<&Bound<'_, PyAny>>,
     ) -> PyResult<String> {
-        let (c, o) = (Arc::clone(&self.inner), to_json(py, options)?);
+        let o = to_json(py, options)?;
         let (name, bundle) = (name.to_owned(), bundle.to_owned());
-        self.run(py, async move { c.create_app(&name, &bundle, o).await })
+        self.run(py, async |c| c.create_app(&name, &bundle, o.clone()).await)
     }
 
     /// Call a method. Returns `{"index", "result", "events"}`. While the node
@@ -100,10 +105,11 @@ impl PyCloudClient {
         args: Option<&Bound<'_, PyAny>>,
         idempotency_key: Option<String>,
     ) -> PyResult<PyObject> {
-        let (c, a) = (Arc::clone(&self.inner), to_json(py, args)?);
+        let a = to_json(py, args)?;
         let (app, method) = (app.to_owned(), method.to_owned());
-        let r = self.run(py, async move {
-            c.call(&app, &method, a, idempotency_key.as_deref()).await
+        let r = self.run(py, async |c| {
+            c.call(&app, &method, a.clone(), idempotency_key.as_deref())
+                .await
         })?;
         to_py(py, &r)
     }
@@ -118,15 +124,11 @@ impl PyCloudClient {
         args: Option<&Bound<'_, PyAny>>,
         passkey: &PySoftPasskey,
     ) -> PyResult<PyObject> {
-        let (c, a, pk) = (
-            Arc::clone(&self.inner),
-            to_json(py, args)?,
-            Arc::clone(&passkey.inner),
-        );
+        let (a, pk) = (to_json(py, args)?, Arc::clone(&passkey.inner));
         let (app, method) = (app.to_owned(), method.to_owned());
-        let r = self.run(py, async move {
+        let r = self.run(py, async |c| {
             let mut auth = pk.lock().await;
-            c.call_confirmed(&app, &method, a, &mut *auth).await
+            c.call_confirmed(&app, &method, a.clone(), &mut *auth).await
         })?;
         to_py(py, &r)
     }
@@ -143,17 +145,16 @@ impl PyCloudClient {
         stale: bool,
         min_index: u64,
     ) -> PyResult<PyObject> {
-        let (c, a) = (Arc::clone(&self.inner), to_json(py, args)?);
+        let a = to_json(py, args)?;
         let (app, method) = (app.to_owned(), method.to_owned());
         let consistency = if stale {
             Consistency::Stale { min_index }
         } else {
             Consistency::Strong
         };
-        let r = self.run(
-            py,
-            async move { c.view(&app, &method, a, consistency).await },
-        )?;
+        let r = self.run(py, async |c| {
+            c.view(&app, &method, a.clone(), consistency).await
+        })?;
         to_py(py, &r)
     }
 
@@ -168,9 +169,9 @@ impl PyCloudClient {
         limit: usize,
         timeout: f64,
     ) -> PyResult<PyObject> {
-        let (c, app) = (Arc::clone(&self.inner), app.to_owned());
+        let app = app.to_owned();
         let wait = Duration::from_secs_f64(timeout.max(0.0));
-        let out = self.run(py, async move {
+        let out = self.run(py, async |c| {
             let stream = c.events(&app, start).await?;
             let mut stream = Box::pin(stream.take(limit));
             let mut out = Vec::new();
@@ -242,22 +243,21 @@ impl PyCloudClient {
 
     /// Delete an app (its owner's, or an org admin's).
     fn delete_app(&self, py: Python<'_>, app: &str) -> PyResult<()> {
-        let (c, app) = (Arc::clone(&self.inner), app.to_owned());
-        self.run(py, async move { c.delete_app(&app).await })
-            .map(drop)
+        let app = app.to_owned();
+        self.run(py, async |c| c.delete_app(&app).await).map(drop)
     }
 
     /// What the app's storage holds: `{"keys", "bytes", "blobs", "blobBytes"}`.
     fn app_storage(&self, py: Python<'_>, app: &str) -> PyResult<PyObject> {
-        let (c, app) = (Arc::clone(&self.inner), app.to_owned());
-        let v = self.run(py, async move { c.app_storage(&app).await })?;
+        let app = app.to_owned();
+        let v = self.run(py, async |c| c.app_storage(&app).await)?;
         to_py(py, &v)
     }
 
     /// The ABI the app's bundle embeds: `{"bundle", "abi"}`.
     fn app_abi(&self, py: Python<'_>, app: &str) -> PyResult<PyObject> {
-        let (c, app) = (Arc::clone(&self.inner), app.to_owned());
-        let v = self.run(py, async move { c.app_abi(&app).await })?;
+        let app = app.to_owned();
+        let v = self.run(py, async |c| c.app_abi(&app).await)?;
         to_py(py, &v)
     }
 
@@ -269,12 +269,8 @@ impl PyCloudClient {
         app: &str,
         metadata: Option<&Bound<'_, PyAny>>,
     ) -> PyResult<()> {
-        let (c, app, m) = (
-            Arc::clone(&self.inner),
-            app.to_owned(),
-            metadata_json(py, metadata)?,
-        );
-        self.run(py, async move { c.set_app_metadata(&app, m).await })
+        let (app, m) = (app.to_owned(), metadata_json(py, metadata)?);
+        self.run(py, async |c| c.set_app_metadata(&app, m.clone()).await)
             .map(drop)
     }
 
@@ -284,8 +280,8 @@ impl PyCloudClient {
     /// "governance": {"releases", "appUpgrades", "outbound"}}`; a call's or
     /// view's `receipt` is to be trusted only from one of those keys.
     fn verify_app_cluster(&self, py: Python<'_>, app: &str) -> PyResult<PyObject> {
-        let (c, app) = (Arc::clone(&self.inner), app.to_owned());
-        let cluster = self.run(py, async move { c.verify_app_cluster(&app).await })?;
+        let app = app.to_owned();
+        let cluster = self.run(py, async |c| c.verify_app_cluster(&app).await)?;
         let keys = pyo3::types::PyDict::new_bound(py);
         for (node, key) in &cluster.keys {
             keys.set_item(node, hex::encode(key))?;
@@ -308,9 +304,9 @@ impl PyCloudClient {
         limit: usize,
         timeout: f64,
     ) -> PyResult<PyObject> {
-        let (c, app) = (Arc::clone(&self.inner), app.to_owned());
+        let app = app.to_owned();
         let wait = Duration::from_secs_f64(timeout.max(0.0));
-        let out = self.run(py, async move {
+        let out = self.run(py, async |c| {
             let stream = c.presence_stream(&app).await?;
             let mut stream = Box::pin(stream.take(limit));
             let mut out = Vec::new();

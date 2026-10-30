@@ -17,12 +17,16 @@ from calimero_client_py import (
     Client,
     CloudClient,
     CloudError,
+    LoginRequired,
     SoftPasskey,
+    WrongNode,
 )
 
 __all__ = [
     "Client",
     "CloudClient",
     "CloudError",
+    "LoginRequired",
     "SoftPasskey",
+    "WrongNode",
 ]

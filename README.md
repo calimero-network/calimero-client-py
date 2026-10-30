@@ -85,7 +85,9 @@ client.delete_team(org, team)                               # takes its sub-team
 
 `SoftPasskey` is an in-memory passkey for scripts and tests against development
 clusters (`client.sign_up(SoftPasskey(), "alice")`, `client.call_confirmed(...)`).
-Errors raise `CloudError(message, status, code, details)`.
+Errors raise `CloudError(message, status, code, details)`; `LoginRequired`
+(`401` the client's own refresh did not answer) and `WrongNode` (`421
+WRONG_NODE` with no other node to move to, given in `nodes`) are its subclasses.
 Operators authenticate with the node's ops token:
 
 ```python
