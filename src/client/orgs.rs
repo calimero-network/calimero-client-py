@@ -225,12 +225,8 @@ impl PyCloudClient {
     /// Delete an organization with its teams, invites and apps: the owner's,
     /// approved with their `passkey`.
     fn delete_org(&self, py: Python<'_>, org: &str, passkey: &PySoftPasskey) -> PyResult<()> {
-        let (c, pk, org) = (
-            Arc::clone(&self.inner),
-            Arc::clone(&passkey.inner),
-            org.to_owned(),
-        );
-        self.run(py, async move {
+        let (pk, org) = (Arc::clone(&passkey.inner), org.to_owned());
+        self.run(py, async |c| {
             let mut auth = pk.lock().await;
             c.delete_org(&org, &mut *auth).await
         })
@@ -246,12 +242,8 @@ impl PyCloudClient {
         org: &str,
         metadata: Option<&Bound<'_, PyAny>>,
     ) -> PyResult<()> {
-        let (c, org, m) = (
-            Arc::clone(&self.inner),
-            org.to_owned(),
-            metadata_json(py, metadata)?,
-        );
-        self.run(py, async move { c.set_org_metadata(&org, m).await })
+        let (org, m) = (org.to_owned(), metadata_json(py, metadata)?);
+        self.run(py, async |c| c.set_org_metadata(&org, m.clone()).await)
             .map(drop)
     }
 
@@ -264,16 +256,14 @@ impl PyCloudClient {
         account: &str,
         metadata: Option<&Bound<'_, PyAny>>,
     ) -> PyResult<()> {
-        let (c, org, account, m) = (
-            Arc::clone(&self.inner),
+        let (org, account, m) = (
             org.to_owned(),
             account.to_owned(),
             metadata_json(py, metadata)?,
         );
-        self.run(
-            py,
-            async move { c.set_member_metadata(&org, &account, m).await },
-        )
+        self.run(py, async |c| {
+            c.set_member_metadata(&org, &account, m.clone()).await
+        })
         .map(drop)
     }
 }

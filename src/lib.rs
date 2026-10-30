@@ -32,6 +32,11 @@ fn calimero_client_py(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> 
     m.add("Client", m.getattr("CloudClient")?)?;
     m.add_class::<passkey::PySoftPasskey>()?;
     m.add("CloudError", m.py().get_type_bound::<error::CloudError>())?;
+    m.add(
+        "LoginRequired",
+        m.py().get_type_bound::<error::LoginRequired>(),
+    )?;
+    m.add("WrongNode", m.py().get_type_bound::<error::WrongNode>())?;
 
     m.add("VERSION", env!("CARGO_PKG_VERSION"))?;
 

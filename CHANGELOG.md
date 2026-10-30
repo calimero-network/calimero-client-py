@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- **feat: survive a lost issuing node and `421 WRONG_NODE`** (for core #4774's
+  node-signed sessions). A `401 UNAUTHENTICATED` to a request made with a
+  session is answered by one refresh, shared by the requests refused at the
+  same time, and the request is sent again; a `421 WRONG_NODE` moves the client
+  to the next of the new `nodes` argument (`Client(base_url, nodes=[...])`,
+  `node_url` names the node in use) and sends it there once. `sign_in`,
+  `sign_up` and `refresh` are never sent again. New `CloudError` subclasses
+  `LoginRequired` (`401`) and `WrongNode` (`421 WRONG_NODE`).
+
 ## 1.0.0-rc.1
 
 The Python client for Calimero 1.0, and only for it. **Breaking**: every v1

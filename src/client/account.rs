@@ -6,9 +6,9 @@ use super::prelude::*;
 impl PyCloudClient {
     /// Create an account with a new passkey and sign in. Returns the session.
     fn sign_up(&self, py: Python<'_>, passkey: &PySoftPasskey, name: &str) -> PyResult<PyObject> {
-        let (c, pk) = (Arc::clone(&self.inner), Arc::clone(&passkey.inner));
+        let pk = Arc::clone(&passkey.inner);
         let name = name.to_owned();
-        let s = self.run(py, async move {
+        let s = self.run_once(py, async |c| {
             let mut auth = pk.lock().await;
             c.sign_up(&mut *auth, &name).await
         })?;
@@ -18,8 +18,8 @@ impl PyCloudClient {
 
     /// Sign in with an existing passkey. Returns the session.
     fn sign_in(&self, py: Python<'_>, passkey: &PySoftPasskey) -> PyResult<PyObject> {
-        let (c, pk) = (Arc::clone(&self.inner), Arc::clone(&passkey.inner));
-        let s = self.run(py, async move {
+        let pk = Arc::clone(&passkey.inner);
+        let s = self.run_once(py, async |c| {
             let mut auth = pk.lock().await;
             c.sign_in(&mut *auth).await
         })?;
@@ -30,29 +30,27 @@ impl PyCloudClient {
     /// Add `passkey` (another device) to the signed-in account. Returns its
     /// credential id.
     fn add_passkey(&self, py: Python<'_>, passkey: &PySoftPasskey) -> PyResult<String> {
-        let (c, pk) = (Arc::clone(&self.inner), Arc::clone(&passkey.inner));
-        self.run(py, async move {
+        let pk = Arc::clone(&passkey.inner);
+        self.run(py, async |c| {
             let mut auth = pk.lock().await;
             c.add_passkey(&mut *auth).await
         })
     }
 
-    /// Exchange the refresh token for a new session.
+    /// Exchange the refresh token for a new session, on the node in use (any
+    /// node of the cluster takes it). One at a time with the refreshes the
+    /// client makes on its own after a `401`: a refresh token is used once.
     fn refresh(&self, py: Python<'_>) -> PyResult<PyObject> {
-        let c = Arc::clone(&self.inner);
-        let s = self.run(py, async move { c.refresh().await })?;
+        let nodes = Arc::clone(&self.nodes);
+        let s = self.block(py, async move { nodes.refresh().await })?;
         to_py(py, &s)
     }
 
     /// Authenticate every request with an API key (`cal_...`).
     fn use_api_key(&self, py: Python<'_>, key: &str) -> PyResult<()> {
-        *self
-            .api_key
-            .lock()
-            .map_err(|_| PyValueError::new_err("the API key lock is poisoned"))? =
-            Some(key.to_owned());
-        let (c, key) = (Arc::clone(&self.inner), key.to_owned());
-        self.run(py, async move {
+        self.nodes.set_api_key(Some(key.to_owned()));
+        let (c, key) = (self.client(), key.to_owned());
+        self.block(py, async move {
             c.use_api_key(&key).await;
             Ok(())
         })
@@ -62,8 +60,8 @@ impl PyCloudClient {
     fn use_session(&self, py: Python<'_>, session: &Bound<'_, PyAny>) -> PyResult<()> {
         let s: Session = serde_json::from_value(to_json(py, Some(session))?)
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
-        let c = Arc::clone(&self.inner);
-        self.run(py, async move {
+        let c = self.client();
+        self.block(py, async move {
             c.use_session(s).await;
             Ok(())
         })?;
@@ -74,14 +72,13 @@ impl PyCloudClient {
     /// The session in use (`sign_up`, `sign_in`, `refresh`, `use_session`),
     /// or `None` (none yet, or an API key instead).
     fn session(&self, py: Python<'_>) -> PyResult<PyObject> {
-        let c = Arc::clone(&self.inner);
-        let s = self.run(py, async move { Ok(c.session().await) })?;
+        let c = self.client();
+        let s = self.block(py, async move { Ok(c.session().await) })?;
         to_py(py, &s)
     }
 
     fn me(&self, py: Python<'_>) -> PyResult<PyObject> {
-        let c = Arc::clone(&self.inner);
-        let v = self.run(py, async move { c.me().await })?;
+        let v = self.run(py, async |c| c.me().await)?;
         to_py(py, &v)
     }
 
@@ -94,8 +91,8 @@ impl PyCloudClient {
         py: Python<'_>,
         options: Option<&Bound<'_, PyAny>>,
     ) -> PyResult<(String, String)> {
-        let (c, o) = (Arc::clone(&self.inner), to_json(py, options)?);
-        self.run(py, async move { c.create_api_key(o).await })
+        let o = to_json(py, options)?;
+        self.run(py, async |c| c.create_api_key(o.clone()).await)
     }
 
     /// End this session on the node (its refresh token stops working).
@@ -106,8 +103,7 @@ impl PyCloudClient {
 
     /// End every session of this account, on every device.
     fn sign_out_everywhere(&self, py: Python<'_>) -> PyResult<()> {
-        let c = Arc::clone(&self.inner);
-        self.run(py, async move { c.sign_out_everywhere().await })
+        self.run(py, async |c| c.sign_out_everywhere().await)
             .map(drop)
     }
 
@@ -141,46 +137,40 @@ impl PyCloudClient {
 
     /// What this account uses, with the cluster's quotas.
     fn usage(&self, py: Python<'_>) -> PyResult<PyObject> {
-        let c = Arc::clone(&self.inner);
-        let v = self.run(py, async move { c.usage().await })?;
+        let v = self.run(py, async |c| c.usage().await)?;
         to_py(py, &v)
     }
 
     /// Name one of this account's passkeys; `""` clears the name.
     fn label_passkey(&self, py: Python<'_>, credential_id: &str, label: &str) -> PyResult<()> {
-        let (c, cred, label) = (
-            Arc::clone(&self.inner),
-            credential_id.to_owned(),
-            label.to_owned(),
-        );
-        self.run(py, async move { c.label_passkey(&cred, &label).await })
+        let (cred, label) = (credential_id.to_owned(), label.to_owned());
+        self.run(py, async |c| c.label_passkey(&cred, &label).await)
             .map(drop)
     }
 
     /// Name `app` for this account (`alias` then reaches it wherever an app id does).
     fn set_alias(&self, py: Python<'_>, alias: &str, app: &str) -> PyResult<()> {
-        let (c, alias, app) = (Arc::clone(&self.inner), alias.to_owned(), app.to_owned());
-        self.run(py, async move { c.set_alias(&alias, &app).await })
+        let (alias, app) = (alias.to_owned(), app.to_owned());
+        self.run(py, async |c| c.set_alias(&alias, &app).await)
             .map(drop)
     }
 
     /// The app an alias names: `{"alias", "appId"}`.
     fn alias(&self, py: Python<'_>, alias: &str) -> PyResult<PyObject> {
-        let (c, alias) = (Arc::clone(&self.inner), alias.to_owned());
-        let v = self.run(py, async move { c.alias(&alias).await })?;
+        let alias = alias.to_owned();
+        let v = self.run(py, async |c| c.alias(&alias).await)?;
         to_py(py, &v)
     }
 
     /// Every alias of this account: `{alias: app_id}`.
     fn aliases(&self, py: Python<'_>) -> PyResult<PyObject> {
-        let c = Arc::clone(&self.inner);
-        let v = self.run(py, async move { c.aliases().await })?;
+        let v = self.run(py, async |c| c.aliases().await)?;
         to_py(py, &v["aliases"])
     }
 
     fn delete_alias(&self, py: Python<'_>, alias: &str) -> PyResult<()> {
-        let (c, alias) = (Arc::clone(&self.inner), alias.to_owned());
-        self.run(py, async move { c.delete_alias(&alias).await })
+        let alias = alias.to_owned();
+        self.run(py, async |c| c.delete_alias(&alias).await)
             .map(drop)
     }
 }

@@ -19,8 +19,7 @@ impl PyCloudClient {
 
     /// Prometheus metrics, as text.
     fn ops_metrics(&self, py: Python<'_>) -> PyResult<String> {
-        let c = Arc::clone(&self.inner);
-        self.run(py, async move { c.get_text("ops/metrics").await })
+        self.run(py, async |c| c.get_text("ops/metrics").await)
     }
 
     /// Register node `node_id` at `addr` (its URL) in the directory. A node
@@ -190,8 +189,7 @@ impl PyCloudClient {
 
     /// Install a signed `.mpk` for the operator's upgrades.
     fn ops_upload_package(&self, py: Python<'_>, mpk: Vec<u8>) -> PyResult<PyObject> {
-        let c = Arc::clone(&self.inner);
-        let v = self.run(py, async move { c.ops_upload_package(mpk).await })?;
+        let v = self.run(py, async |c| c.ops_upload_package(mpk.clone()).await)?;
         to_py(py, &v)
     }
 
@@ -202,12 +200,8 @@ impl PyCloudClient {
         package: &str,
         version: &str,
     ) -> PyResult<PyObject> {
-        let (c, package, version) = (
-            Arc::clone(&self.inner),
-            package.to_owned(),
-            version.to_owned(),
-        );
-        let v = self.run(py, async move {
+        let (package, version) = (package.to_owned(), version.to_owned());
+        let v = self.run(py, async |c| {
             c.ops_install_package(&package, &version).await
         })?;
         to_py(py, &v)
@@ -221,8 +215,8 @@ impl PyCloudClient {
         package: &str,
         version: Option<String>,
     ) -> PyResult<PyObject> {
-        let (c, package) = (Arc::clone(&self.inner), package.to_owned());
-        let v = self.run(py, async move {
+        let package = package.to_owned();
+        let v = self.run(py, async |c| {
             c.ops_uninstall_package(&package, version.as_deref()).await
         })?;
         to_py(py, &v)

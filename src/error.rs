@@ -1,4 +1,6 @@
-//! `CloudError`, the one exception the bindings raise for a node's answer.
+//! `CloudError`, the exception the bindings raise for a node's answer, and
+//! the two of its subclasses a caller acts on without reading the code:
+//! `LoginRequired` (`401 UNAUTHENTICATED`) and `WrongNode` (`421 WRONG_NODE`).
 
 use calimero_client::Error;
 use pyo3::PyErr;
@@ -15,8 +17,20 @@ mod exception {
         PyException,
         "An error from a cloud node: args are (message, status, code, details); status is 0 when the node could not be reached or attested."
     );
+    create_exception!(
+        calimero_client_py,
+        LoginRequired,
+        CloudError,
+        "401 UNAUTHENTICATED that the client's own refresh did not answer (or there was no refresh token): sign in again."
+    );
+    create_exception!(
+        calimero_client_py,
+        WrongNode,
+        CloudError,
+        "421 WRONG_NODE: the node's release may not serve this account, and the client knows no other node that took the request: use another node of the cluster."
+    );
 }
-pub use exception::CloudError;
+pub use exception::{CloudError, LoginRequired, WrongNode};
 
 pub(crate) fn cloud_err(e: Error) -> PyErr {
     match e {
@@ -25,12 +39,19 @@ pub(crate) fn cloud_err(e: Error) -> PyErr {
             code,
             message,
             details,
-        } => CloudError::new_err((
-            format!("{status} {code}: {message}"),
-            status,
-            code,
-            details.to_string(),
-        )),
+        } => {
+            let args = (
+                format!("{status} {code}: {message}"),
+                status,
+                code.clone(),
+                details.to_string(),
+            );
+            match (status, code.as_str()) {
+                (401, "UNAUTHENTICATED") => LoginRequired::new_err(args),
+                (421, "WRONG_NODE") => WrongNode::new_err(args),
+                _ => CloudError::new_err(args),
+            }
+        }
         Error::Transport(r) => CloudError::new_err((format!("{r:#}"), 0_u16, "TRANSPORT", "null")),
     }
 }
