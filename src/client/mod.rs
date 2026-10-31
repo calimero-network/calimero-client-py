@@ -10,6 +10,7 @@
 mod account;
 mod apps;
 mod blobs;
+mod directory;
 mod governance;
 mod ops;
 mod orgs;
@@ -17,6 +18,9 @@ mod packages;
 mod prelude;
 mod recover;
 
+pub(crate) use directory::DirectoryError;
+
+use crate::error::directory_err;
 use prelude::*;
 use recover::Nodes;
 
@@ -66,6 +70,18 @@ impl PyCloudClient {
     ) -> PyResult<T> {
         let (rt, nodes) = (Arc::clone(&self.runtime), Arc::clone(&self.nodes));
         py.allow_threads(move || rt.block_on(nodes.run(op)).map_err(cloud_err))
+    }
+
+    /// [`run`](Self::run) for a request that is safe to send twice (a read, a
+    /// call with its idempotency key): a node that answers `503` or cannot be
+    /// reached is also left for the next, as [`Nodes::run_repeatable`] does.
+    fn run_repeatable<T: Send>(
+        &self,
+        py: Python<'_>,
+        op: impl AsyncFn(Arc<Client>) -> Result<T, Error> + Send,
+    ) -> PyResult<T> {
+        let (rt, nodes) = (Arc::clone(&self.runtime), Arc::clone(&self.nodes));
+        py.allow_threads(move || rt.block_on(nodes.run_repeatable(op)).map_err(cloud_err))
     }
 
     /// [`run`](Self::run) for a sign-in or sign-up, sent once: a node that
@@ -174,7 +190,11 @@ impl PyCloudClient {
         } else {
             body
         };
-        self.run(py, async |c| send_verb(&c, verb, &path, body.clone()).await)
+        let op = async |c: Arc<Client>| send_verb(&c, verb, &path, body.clone()).await;
+        match verb {
+            Verb::Get => self.run_repeatable(py, op),
+            Verb::Post | Verb::Delete => self.run(py, op),
+        }
     }
 
     /// The operator key `use_operator_key` set, if any.
@@ -271,6 +291,62 @@ impl PyCloudClient {
     }
 }
 
+/// The trust policy every node of the client is attested under.
+fn policy(
+    allow_mock: bool,
+    app_hash: Option<&str>,
+    tee_profiles: Option<Vec<String>>,
+    min_release: Option<String>,
+    allow_debug_profiles: bool,
+) -> PyResult<Policy> {
+    let app_hash = app_hash
+        .map(|h| {
+            hex::decode(h)
+                .ok()
+                .and_then(|v| <[u8; 32]>::try_from(v).ok())
+                .ok_or_else(|| PyValueError::new_err("app_hash must be 32 bytes of hex"))
+        })
+        .transpose()?;
+    Ok(Policy {
+        allow_mock,
+        app_hash,
+        measurements: match tee_profiles {
+            Some(allowed_profiles) if !allowed_profiles.is_empty() => Measurements::Release {
+                allowed_profiles,
+                min_version: min_release,
+            },
+            _ => Measurements::None,
+        },
+        allowed_tcb_statuses: Vec::new(),
+        allow_debug_profiles,
+    })
+}
+
+/// A client for each of `urls` (each once, in order), attested under `policy`
+/// before anything is sent to it.
+fn connect_all(
+    runtime: &Runtime,
+    urls: impl IntoIterator<Item = String>,
+    policy: &Policy,
+) -> PyResult<Vec<(String, Client)>> {
+    let mut unique: Vec<String> = Vec::new();
+    for url in urls {
+        let url = url.trim_end_matches('/').to_owned();
+        if !unique.contains(&url) {
+            unique.push(url);
+        }
+    }
+    let _enter = runtime.enter();
+    unique
+        .into_iter()
+        .map(|url| {
+            let client = Client::connect(&url, policy.clone())
+                .map_err(|e| PyValueError::new_err(format!("{e:#}")))?;
+            Ok((url, client))
+        })
+        .collect()
+}
+
 #[pymethods]
 impl PyCloudClient {
     /// Connect to `base_url`. The node is trusted only once its attestation
@@ -281,6 +357,8 @@ impl PyCloudClient {
     /// them when a node answers `421 WRONG_NODE` (its release may not serve
     /// the account); each is attested under the same policy before anything
     /// is sent to it. Without them that answer is raised as `WrongNode`.
+    /// A node that cannot be reached, or that keeps answering `503` to a read
+    /// or a call, is left for the next too (each node once per request).
     /// A `401` to a request made with a session is answered by one refresh
     /// (any node takes it) and the request sent again; `LoginRequired` is
     /// raised only when that does not help.
@@ -303,47 +381,73 @@ impl PyCloudClient {
         allow_debug_profiles: bool,
         nodes: Option<Vec<String>>,
     ) -> PyResult<Self> {
-        let app_hash = app_hash
-            .map(|h| {
-                hex::decode(h)
-                    .ok()
-                    .and_then(|v| <[u8; 32]>::try_from(v).ok())
-                    .ok_or_else(|| PyValueError::new_err("app_hash must be 32 bytes of hex"))
-            })
-            .transpose()?;
-        let runtime = Runtime::new().map_err(|e| PyValueError::new_err(e.to_string()))?;
-        let policy = Policy {
+        let policy = policy(
             allow_mock,
             app_hash,
-            measurements: match tee_profiles {
-                Some(allowed_profiles) if !allowed_profiles.is_empty() => Measurements::Release {
-                    allowed_profiles,
-                    min_version: min_release,
-                },
-                _ => Measurements::None,
-            },
-            allowed_tcb_statuses: Vec::new(),
+            tee_profiles,
+            min_release,
             allow_debug_profiles,
-        };
-        let mut urls: Vec<String> = Vec::new();
-        for url in std::iter::once(base_url.to_owned()).chain(nodes.unwrap_or_default()) {
-            let url = url.trim_end_matches('/').to_owned();
-            if !urls.contains(&url) {
-                urls.push(url);
-            }
-        }
-        let clients = {
-            let _enter = runtime.enter();
-            urls.into_iter()
-                .map(|url| {
-                    let client = Client::connect(&url, policy.clone())
-                        .map_err(|e| PyValueError::new_err(format!("{e:#}")))?;
-                    Ok((url, client))
-                })
-                .collect::<PyResult<Vec<_>>>()?
-        };
+        )?;
+        let runtime = Runtime::new().map_err(|e| PyValueError::new_err(e.to_string()))?;
+        let urls = std::iter::once(base_url.to_owned()).chain(nodes.unwrap_or_default());
+        let nodes = connect_all(&runtime, urls, &policy)?;
         Ok(Self {
-            nodes: Arc::new(Nodes::new(clients)),
+            nodes: Arc::new(Nodes::new(nodes)),
+            runtime: Arc::new(runtime),
+            policy,
+            operator_key: Arc::new(std::sync::Mutex::new(None)),
+        })
+    }
+
+    /// Connect to the cluster named `cluster`, by the nodes the Calimero
+    /// Cloud node directory lists for it (`GET {directory}/{cluster}`).
+    ///
+    /// The nodes in `zone` come first, then the rest, each group in a
+    /// weighted random order; the first is the node in use and the others
+    /// are `nodes`. The directory is not trusted: every node is attested
+    /// under this policy (the arguments mean what they do for the
+    /// constructor) before anything is sent to it. The listing is fetched
+    /// again once it is due and after the client moved off an unavailable
+    /// node. Raises `CloudError` (code `DIRECTORY`; the status is the
+    /// directory's, `404` for an unknown cluster, 0 when it could not be
+    /// reached) when the directory lists no usable node.
+    #[staticmethod]
+    #[pyo3(signature = (cluster, *, tee_profiles = None, min_release = None, allow_mock = false, app_hash = None, allow_debug_profiles = false, directory = None, zone = None))]
+    #[allow(clippy::too_many_arguments)]
+    fn connect(
+        py: Python<'_>,
+        cluster: &str,
+        tee_profiles: Option<Vec<String>>,
+        min_release: Option<String>,
+        allow_mock: bool,
+        app_hash: Option<&str>,
+        allow_debug_profiles: bool,
+        directory: Option<String>,
+        zone: Option<String>,
+    ) -> PyResult<Self> {
+        if cluster.is_empty() {
+            return Err(PyValueError::new_err("cluster must not be empty"));
+        }
+        let policy = policy(
+            allow_mock,
+            app_hash,
+            tee_profiles,
+            min_release,
+            allow_debug_profiles,
+        )?;
+        let runtime = Runtime::new().map_err(|e| PyValueError::new_err(e.to_string()))?;
+        let source = directory::Remote {
+            directory: directory.unwrap_or_else(|| directory::DEFAULT_DIRECTORY.to_owned()),
+            cluster: cluster.to_owned(),
+            zone,
+            policy: policy.clone(),
+        };
+        let (urls, refresh_after) = py
+            .allow_threads(|| runtime.block_on(source.listing()))
+            .map_err(directory_err)?;
+        let nodes = connect_all(&runtime, urls, &policy)?;
+        Ok(Self {
+            nodes: Arc::new(Nodes::new(nodes).with_directory(Box::new(source), refresh_after)),
             runtime: Arc::new(runtime),
             policy,
             operator_key: Arc::new(std::sync::Mutex::new(None)),
@@ -388,7 +492,7 @@ impl PyCloudClient {
     /// GET any API path.
     fn get(&self, py: Python<'_>, path: &str) -> PyResult<PyObject> {
         let path = path.to_owned();
-        let v = self.run(py, async |c| c.get(&path).await)?;
+        let v = self.run_repeatable(py, async |c| c.get(&path).await)?;
         to_py(py, &v)
     }
 
@@ -498,19 +602,26 @@ impl PyCloudClient {
     /// GET any API path whose answer is text (`ops/metrics`).
     fn get_text(&self, py: Python<'_>, path: &str) -> PyResult<String> {
         let path = path.to_owned();
-        self.run(py, async |c| c.get_text(&path).await)
+        self.run_repeatable(py, async |c| c.get_text(&path).await)
     }
 
-    /// The URL of the node in use: `base_url`, until a `421 WRONG_NODE`
-    /// moved the client to the next of `nodes`.
+    /// The URL of the node in use: `base_url`, until a `421 WRONG_NODE` or
+    /// an unavailable node moved the client to the next of `nodes`.
     #[getter]
     fn node_url(&self) -> String {
-        self.nodes.url().to_owned()
+        self.nodes.url()
+    }
+
+    /// Every node this client may use, in the order it moves through them
+    /// (the node in use among them).
+    #[getter]
+    fn node_urls(&self) -> Vec<String> {
+        self.nodes.urls()
     }
 
     /// The node's attestation document (unverified, for display).
     fn attestation(&self, py: Python<'_>) -> PyResult<PyObject> {
-        let v = self.run(py, async |c| c.attestation().await)?;
+        let v = self.run_repeatable(py, async |c| c.attestation().await)?;
         to_py(py, &v)
     }
 }

@@ -51,6 +51,16 @@ for e in client.events(app_id, start=0, limit=10, timeout=5):
     print(e["kind"], e["data"])
 ```
 
+A cluster by name: `Client.connect` asks the Calimero Cloud node directory for
+its nodes, the ones in `zone` first, and fails over between them. The directory
+is not trusted: every node is attested under your policy before anything is
+sent to it.
+
+```python
+client = Client.connect("eu-shared-1", tee_profiles=["..."], zone="europe-west4-a")
+print(client.node_url, client.node_urls)  # the node in use, and the rest in order
+```
+
 Organizations, teams and invites:
 
 ```python

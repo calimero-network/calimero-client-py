@@ -2,6 +2,16 @@
 
 use super::prelude::*;
 
+/// A new idempotency key for a call the caller gave none, as core's client
+/// makes one: a `node:` key is kept 10 minutes, long enough for the client's
+/// own retries and failover.
+fn new_call_key() -> String {
+    format!(
+        "node:c-{}",
+        calimero_identity::b64url(&calimero_identity::random::<16>())
+    )
+}
+
 #[pymethods]
 impl PyCloudClient {
     /// Upload a WASM bundle. Returns its hash.
@@ -95,7 +105,8 @@ impl PyCloudClient {
     /// Call a method. Returns `{"index", "result", "events"}`. While the node
     /// answers 503 or cannot be reached, the call is sent again with the same
     /// idempotency key (`idempotency_key`, else one the client makes), so it
-    /// runs once.
+    /// runs once; when the node keeps failing, the call goes with that key to
+    /// the client's next node (the key is the app's, cluster-wide).
     #[pyo3(signature = (app, method, args = None, idempotency_key = None))]
     fn call(
         &self,
@@ -107,9 +118,10 @@ impl PyCloudClient {
     ) -> PyResult<PyObject> {
         let a = to_json(py, args)?;
         let (app, method) = (app.to_owned(), method.to_owned());
-        let r = self.run(py, async |c| {
-            c.call(&app, &method, a.clone(), idempotency_key.as_deref())
-                .await
+        // Made here, not by core's client, so each node is sent the same key.
+        let key = idempotency_key.unwrap_or_else(new_call_key);
+        let r = self.run_repeatable(py, async |c| {
+            c.call(&app, &method, a.clone(), Some(&key)).await
         })?;
         to_py(py, &r)
     }
@@ -152,7 +164,7 @@ impl PyCloudClient {
         } else {
             Consistency::Strong
         };
-        let r = self.run(py, async |c| {
+        let r = self.run_repeatable(py, async |c| {
             c.view(&app, &method, a.clone(), consistency).await
         })?;
         to_py(py, &r)
