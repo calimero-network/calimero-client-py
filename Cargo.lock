@@ -483,9 +483,11 @@ version = "1.0.0-rc.1"
 dependencies = [
  "calimero-client",
  "calimero-identity",
+ "eyre",
  "futures-util",
  "hex",
  "pyo3",
+ "reqwest 0.12.28",
  "serde",
  "serde_json",
  "tokio",

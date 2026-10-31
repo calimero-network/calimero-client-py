@@ -55,3 +55,10 @@ pub(crate) fn cloud_err(e: Error) -> PyErr {
         Error::Transport(r) => CloudError::new_err((format!("{r:#}"), 0_u16, "TRANSPORT", "null")),
     }
 }
+
+/// The node directory gave no usable node (`Client.connect`): a `CloudError`
+/// with code `DIRECTORY` and the directory's status (0 when it could not be
+/// reached or answered no JSON).
+pub(crate) fn directory_err(e: crate::client::DirectoryError) -> PyErr {
+    CloudError::new_err((e.message, e.status, "DIRECTORY", "null"))
+}

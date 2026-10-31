@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+- **feat: connect to a cluster by name and fail over between its nodes.**
+  `Client.connect(cluster, *, tee_profiles=None, min_release=None,
+  allow_mock=False, app_hash=None, allow_debug_profiles=False, directory=None,
+  zone=None)` reads the cluster's nodes from the Calimero Cloud node directory
+  (`GET {directory}/{cluster}`, default
+  `https://manager.cloud.calimero.network/api/v2/directory`), drops unusable
+  entries, and orders them `zone` first, then weighted random; it raises
+  `CloudError` (code `DIRECTORY`) for an unknown cluster (`404`), a directory it
+  cannot reach, or a listing with no usable node. Every node is still attested
+  under the caller's policy. The listing is fetched again once its
+  `refreshAfterSeconds` pass and after a failover (the node in use stays first;
+  nodes no longer listed are dropped). New `node_urls`: every node, in order.
+- **feat: fail over to the next node when one is unavailable.** With more than
+  one node (`nodes`, or `Client.connect`), a request whose node cannot be
+  connected to goes to the next; a read (`view`, `get`, ...) or a `call` whose
+  node keeps answering `503` or times out does too, a call with the same
+  idempotency key (the client now makes the key itself when none is given, so
+  every node gets the same one; the cluster answers it once). Each node is tried
+  once per request, then the last error is raised. `sign_in`, `sign_up` and
+  refreshes are never sent again for this. One node: unchanged.
+
 - **feat: survive a lost issuing node and `421 WRONG_NODE`** (for core #4774's
   node-signed sessions). A `401 UNAUTHENTICATED` to a request made with a
   session is answered by one refresh, shared by the requests refused at the
