@@ -78,6 +78,8 @@ def test_client_is_the_cloud_client():
 # The Ops API calls mdma makes through `CloudClient` (mdma_common.cloud_v2), and
 # the rest of core's `calimero-client`: a missing one is a missing binding.
 METHODS = {
+    # a cluster by name, from the node directory
+    "connect",
     # session and account
     "sign_up",
     "sign_in",

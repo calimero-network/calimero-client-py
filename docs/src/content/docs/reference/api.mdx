@@ -33,7 +33,47 @@ until the first request.
 | `tee_profiles` | Accept real TDX quotes from images a signed mero-tee release lists under one of these profiles. Without it only mock quotes can be accepted. |
 | `min_release` | The oldest mero-tee release accepted. |
 | `allow_debug_profiles` | Accept a release's debug profiles (whose memory the host can read). |
-| `nodes` | Other nodes of the same cluster, in the order to move to them when a node answers `421 WRONG_NODE`. Each is attested under the same policy. `node_url` names the node in use. |
+| `nodes` | Other nodes of the same cluster, in the order to move to them when a node answers `421 WRONG_NODE` or is unavailable (see [recovery](#recovery)). Each is attested under the same policy. `node_url` names the node in use. |
+
+### `Client.connect`
+
+```python
+Client.connect(cluster, *, tee_profiles=None, min_release=None, allow_mock=False,
+               app_hash=None, allow_debug_profiles=False, directory=None, zone=None)
+```
+
+A client for the cluster named `cluster`, from the nodes the Calimero Cloud
+node directory lists for it: `GET {directory}/{cluster}`, `directory`
+defaulting to `https://manager.cloud.calimero.network/api/v2/directory`. The
+policy arguments mean what they do for the constructor.
+
+- Entries that are not an `http(s)` URL with a positive integer `weight` are
+  dropped. An unknown cluster (`404`), a directory that cannot be reached, or a
+  listing with no usable node raises `CloudError` with code `DIRECTORY` (its
+  status is the directory's, 0 when it could not be reached).
+- The nodes in `zone` come first, then the rest; within each group the order is
+  weighted random. The first is the node in use, the others are its `nodes`.
+- The directory is not trusted: every node is attested under this client's
+  policy before anything is sent to it, so a bad listing can only make
+  connecting fail.
+- The listing is fetched again, best effort, once its `refreshAfterSeconds`
+  have passed and after the client failed over: the node in use stays first,
+  then the directory's order; nodes it no longer lists are dropped.
+
+`node_urls` lists every node in the order the client moves through them.
+
+### Recovery
+
+A node that cannot be connected to is left for the next node by any request; a
+read (`view`, `get`, `get_text`, `attestation`, `list_apps`, `get_app`,
+`get_org`, `get_team`, `list_api_keys`) or a `call`
+whose node answers `503` or times out is too. Core's client first sends a call
+again to the same node for about nine seconds; the call then goes to the next
+node with the same idempotency key (the client makes one when `call` is given
+none), and the cluster answers it once, since the key is recorded in the app's
+replicated log. Each node is tried once per request; after the last, the last
+error is raised. `sign_in`, `sign_up` and refreshes are never sent again for
+this. With one node nothing changes.
 
 A request made with a session that the node answers `401 UNAUTHENTICATED` is
 refreshed once and sent again: the node that signed the session may only have

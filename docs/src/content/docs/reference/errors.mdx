@@ -53,6 +53,13 @@ answer `401` — not because the user signed out. The client answers that itself
   names the node in use. With no other node, or when the next one refuses too,
   `WrongNode` is raised with the node's `details`.
 
+- **Unavailable**: a node that cannot be connected to (status 0, code
+  `TRANSPORT`) is left for the next of `nodes` by any request; a read or a
+  `call` also leaves a node that answers `503` or times out, a call with the
+  same idempotency key. Each node is tried once per request, then the last
+  error is raised. `Client.connect` asks the node directory for the cluster's
+  nodes again after that.
+
 Sending a request again is safe, a call too: the node answers `401` and `421`
 while it judges the credential, before it runs anything. A node also answers
 `421` to the ceremonies that mint a session before it spends their passkey
