@@ -28,13 +28,13 @@ name = "calimero_client_py"
 crate-type = ["cdylib"]
 
 [dependencies]
-# Core's client, from the 1.0.0-rc.1 release tag.
+# Core's client, from the 1.0.0-rc.6 release tag.
 #
 # The two move TOGETHER or not at all: moving one alone makes cargo resolve two
 # copies of the crates they share, and the error names types rather than
 # revisions, which reads as a code problem rather than a resolution one.
-calimero-client = { git = "https://github.com/calimero-network/core", tag = "1.0.0-rc.1", features = ["testing"] }
-calimero-identity = { git = "https://github.com/calimero-network/core", tag = "1.0.0-rc.1", features = ["testing"] }
+calimero-client = { git = "https://github.com/calimero-network/core", tag = "1.0.0-rc.6", features = ["testing"] }
+calimero-identity = { git = "https://github.com/calimero-network/core", tag = "1.0.0-rc.6", features = ["testing"] }
 futures-util = "0.3"
 
 # Python bindings

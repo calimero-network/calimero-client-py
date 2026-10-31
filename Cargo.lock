@@ -455,9 +455,10 @@ checksum = "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"
 [[package]]
 name = "calimero-client"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?tag=1.0.0-rc.1#eae4cc50cf26220d78775873ac998fcce2075f1a"
+source = "git+https://github.com/calimero-network/core?tag=1.0.0-rc.6#82b0b527f0c2929c2ce0e37f856699ba926e61d1"
 dependencies = [
  "base64 0.23.1",
+ "bytes",
  "calimero-identity",
  "calimero-sealed",
  "calimero-tee-attestation",
@@ -497,7 +498,7 @@ dependencies = [
 [[package]]
 name = "calimero-identity"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?tag=1.0.0-rc.1#eae4cc50cf26220d78775873ac998fcce2075f1a"
+source = "git+https://github.com/calimero-network/core?tag=1.0.0-rc.6#82b0b527f0c2929c2ce0e37f856699ba926e61d1"
 dependencies = [
  "base64 0.23.1",
  "ciborium",
@@ -510,7 +511,7 @@ dependencies = [
 [[package]]
 name = "calimero-sealed"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?tag=1.0.0-rc.1#eae4cc50cf26220d78775873ac998fcce2075f1a"
+source = "git+https://github.com/calimero-network/core?tag=1.0.0-rc.6#82b0b527f0c2929c2ce0e37f856699ba926e61d1"
 dependencies = [
  "axum",
  "bytes",
@@ -536,7 +537,7 @@ dependencies = [
 [[package]]
 name = "calimero-tee-attestation"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?tag=1.0.0-rc.1#eae4cc50cf26220d78775873ac998fcce2075f1a"
+source = "git+https://github.com/calimero-network/core?tag=1.0.0-rc.6#82b0b527f0c2929c2ce0e37f856699ba926e61d1"
 dependencies = [
  "base64 0.23.1",
  "configfs-tsm",
@@ -555,7 +556,7 @@ dependencies = [
 [[package]]
 name = "calimero-tee-release"
 version = "0.0.0"
-source = "git+https://github.com/calimero-network/core?tag=1.0.0-rc.1#eae4cc50cf26220d78775873ac998fcce2075f1a"
+source = "git+https://github.com/calimero-network/core?tag=1.0.0-rc.6#82b0b527f0c2929c2ce0e37f856699ba926e61d1"
 dependencies = [
  "base64 0.23.1",
  "eyre",
