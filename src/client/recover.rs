@@ -91,9 +91,11 @@ pub(crate) fn unauthenticated(e: &Error) -> bool {
     matches!(e, Error::Api { status: 401, code, .. } if code == "UNAUTHENTICATED")
 }
 
-/// `421 WRONG_NODE`, and not another 421 (`NOT_LEADER` names a leader to follow).
+/// `421 WRONG_NODE`, and not another 421 (`NOT_LEADER` names a leader to
+/// follow). Core's client names it `Error::WrongNode` (core #4774).
 pub(crate) fn wrong_node(e: &Error) -> bool {
-    matches!(e, Error::Api { status: 421, code, .. } if code == "WRONG_NODE")
+    matches!(e, Error::WrongNode { .. })
+        || matches!(e, Error::Api { status: 421, code, .. } if code == "WRONG_NODE")
 }
 
 /// The node could not be connected to, so nothing was sent to it: any
@@ -104,7 +106,7 @@ pub(crate) fn unreachable(e: &Error) -> bool {
             c.downcast_ref::<reqwest::Error>()
                 .is_some_and(reqwest::Error::is_connect)
         }),
-        Error::Api { .. } => false,
+        Error::Api { .. } | Error::WrongNode { .. } => false,
     }
 }
 
