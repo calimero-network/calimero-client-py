@@ -18,7 +18,7 @@
   OPERATOR_SIGNATURE_REQUIRED` with the key `use_operator_key(seed)` sets;
   `post_operator_signed` / `delete_operator_signed` do it for any path, and
   `Client.operator_public_key(seed)` gives the `--operator-key` the nodes
-  take. Builds against core's master, which has #4791.
+  take. Builds against core's `1.0.0-rc.7` release tag, the first with #4791.
 - **feat: `delete(path, body=None)`** sends `body` as JSON on a DELETE, for
   a caller that makes its own proof (`{"operatorProof": ...}` on
   `ops/nodes/{id}`, `{"confirm": ...}` on a passkey, member or team row);
