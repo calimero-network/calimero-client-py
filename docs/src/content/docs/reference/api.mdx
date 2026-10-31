@@ -105,10 +105,10 @@ refresh token, to each next node in turn, once per node. See
 
 | Method | Returns |
 | --- | --- |
-| `add_passkey(passkey)` | The added credential's id. |
-| `remove_passkey(credential_id)` | `None`. |
+| `add_passkey(passkey, approver)` | The added credential's id; approved with `approver`, a passkey the account already has. |
+| `remove_passkey(credential_id, passkey)` | `None`; approved with `passkey`. |
 | `label_passkey(credential_id, label)` | `None`; `""` clears the name. |
-| `create_api_key(options=None)` | `(key_id, key)`; the key is shown once. `options` may set `label`, `apps`, `methods`, `readOnly`, `allowConfirm`, `ttlSecs` (at most a year). |
+| `create_api_key(options, passkey)` | `(key_id, key)`, approved with the account's `passkey` (a session's; an API key is refused); the key is shown once. `options` may be `None`, or `options` may set `label`, `apps`, `methods`, `readOnly`, `allowConfirm`, `ttlSecs` (at most a year). |
 | `list_api_keys()` | The key records. |
 | `revoke_api_key(key_id)` | `None`. |
 
@@ -197,10 +197,14 @@ Each takes the owner's `passkey`, which answers the node's `412 CONFIRM_REQUIRED
 | `delete_org(org, passkey)` | `None`; deletes its teams, invites and apps, approved with the owner's passkey. |
 | `set_org_metadata(org, metadata)` | `None`; `None` clears it. |
 | `set_member_metadata(org, account, metadata)` | `None` (the member's own, or an admin's). |
-| `set_member(org, account, role)` | `None`. `role` is `guest`, `member`, `admin` or `owner`. |
-| `remove_member(org, account)` | `None` (yourself, to leave). |
-| `set_capabilities(org, capabilities, account=None, team=None)` | `None`. Capability bits for `account` (in `team`), or the organization's default. |
-| `invite(org, role, teams=[], ttl_secs=None, uses=None)` | The invite token (default a week, one use). |
+| `set_member(org, account, role, passkey)` | `None`. `role` is `guest`, `member`, `admin` or `owner`. |
+| `remove_member(org, account, passkey)` | `None` (yourself, to leave). |
+| `set_capabilities(org, capabilities, passkey, account=None, team=None)` | `None`. Capability bits for `account` (in `team`), or the organization's default. |
+| `invite(org, role, passkey, teams=[], ttl_secs=None, uses=None)` | The invite token (default a week, one use). |
+
+What grants access (a member's role or removal, capabilities, invites, team
+rows) is approved with the acting account's `passkey`: the node answers `412
+CONFIRM_REQUIRED` and the client answers with the passkey's assertion.
 | `redeem_invite(token)` | The node's answer (`dict`). |
 
 ### Teams
@@ -211,13 +215,19 @@ Each takes the owner's `passkey`, which answers the node's `412 CONFIRM_REQUIRED
 | `get_team(org, team)` | Its members, sub-teams and apps. |
 | `update_team(org, team, name=None, join=None, metadata=None, parent=None, to_top=False)` | `None`; unset arguments stay as they are. |
 | `delete_team(org, team)` | `None`; takes its sub-teams and their apps. |
-| `set_team_member(org, team, account, role=None, capabilities=None)` | `None`. `role` is `lead`, `member` or `readOnly`. |
-| `remove_team_member(org, team, account)` | `None`. |
+| `set_team_member(org, team, account, passkey, role=None, capabilities=None)` | `None`. `role` is `lead`, `member` or `readOnly`. |
+| `remove_team_member(org, team, account, passkey)` | `None`. |
 
 ### Ops API
 
 The operator's calls, with the node's ops token: `client.use_api_key(ops_token)`
-first. The Ops API has no read path into apps' data.
+first. The Ops API has no read path into apps' data. Its decisions (registering
+and removing nodes, quotas, replica moves, and releases, outbound approvals and
+upgrades where governance gives them to the operator) answer `428
+OPERATOR_SIGNATURE_REQUIRED` until signed with the operator's Ed25519 key:
+`client.use_operator_key(seed_hex)` (the 32-byte seed; the nodes run with
+`--operator-key Client.operator_public_key(seed_hex)`) and the client signs
+the bytes the node names and sends the decision again.
 
 | Method | Returns |
 | --- | --- |
@@ -243,10 +253,14 @@ so they can be sent to any node.
 
 | Method | Returns |
 | --- | --- |
-| `get(path)`, `post(path, body=None)`, `put(path, body=None)`, `delete(path)` | The node's JSON for any API path. |
+| `get(path)`, `post(path, body=None)`, `put(path, body=None)`, `delete(path, body=None)` | The node's JSON for any API path; a DELETE sends `body` as JSON when given (a proof the caller made: `confirm`, `operatorProof`). |
 | `get_text(path)` | A text answer (`ops/metrics`). |
 | `post_confirmed(path, body, passkey)` | POST answering a `412 CONFIRM_REQUIRED` with `passkey`'s assertion (owner approvals). |
-| `delete_confirmed(path, passkey)` | The same for a DELETE (deleting an organization). |
+| `delete_confirmed(path, passkey)` | The same for a DELETE (an organization, a member, a passkey). |
+| `use_operator_key(seed)` | `None`; signs the `ops_*` decisions from now on (`None` forgets it). |
+| `Client.operator_public_key(seed)` | The verify key (hex) the nodes take as `--operator-key`. |
+| `post_operator_signed(path, body=None, operator_key=None)` | POST answering a `428 OPERATOR_SIGNATURE_REQUIRED` with the operator key's signature (`operator_key`, else `use_operator_key`'s). |
+| `delete_operator_signed(path, operator_key=None)` | The same for a DELETE (removing a node). |
 | `attestation()` | The node's attestation document, unverified, for display. |
 
 ## `SoftPasskey`

@@ -172,6 +172,8 @@ METHODS = {
     "ops_upload_package",
     "ops_install_package",
     "ops_uninstall_package",
+    "use_operator_key",
+    "operator_public_key",
     # any path
     "get",
     "get_text",
@@ -180,6 +182,8 @@ METHODS = {
     "delete",
     "post_confirmed",
     "delete_confirmed",
+    "post_operator_signed",
+    "delete_operator_signed",
     "attestation",
 }
 

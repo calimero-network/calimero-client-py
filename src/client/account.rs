@@ -27,13 +27,25 @@ impl PyCloudClient {
         to_py(py, &s)
     }
 
-    /// Add `passkey` (another device) to the signed-in account. Returns its
-    /// credential id.
-    fn add_passkey(&self, py: Python<'_>, passkey: &PySoftPasskey) -> PyResult<String> {
-        let pk = Arc::clone(&passkey.inner);
+    /// Add `passkey` (another device) to the signed-in account, approved
+    /// with `approver`, a passkey the account already has (the node's `412
+    /// CONFIRM_REQUIRED`). Returns the new credential's id.
+    fn add_passkey(
+        &self,
+        py: Python<'_>,
+        passkey: &PySoftPasskey,
+        approver: &PySoftPasskey,
+    ) -> PyResult<String> {
+        if Arc::ptr_eq(&passkey.inner, &approver.inner) {
+            return Err(PyValueError::new_err(
+                "approve a new passkey with one the account already has, not itself",
+            ));
+        }
+        let (new, approver) = (Arc::clone(&passkey.inner), Arc::clone(&approver.inner));
         self.run(py, async |c| {
-            let mut auth = pk.lock().await;
-            c.add_passkey(&mut *auth).await
+            let mut new = new.lock().await;
+            let mut approver = approver.lock().await;
+            c.add_passkey(&mut *new, &mut *approver).await
         })
     }
 
@@ -82,17 +94,29 @@ impl PyCloudClient {
         to_py(py, &v)
     }
 
-    /// Create an API key. Returns `(key_id, key)`; the key is shown once.
-    /// `options` may set `label`, `apps` and `methods` (scopes), `readOnly`,
-    /// `allowConfirm` and `ttlSecs` (at most a year).
-    #[pyo3(signature = (options = None))]
+    /// Create an API key, approved with the account's `passkey` (the node's
+    /// `412 CONFIRM_REQUIRED`; a session's, never an API key's). Returns
+    /// `(key_id, key)`; the key is shown once. `options` (or `None`) may set
+    /// `label`, `apps` and `methods` (scopes), `readOnly`, `allowConfirm` and
+    /// `ttlSecs` (at most a year).
+    #[pyo3(signature = (options, passkey))]
     fn create_api_key(
         &self,
         py: Python<'_>,
         options: Option<&Bound<'_, PyAny>>,
+        passkey: &PySoftPasskey,
     ) -> PyResult<(String, String)> {
         let o = to_json(py, options)?;
-        self.run(py, async |c| c.create_api_key(o.clone()).await)
+        let o = if o.is_null() {
+            Value::Object(serde_json::Map::new())
+        } else {
+            o
+        };
+        let pk = Arc::clone(&passkey.inner);
+        self.run(py, async |c| {
+            let mut auth = pk.lock().await;
+            c.create_api_key(o.clone(), &mut *auth).await
+        })
     }
 
     /// End this session on the node (its refresh token stops working).
@@ -107,14 +131,19 @@ impl PyCloudClient {
             .map(drop)
     }
 
-    /// Remove a passkey (a device) from the signed-in account.
-    fn remove_passkey(&self, py: Python<'_>, credential_id: &str) -> PyResult<()> {
-        self.send(
-            py,
-            Verb::Delete,
-            format!("auth/passkeys/{}", seg(credential_id)),
-            Value::Null,
-        )
+    /// Remove a passkey (a device) from the signed-in account, approved with
+    /// `passkey`, one the account has.
+    fn remove_passkey(
+        &self,
+        py: Python<'_>,
+        credential_id: &str,
+        passkey: &PySoftPasskey,
+    ) -> PyResult<()> {
+        let (pk, cred) = (Arc::clone(&passkey.inner), credential_id.to_owned());
+        self.run(py, async |c| {
+            let mut auth = pk.lock().await;
+            c.remove_passkey(&cred, &mut *auth).await
+        })
         .map(drop)
     }
 

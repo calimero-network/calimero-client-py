@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+- **feat!: answer core's step-ups for credentials, memberships and the fleet**
+  (core #4791, proofs at apply). What grants access now takes the acting
+  account's `passkey` and answers the node's `412 CONFIRM_REQUIRED`:
+  `add_passkey(new, approver)` (approved by a passkey the account already
+  has, never the new one), `remove_passkey(credential_id, passkey)`,
+  `create_api_key(options, passkey)`, `set_member(org, account, role,
+  passkey)`, `remove_member(org, account, passkey)`, `set_capabilities(org,
+  capabilities, passkey, ...)`, `invite(org, role, passkey, ...)`,
+  `set_team_member(org, team, account, passkey, ...)` and
+  `remove_team_member(org, team, account, passkey)`. The Ops API's decisions
+  (`ops_register_node`, `ops_remove_node`, `ops_set_replicas`,
+  `ops_set_quotas`, and `ops_approve_release`, `ops_approve_outbound`,
+  `ops_upgrade_app`, `ops_upgrade_org`) answer `428
+  OPERATOR_SIGNATURE_REQUIRED` with the key `use_operator_key(seed)` sets;
+  `post_operator_signed` / `delete_operator_signed` do it for any path, and
+  `Client.operator_public_key(seed)` gives the `--operator-key` the nodes
+  take. Builds against core's master, which has #4791.
+- **feat: `delete(path, body=None)`** sends `body` as JSON on a DELETE, for
+  a caller that makes its own proof (`{"operatorProof": ...}` on
+  `ops/nodes/{id}`, `{"confirm": ...}` on a passkey, member or team row);
+  `delete(path)` is unchanged.
 - **feat: connect to a cluster by name and fail over between its nodes.**
   `Client.connect(cluster, *, tee_profiles=None, min_release=None,
   allow_mock=False, app_hash=None, allow_debug_profiles=False, directory=None,

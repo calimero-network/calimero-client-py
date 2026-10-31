@@ -1,4 +1,8 @@
 //! The Ops API, for operators: authenticate with `use_api_key(ops_token)`.
+//! Its decisions (the fleet, quotas, replica moves, and releases, outbound
+//! and upgrades where governance gives them to the operator) are signed with
+//! the operator's key: `use_operator_key(seed)` first, else the node's `428
+//! OPERATOR_SIGNATURE_REQUIRED` is raised.
 
 use super::prelude::*;
 
@@ -22,8 +26,9 @@ impl PyCloudClient {
         self.run(py, async |c| c.get_text("ops/metrics").await)
     }
 
-    /// Register node `node_id` at `addr` (its URL) in the directory. A node
-    /// started without `--bootstrap` then joins the system group as a
+    /// Register node `node_id` at `addr` (its URL) in the directory, signed
+    /// with the operator key. A node started without `--bootstrap` and
+    /// outside the genesis `--peers` then joins the system group as a
     /// learner, and replica moves may place apps on it.
     #[pyo3(signature = (node_id, addr, zone = ""))]
     fn ops_register_node(
@@ -34,12 +39,13 @@ impl PyCloudClient {
         zone: &str,
     ) -> PyResult<()> {
         let body = serde_json::json!({ "id": node_id, "addr": addr, "zone": zone });
-        self.send(py, Verb::Post, "ops/nodes".into(), body)
+        self.send_operator(py, Verb::Post, "ops/nodes".into(), body)
             .map(drop)
     }
 
     /// Remove node `node_id` from the cluster once no app keeps a replica on
-    /// it. Runs on the system leader; a `NOT_LEADER` answer is followed there.
+    /// it, signed with the operator key. Runs on the system leader; a
+    /// `NOT_LEADER` answer is followed there.
     /// Returns the system group's status.
     fn ops_remove_node(&self, py: Python<'_>, node_id: u64) -> PyResult<PyObject> {
         let v = self.send_to_leader(
@@ -51,8 +57,8 @@ impl PyCloudClient {
         to_py(py, &v)
     }
 
-    /// Move `app` to the replica node ids `replicas` (at least 3). Runs on
-    /// the app group's leader; a `NOT_LEADER` answer is followed there.
+    /// Move `app` to the replica node ids `replicas` (at least 3), signed
+    /// with the operator key. Runs on the app group's leader; a `NOT_LEADER` answer is followed there.
     /// Returns the group's status.
     fn ops_set_replicas(
         &self,
@@ -82,11 +88,11 @@ impl PyCloudClient {
         to_py(py, &v)
     }
 
-    /// Change the per-account limits `quotas` names; the others stay as they
-    /// are. A key that names no limit is refused (`UNKNOWN_QUOTA`).
+    /// Change the per-account limits `quotas` names, signed with the
+    /// operator key; the others stay as they are. A key that names no limit is refused (`UNKNOWN_QUOTA`).
     fn ops_set_quotas(&self, py: Python<'_>, quotas: &Bound<'_, PyAny>) -> PyResult<PyObject> {
         let body = to_json(py, Some(quotas))?;
-        let v = self.send(py, Verb::Post, "ops/quotas".into(), body)?;
+        let v = self.send_operator(py, Verb::Post, "ops/quotas".into(), body)?;
         to_py(py, &v)
     }
 
@@ -101,7 +107,7 @@ impl PyCloudClient {
         withdraw: bool,
     ) -> PyResult<PyObject> {
         let body = serde_json::json!({ "version": version, "approved": !withdraw });
-        let v = self.send(py, Verb::Post, "ops/releases".into(), body)?;
+        let v = self.send_operator(py, Verb::Post, "ops/releases".into(), body)?;
         to_py(py, &v)
     }
 
@@ -121,7 +127,7 @@ impl PyCloudClient {
             prefixes.map_or_else(|| serde_json::json!("manifest"), |p| serde_json::json!(p));
         let body =
             serde_json::json!({ "package": package, "prefixes": prefixes, "replace": replace });
-        let v = self.send(py, Verb::Post, "ops/outbound".into(), body)?;
+        let v = self.send_operator(py, Verb::Post, "ops/outbound".into(), body)?;
         to_py(py, &v)
     }
 
@@ -144,7 +150,7 @@ impl PyCloudClient {
             "bundle": bundle, "version": version, "package": package,
             "service": service, "migrate": migrate,
         });
-        let v = self.send(
+        let v = self.send_operator(
             py,
             Verb::Post,
             format!("ops/apps/{}/upgrade", seg(app)),
@@ -172,7 +178,7 @@ impl PyCloudClient {
             "package": package, "version": version, "team": team,
             "cascade": cascade, "migrate": migrate,
         });
-        let v = self.send(
+        let v = self.send_operator(
             py,
             Verb::Post,
             format!("ops/orgs/{}/upgrade", seg(org)),
