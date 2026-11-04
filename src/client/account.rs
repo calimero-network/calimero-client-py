@@ -5,12 +5,33 @@ use super::prelude::*;
 #[pymethods]
 impl PyCloudClient {
     /// Create an account with a new passkey and sign in. Returns the session.
+    /// The node then asks the new passkey to sign the account it creates
+    /// (`412 CONFIRM_REQUIRED`), which `passkey` answers; a node from before
+    /// that answers the registration at once.
     fn sign_up(&self, py: Python<'_>, passkey: &PySoftPasskey, name: &str) -> PyResult<PyObject> {
         let pk = Arc::clone(&passkey.inner);
         let name = name.to_owned();
         let s = self.run_once(py, async |c| {
+            use calimero_client::Passkey as _;
             let mut auth = pk.lock().await;
-            c.sign_up(&mut *auth, &name).await
+            let begin = c
+                .post("auth/passkey/register/begin", serde_json::json!({ "name": name }))
+                .await?;
+            let registration = auth.create(&begin["options"]);
+            let done = c
+                .post_confirmed(
+                    "auth/passkey/register/finish",
+                    serde_json::json!({
+                        "challengeId": begin["challengeId"],
+                        "registration": registration,
+                    }),
+                    &mut *auth,
+                )
+                .await?;
+            let s: Session = serde_json::from_value(done)
+                .map_err(|e| Error::Transport(eyre::Report::from(e)))?;
+            c.use_session(s.clone()).await;
+            Ok(s)
         })?;
         self.forget_api_key();
         to_py(py, &s)
@@ -153,14 +174,17 @@ impl PyCloudClient {
         to_py(py, &v["keys"])
     }
 
-    /// Revoke an API key by its id.
-    fn revoke_api_key(&self, py: Python<'_>, key_id: &str) -> PyResult<()> {
-        self.send(
-            py,
-            Verb::Delete,
+    /// Revoke an API key by its id, approved with the account's `passkey`
+    /// (the node's `412 CONFIRM_REQUIRED`).
+    fn revoke_api_key(&self, py: Python<'_>, key_id: &str, passkey: &PySoftPasskey) -> PyResult<()> {
+        let (pk, path) = (
+            Arc::clone(&passkey.inner),
             format!("auth/apikeys/{}", seg(key_id)),
-            Value::Null,
-        )
+        );
+        self.run(py, async |c| {
+            let mut auth = pk.lock().await;
+            c.delete_confirmed(&path, &mut *auth).await
+        })
         .map(drop)
     }
 

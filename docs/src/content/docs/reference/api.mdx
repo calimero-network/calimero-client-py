@@ -90,7 +90,7 @@ refresh token, to each next node in turn, once per node. See
 
 | Method | Returns |
 | --- | --- |
-| `sign_up(passkey, name)` | The new account's session (`dict`). |
+| `sign_up(passkey, name)` | The new account's session (`dict`). The passkey is asked twice: to register, then to sign the account it creates (the node's `412 CONFIRM_REQUIRED`). |
 | `sign_in(passkey)` | The session. |
 | `refresh()` | A new session from the refresh token (one at a time with the client's own refreshes). |
 | `sign_out()` | `None`; the refresh token stops working. |
@@ -110,7 +110,7 @@ refresh token, to each next node in turn, once per node. See
 | `label_passkey(credential_id, label)` | `None`; `""` clears the name. |
 | `create_api_key(options, passkey)` | `(key_id, key)`, approved with the account's `passkey` (a session's; an API key is refused); the key is shown once. `options` may be `None`, or `options` may set `label`, `apps`, `methods`, `readOnly`, `allowConfirm`, `ttlSecs` (at most a year). |
 | `list_api_keys()` | The key records. |
-| `revoke_api_key(key_id)` | `None`. |
+| `revoke_api_key(key_id, passkey)` | `None`; approved with the account's `passkey` (`412 CONFIRM_REQUIRED`). |
 
 ### Aliases
 

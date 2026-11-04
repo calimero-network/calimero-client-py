@@ -43,7 +43,10 @@ def test_api_keys_are_scoped_listed_and_revoked(cluster, wasm):
     with pytest.raises(CloudError):
         agent.call(app, "set", {"key": "k", "value": "w"})
 
-    alice.revoke_api_key(key_id)
+    with pytest.raises(CloudError) as e:
+        alice.delete(f"auth/apikeys/{key_id}")
+    assert code(e.value) == "CONFIRM_REQUIRED"
+    alice.revoke_api_key(key_id, pk)
     time.sleep(0.3)
     assert key_id not in {k["keyId"] for k in alice.list_api_keys()}
     with pytest.raises(CloudError) as e:
