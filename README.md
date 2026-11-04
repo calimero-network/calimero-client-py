@@ -22,7 +22,7 @@ under [`docs/`](docs/).
 ## Installation
 
 ```bash
-pip install --pre calimero-client-py      # 1.0.0rc1, until 1.0.0 is out
+pip install --pre calimero-client-py      # 1.0.0rc2, until 1.0.0 is out
 ```
 
 PyPI carries a prebuilt `abi3` wheel (any CPython 3.9+) for Linux x86_64 and
