@@ -6,7 +6,7 @@
   `list_package_origins(package)` lists the origins a package's frontends sign
   in from; `add_package_origin(package, origin, passkey, rp_id=None)` and
   `remove_package_origin(package, origin, passkey)` answer the node's `412
-  CONFIRM_REQUIRED` (subject `package:{package}`) with `passkey`. Without
+  CONFIRM_REQUIRED` with `passkey` (it approves `package:{package}`). Without
   `rp_id` the node resolves it. Needs the first core release with per-package
   origins (core branch `claude/package-origins`, not yet released); older nodes
   answer these routes `404`.

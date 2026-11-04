@@ -380,13 +380,15 @@ def test_a_packages_manager_registers_and_removes_its_web_origin(
         cluster.client(2).sign_up(SoftPasskey(SITE_RP, SITE), "early", origin=SITE)
     assert code(e.value) == "ORIGIN_NOT_REGISTERED"
 
-    # Without her passkey the node asks alice first, naming what she approves.
+    # Without her passkey the node asks alice first. The step-up is the same
+    # shape as every other one: what she approves (`package:{p}` /
+    # `__add_origin` / `{origin, rpId}`) is bound inside the challenge, so the
+    # retry below succeeding is what proves the node signed that statement.
     with pytest.raises(CloudError) as e:
         alice.post(f"package-origins/{NOTES}", {"origin": SITE})
     assert code(e.value) == "CONFIRM_REQUIRED"
     asked = json.loads(e.value.args[3])
-    assert (asked["subject"], asked["method"]) == (f"package:{NOTES}", "__add_origin")
-    assert asked["args"] == {"origin": SITE, "rpId": SITE_RP}
+    assert {"challengeId", "challenge", "rpId", "allowCredentials"} <= set(asked)
     with pytest.raises(CloudError) as e:
         alice.add_package_origin(NOTES, SITE, alice_pk, rp_id="example.org")
     assert code(e.value) == "BAD_RP_ID"

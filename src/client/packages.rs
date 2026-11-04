@@ -1,7 +1,8 @@
 //! Signed packages: upload, install, list and uninstall, and the web origins
 //! a package's frontends sign in from. Adding or removing an origin is
 //! approved with the acting account's `passkey`: the node answers `412
-//! CONFIRM_REQUIRED` first (subject `package:{package}`).
+//! CONFIRM_REQUIRED` first; the passkey signs `package:{package}`
+//! / `__add_origin` or `__remove_origin`, bound in its challenge.
 
 use super::prelude::*;
 

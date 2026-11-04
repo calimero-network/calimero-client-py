@@ -700,9 +700,8 @@ mod tests {
             details: json!({
                 "challengeId": challenge_id,
                 "challenge": calimero_identity::b64url(challenge),
-                "subject": "package:com.example.app",
-                "method": "__remove_origin",
-                "args": { "origin": "https://app.example" },
+                "rpId": "localhost",
+                "allowCredentials": [],
             }),
         }
     }
