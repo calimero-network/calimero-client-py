@@ -7,13 +7,20 @@ use super::prelude::*;
 #[pymethods]
 impl PyCloudClient {
     /// Create an organization; the caller owns it. Returns its id.
-    fn create_org(&self, py: Python<'_>, name: &str) -> PyResult<String> {
-        let v = self.send(
-            py,
-            Verb::Post,
-            "orgs".into(),
-            serde_json::json!({ "name": name }),
-        )?;
+    /// `recovery_key` (`recovery_public_key(seed)`) lets whoever holds the
+    /// seed recover it if its owner loses every passkey.
+    #[pyo3(signature = (name, recovery_key = None))]
+    fn create_org(
+        &self,
+        py: Python<'_>,
+        name: &str,
+        recovery_key: Option<String>,
+    ) -> PyResult<String> {
+        let mut body = serde_json::json!({ "name": name });
+        if let Some(key) = recovery_key {
+            body["recoveryKey"] = Value::String(key);
+        }
+        let v = self.send(py, Verb::Post, "orgs".into(), body)?;
         field(&v, "orgId")
     }
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- **feat: organization recovery** (core `docs/specs/org-recovery.md`):
+  `create_org(name, recovery_key=None)`, `set_recovery_key`,
+  `start_recovery` (the seed signs locally), `cancel_recovery`,
+  `finish_recovery`, and `CloudClient.new_recovery_seed`,
+  `recovery_public_key`, `sign_recovery`, byte-for-byte with core's
+  `calimero_identity::recovery`. Needs a node with core's recovery routes.
+
 ## 1.0.0-rc.2
 
 - **chore: build on core's `1.0.0-rc.8` release tag** (was `1.0.0-rc.7`);
