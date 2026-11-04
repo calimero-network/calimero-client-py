@@ -154,7 +154,9 @@ def test_sign_up_deploy_call_view_confirm(cluster, wasm):
     assert s["accountId"] == me["accountId"]
 
     bundle = alice.upload_bundle(wasm)
-    app = alice.create_app("kv", bundle, {"confirmMethods": ["clear"]})
+    # `clear` needs a passkey confirmation because the kv component declares
+    # it `#[app::confirm]`; the node takes confirm methods from the component.
+    app = alice.create_app("kv", bundle)
 
     r = alice.call(app, "set", {"key": "a", "value": "1"}, idempotency_key="k1")
     assert r["index"] > 0
