@@ -39,10 +39,9 @@ calimero-client = { git = "https://github.com/calimero-network/core", tag = "1.0
 calimero-identity = { git = "https://github.com/calimero-network/core", tag = "1.0.0-rc.8", features = ["testing"] }
 # Signs the operator's decisions (`use_operator_key`); the major core uses.
 ed25519-dalek = "3"
-futures-util = "0.3"
-# The error core's client reports a bad confirm challenge as
-# (`Error::Transport`); already in its tree, so no second copy.
+# Core's client reports transport errors over eyre (`Error::Transport`).
 eyre = "0.6"
+futures-util = "0.3"
 
 # Python bindings
 # `extension-module` is enabled by the `python` feature below, not here.

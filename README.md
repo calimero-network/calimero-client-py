@@ -80,7 +80,7 @@ client.delete_team(org, team)                               # takes its sub-team
 | --- | --- |
 | Session | `sign_up`, `sign_in`, `refresh`, `sign_out`, `sign_out_everywhere`, `use_session`, `use_api_key`, `session`, `me`, `usage` |
 | Devices (passkeys) | `add_passkey(new, approver)`, `remove_passkey(credential_id, passkey)`, `label_passkey` |
-| API keys | `create_api_key({label, apps, methods, readOnly, allowConfirm, ttlSecs}, passkey)`, `list_api_keys`, `revoke_api_key` |
+| API keys | `create_api_key({label, apps, methods, readOnly, allowConfirm, ttlSecs}, passkey)`, `list_api_keys`, `revoke_api_key(key_id, passkey)` |
 | Aliases | `set_alias`, `alias`, `aliases`, `delete_alias` |
 | Packages | `upload_package`, `install_package`, `packages`, `package`, `uninstall_package`; web origins: `list_package_origins`, `add_package_origin`, `remove_package_origin` (approved with a `passkey`) |
 | Apps | `upload_bundle`, `create_app`, `create_app_from_package`, `list_apps`, `get_app`, `delete_app`, `set_access`, `set_app_metadata`, `app_storage`, `app_abi`, `upgrade_app`, `transfer_app`, `verify_app_cluster` |

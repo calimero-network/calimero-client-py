@@ -5,8 +5,11 @@ use super::prelude::*;
 #[pymethods]
 impl PyCloudClient {
     /// Create an account with a new passkey and sign in. Returns the session.
-    /// `origin`: the web origin the passkey is made for (one a package
-    /// registered, `add_package_origin`); without it, the node's own.
+    /// The node then asks the new passkey to sign the account it creates
+    /// (`412 CONFIRM_REQUIRED`), which `passkey` answers; a node from before
+    /// that answers the registration at once. `origin`: the web origin the
+    /// passkey is made for (one a package registered, `add_package_origin`);
+    /// without it, the node's own.
     #[pyo3(signature = (passkey, name, origin = None))]
     fn sign_up(
         &self,
@@ -19,10 +22,7 @@ impl PyCloudClient {
         let name = name.to_owned();
         let s = self.run_once(py, async |c| {
             let mut auth = pk.lock().await;
-            match &origin {
-                None => c.sign_up(&mut *auth, &name).await,
-                Some(o) => sign_up_from(&c, &mut *auth, &name, o).await,
-            }
+            sign_up_from(&c, &mut *auth, &name, origin.as_deref()).await
         })?;
         self.forget_api_key();
         to_py(py, &s)
@@ -175,14 +175,22 @@ impl PyCloudClient {
         to_py(py, &v["keys"])
     }
 
-    /// Revoke an API key by its id.
-    fn revoke_api_key(&self, py: Python<'_>, key_id: &str) -> PyResult<()> {
-        self.send(
-            py,
-            Verb::Delete,
+    /// Revoke an API key by its id, approved with the account's `passkey`
+    /// (the node's `412 CONFIRM_REQUIRED`).
+    fn revoke_api_key(
+        &self,
+        py: Python<'_>,
+        key_id: &str,
+        passkey: &PySoftPasskey,
+    ) -> PyResult<()> {
+        let (pk, path) = (
+            Arc::clone(&passkey.inner),
             format!("auth/apikeys/{}", seg(key_id)),
-            Value::Null,
-        )
+        );
+        self.run(py, async |c| {
+            let mut auth = pk.lock().await;
+            c.delete_confirmed(&path, &mut *auth).await
+        })
         .map(drop)
     }
 
@@ -227,26 +235,30 @@ impl PyCloudClient {
 }
 
 // Core's `sign_up` / `sign_in` send no `origin` with `begin`, so these are
-// theirs with it added; the session is used as theirs use it.
+// made here; the session is used as theirs use it.
 
-/// [`Client::sign_up`] for a passkey made from `origin`.
+/// Sign up: `register/begin` (naming `origin`, if any), the new passkey made
+/// for the rp-id the node answers, and `register/finish`, whose `412
+/// CONFIRM_REQUIRED` the same passkey answers (core's proofs at apply; a node
+/// from before answers at once). Core's `sign_up` sends no `origin` and
+/// answers no `412`, so it is made here.
 async fn sign_up_from(
     c: &Client,
     passkey: &mut dyn Passkey,
     name: &str,
-    origin: &str,
+    origin: Option<&str>,
 ) -> Result<Session, Error> {
-    let begin = c
-        .post(
-            "auth/passkey/register/begin",
-            serde_json::json!({ "name": name, "origin": origin }),
-        )
-        .await?;
+    let mut begin_body = serde_json::json!({ "name": name });
+    if let (Some(b), Some(o)) = (begin_body.as_object_mut(), origin) {
+        let _prev = b.insert("origin".into(), Value::from(o));
+    }
+    let begin = c.post("auth/passkey/register/begin", begin_body).await?;
     let registration = passkey.create(&begin["options"]);
     let done = c
-        .post(
+        .post_confirmed(
             "auth/passkey/register/finish",
             serde_json::json!({ "challengeId": begin["challengeId"], "registration": registration }),
+            passkey,
         )
         .await?;
     use_answer(c, done).await
