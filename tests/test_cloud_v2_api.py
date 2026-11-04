@@ -6,12 +6,18 @@ Same requirements as test_cloud_v2.py (a merod 1.0 binary and the kv-store
 fixture); its own cluster, since that module kills a node.
 """
 
+import base64
+import hashlib
+import io
+import json
+import tarfile
 import time
 from pathlib import Path
 
 import pytest
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from calimero_client_py import CloudError, SoftPasskey
+from calimero_client_py import CloudError, LoginRequired, SoftPasskey
 from test_cloud_v2 import KV_STORE_WASM, Cluster, code, person, pytestmark  # noqa: F401
 
 
@@ -271,3 +277,150 @@ def test_presence_streams_a_snapshot_then_changes(cluster, wasm):
     alice.publish_presence(app, 1, b"typing")
     frames = alice.presence_stream(app, limit=1, timeout=5)
     assert frames and frames[0]["kind"] == "snapshot", frames
+
+
+# --------------------------------------------------- per-package web origins
+
+NOTES = "com.test.py-notes"
+OTHER = "com.test.py-other"
+# The developer's own site for NOTES, and the rp-id the node resolves for it.
+SITE = "https://notes.example.com"
+SITE_RP = "notes.example.com"
+B58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+
+
+def b64url(b: bytes) -> str:
+    return base64.urlsafe_b64encode(b).rstrip(b"=").decode()
+
+
+def base58(b: bytes) -> str:
+    n, out = int.from_bytes(b, "big"), ""
+    while n:
+        n, r = divmod(n, 58)
+        out = B58[r] + out
+    return "1" * (len(b) - len(b.lstrip(b"\0"))) + out
+
+
+def mpk(package: str, version: str, wasm: bytes) -> bytes:
+    """A signed single-service `.mpk` of `package@version`, as core's
+    `mero-sign` makes one: the manifest canonicalized (RFC 8785; plain
+    strings and integers, so sorted compact JSON is the same bytes), signed
+    with Ed25519 over `sha256("calimero.bundle.manifest.v1\\0" || bytes)`.
+    The WASM gets a custom section naming the package, so each package
+    ships its own."""
+    key = Ed25519PrivateKey.from_private_bytes(bytes([5] * 32))
+    public = key.public_key().public_bytes_raw()
+    tag = package.encode()
+    wasm = wasm + bytes([0, 1 + len(tag), len(tag)]) + tag
+    manifest = {
+        "version": "1.0",
+        "package": package,
+        "appVersion": version,
+        "signerId": "did:key:z" + base58(bytes([0xED, 0x01]) + public),
+        "minRuntimeVersion": "0.1.0",
+        "wasm": {
+            "path": "app.wasm",
+            "hash": hashlib.sha256(wasm).hexdigest(),
+            "size": len(wasm),
+        },
+    }
+    canonical = json.dumps(
+        manifest, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    ).encode()
+    payload = hashlib.sha256(b"calimero.bundle.manifest.v1\0" + canonical).digest()
+    manifest["signature"] = {
+        "algorithm": "ed25519",
+        "publicKey": b64url(public),
+        "signature": b64url(key.sign(payload)),
+    }
+    out = io.BytesIO()
+    with tarfile.open(fileobj=out, mode="w:gz") as tar:
+        for name, data in (
+            ("manifest.json", json.dumps(manifest).encode()),
+            ("app.wasm", wasm),
+        ):
+            info = tarfile.TarInfo(name)
+            info.size = len(data)
+            tar.addfile(info, io.BytesIO(data))
+    return out.getvalue()
+
+
+@pytest.fixture(scope="module")
+def origins(cluster):
+    """Skip on a node without per-package origins (before core #4846): an
+    unknown route there is a bare `404`, an unknown package here
+    `NOT_FOUND`."""
+    probe, _ = person(cluster, 0, "origins-probe")
+    try:
+        probe.list_package_origins("com.test.none")
+    except CloudError as e:
+        if code(e) != "NOT_FOUND":
+            pytest.skip("the node has no per-package origins (core #4846)")
+
+
+def test_a_packages_manager_registers_and_removes_its_web_origin(
+    cluster, wasm, origins
+):
+    # The first installer manages a package: alice NOTES, bob OTHER.
+    alice, alice_pk = person(cluster, 0, "alice-origins")
+    bob, bob_pk = person(cluster, 1, "bob-origins")
+    alice.upload_package(mpk(NOTES, "1.0.0", wasm))
+    bob.upload_package(mpk(OTHER, "1.0.0", wasm))
+
+    # Bob does not manage NOTES: he does not even see its origins.
+    for refused in (
+        lambda: bob.list_package_origins(NOTES),
+        lambda: bob.add_package_origin(NOTES, SITE, bob_pk),
+    ):
+        with pytest.raises(CloudError) as e:
+            refused()
+        assert e.value.args[1] == 404, e.value
+    # Nor is the site anybody's yet.
+    with pytest.raises(CloudError) as e:
+        cluster.client(2).sign_up(SoftPasskey(SITE_RP, SITE), "early", origin=SITE)
+    assert code(e.value) == "ORIGIN_NOT_REGISTERED"
+
+    # Without her passkey the node asks alice first, naming what she approves.
+    with pytest.raises(CloudError) as e:
+        alice.post(f"package-origins/{NOTES}", {"origin": SITE})
+    assert code(e.value) == "CONFIRM_REQUIRED"
+    asked = json.loads(e.value.args[3])
+    assert (asked["subject"], asked["method"]) == (f"package:{NOTES}", "__add_origin")
+    assert asked["args"] == {"origin": SITE, "rpId": SITE_RP}
+    with pytest.raises(CloudError) as e:
+        alice.add_package_origin(NOTES, SITE, alice_pk, rp_id="example.org")
+    assert code(e.value) == "BAD_RP_ID"
+
+    added = alice.add_package_origin(NOTES, SITE, alice_pk)
+    assert (added["origin"], added["rpId"]) == (SITE, SITE_RP), added
+    listed = alice.list_package_origins(NOTES)
+    assert [o["origin"] for o in listed["origins"]] == [SITE], listed
+    # Another package cannot take it.
+    with pytest.raises(CloudError) as e:
+        bob.add_package_origin(OTHER, SITE, bob_pk)
+    assert code(e.value) == "ORIGIN_TAKEN"
+
+    # Carol signs up on the site: a session bound to NOTES, naming the site.
+    carol_pk = SoftPasskey(SITE_RP, SITE)
+    carol = cluster.client(2)
+    carol.sign_up(carol_pk, "carol-origins", origin=SITE)
+    me = carol.me()
+    assert (me["app"], me["origin"]) == (NOTES, SITE), me
+    elsewhere = cluster.client(1)
+    elsewhere.sign_in(carol_pk, origin=SITE)
+    assert elsewhere.me()["origin"] == SITE
+
+    # Removing the origin ends those sessions and their refresh, and the site
+    # may not begin a ceremony any more.
+    removed = alice.remove_package_origin(NOTES, SITE, alice_pk)
+    assert removed["removed"] is True, removed
+    for session in (carol, elsewhere):
+        with pytest.raises(LoginRequired):
+            session.me()
+    with pytest.raises(CloudError) as e:
+        cluster.client(0).sign_in(carol_pk, origin=SITE)
+    assert code(e.value) == "ORIGIN_NOT_REGISTERED"
+    assert alice.list_package_origins(NOTES)["origins"] == []
+    with pytest.raises(CloudError) as e:
+        alice.remove_package_origin(NOTES, SITE, alice_pk)
+    assert e.value.args[1] == 404, e.value
