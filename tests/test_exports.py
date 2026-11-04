@@ -107,6 +107,9 @@ METHODS = {
     "packages",
     "package",
     "uninstall_package",
+    "list_package_origins",
+    "add_package_origin",
+    "remove_package_origin",
     # apps
     "upload_bundle",
     "create_app",
