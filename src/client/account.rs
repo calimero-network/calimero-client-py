@@ -15,7 +15,10 @@ impl PyCloudClient {
             use calimero_client::Passkey as _;
             let mut auth = pk.lock().await;
             let begin = c
-                .post("auth/passkey/register/begin", serde_json::json!({ "name": name }))
+                .post(
+                    "auth/passkey/register/begin",
+                    serde_json::json!({ "name": name }),
+                )
                 .await?;
             let registration = auth.create(&begin["options"]);
             let done = c
@@ -176,7 +179,12 @@ impl PyCloudClient {
 
     /// Revoke an API key by its id, approved with the account's `passkey`
     /// (the node's `412 CONFIRM_REQUIRED`).
-    fn revoke_api_key(&self, py: Python<'_>, key_id: &str, passkey: &PySoftPasskey) -> PyResult<()> {
+    fn revoke_api_key(
+        &self,
+        py: Python<'_>,
+        key_id: &str,
+        passkey: &PySoftPasskey,
+    ) -> PyResult<()> {
         let (pk, path) = (
             Arc::clone(&passkey.inner),
             format!("auth/apikeys/{}", seg(key_id)),
