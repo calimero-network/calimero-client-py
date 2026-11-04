@@ -5,23 +5,45 @@ use super::prelude::*;
 #[pymethods]
 impl PyCloudClient {
     /// Create an account with a new passkey and sign in. Returns the session.
-    fn sign_up(&self, py: Python<'_>, passkey: &PySoftPasskey, name: &str) -> PyResult<PyObject> {
+    /// `origin`: the web origin the passkey is made for (one a package
+    /// registered, `add_package_origin`); without it, the node's own.
+    #[pyo3(signature = (passkey, name, origin = None))]
+    fn sign_up(
+        &self,
+        py: Python<'_>,
+        passkey: &PySoftPasskey,
+        name: &str,
+        origin: Option<String>,
+    ) -> PyResult<PyObject> {
         let pk = Arc::clone(&passkey.inner);
         let name = name.to_owned();
         let s = self.run_once(py, async |c| {
             let mut auth = pk.lock().await;
-            c.sign_up(&mut *auth, &name).await
+            match &origin {
+                None => c.sign_up(&mut *auth, &name).await,
+                Some(o) => sign_up_from(&c, &mut *auth, &name, o).await,
+            }
         })?;
         self.forget_api_key();
         to_py(py, &s)
     }
 
-    /// Sign in with an existing passkey. Returns the session.
-    fn sign_in(&self, py: Python<'_>, passkey: &PySoftPasskey) -> PyResult<PyObject> {
+    /// Sign in with an existing passkey. Returns the session. `origin` as
+    /// `sign_up`: the session is then the app's that registered it.
+    #[pyo3(signature = (passkey, origin = None))]
+    fn sign_in(
+        &self,
+        py: Python<'_>,
+        passkey: &PySoftPasskey,
+        origin: Option<String>,
+    ) -> PyResult<PyObject> {
         let pk = Arc::clone(&passkey.inner);
         let s = self.run_once(py, async |c| {
             let mut auth = pk.lock().await;
-            c.sign_in(&mut *auth).await
+            match &origin {
+                None => c.sign_in(&mut *auth).await,
+                Some(o) => sign_in_from(&c, &mut *auth, o).await,
+            }
         })?;
         self.forget_api_key();
         to_py(py, &s)
@@ -202,4 +224,63 @@ impl PyCloudClient {
         self.run(py, async |c| c.delete_alias(&alias).await)
             .map(drop)
     }
+}
+
+// Core's `sign_up` / `sign_in` send no `origin` with `begin`, so these are
+// theirs with it added; the session is used as theirs use it.
+
+/// [`Client::sign_up`] for a passkey made from `origin`.
+async fn sign_up_from(
+    c: &Client,
+    passkey: &mut dyn Passkey,
+    name: &str,
+    origin: &str,
+) -> Result<Session, Error> {
+    let begin = c
+        .post(
+            "auth/passkey/register/begin",
+            serde_json::json!({ "name": name, "origin": origin }),
+        )
+        .await?;
+    let registration = passkey.create(&begin["options"]);
+    let done = c
+        .post(
+            "auth/passkey/register/finish",
+            serde_json::json!({ "challengeId": begin["challengeId"], "registration": registration }),
+        )
+        .await?;
+    use_answer(c, done).await
+}
+
+/// [`Client::sign_in`] from `origin`.
+async fn sign_in_from(
+    c: &Client,
+    passkey: &mut dyn Passkey,
+    origin: &str,
+) -> Result<Session, Error> {
+    let begin = c
+        .post(
+            "auth/passkey/login/begin",
+            serde_json::json!({ "origin": origin }),
+        )
+        .await?;
+    let challenge =
+        calimero_identity::from_b64url(begin["options"]["challenge"].as_str().unwrap_or_default())
+            .map_err(|e| Error::Transport(eyre::eyre!("the node's challenge: {e}")))?;
+    let assertion = passkey.get(&challenge);
+    let done = c
+        .post(
+            "auth/passkey/login/finish",
+            serde_json::json!({ "challengeId": begin["challengeId"], "assertion": assertion }),
+        )
+        .await?;
+    use_answer(c, done).await
+}
+
+/// The session a `finish` answered, made the client's.
+async fn use_answer(c: &Client, done: Value) -> Result<Session, Error> {
+    let s: Session =
+        serde_json::from_value(done).map_err(|e| Error::Transport(eyre::Report::from(e)))?;
+    c.use_session(s.clone()).await;
+    Ok(s)
 }

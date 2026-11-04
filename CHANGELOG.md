@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+- **feat: per-package web origins** (core's `/package-origins/{package}`).
+  `list_package_origins(package)` lists the origins a package's frontends sign
+  in from; `add_package_origin(package, origin, passkey, rp_id=None)` and
+  `remove_package_origin(package, origin, passkey)` answer the node's `412
+  CONFIRM_REQUIRED` (subject `package:{package}`) with `passkey`. Without
+  `rp_id` the node resolves it. Needs the first core release with per-package
+  origins (core branch `claude/package-origins`, not yet released); older nodes
+  answer these routes `404`.
+- **feat: `sign_up(passkey, name, origin=None)` and `sign_in(passkey,
+  origin=None)`** send `origin` with the passkey ceremony, for a passkey made
+  from a package's registered origin; without it nothing changes. `me()` then
+  shows the session's `app` and `origin`.
+- **feat: `delete_confirmed(path, passkey, body=None)`** sends `body` as JSON
+  and adds the approval to it, for a DELETE whose body names what goes;
+  `delete_confirmed(path, passkey)` is unchanged.
+
 ## 1.0.0-rc.2
 
 - **chore: build on core's `1.0.0-rc.8` release tag** (was `1.0.0-rc.7`);

@@ -3,7 +3,9 @@
 pub(crate) use std::sync::Arc;
 pub(crate) use std::time::Duration;
 
-pub(crate) use calimero_client::{Client, Consistency, Error, Measurements, Policy, Session};
+pub(crate) use calimero_client::{
+    Client, Consistency, Error, Measurements, Passkey, Policy, Session,
+};
 pub(crate) use futures_util::StreamExt;
 pub(crate) use pyo3::exceptions::PyValueError;
 pub(crate) use pyo3::prelude::*;
