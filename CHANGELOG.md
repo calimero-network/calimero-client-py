@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **feat!: answer core's proofs for sign-ups and key revocations** (core
+  "prove sessions, counters, key revocations and sign-ups at apply").
+  `sign_up(passkey, name)` answers the node's `412 CONFIRM_REQUIRED` with the
+  new passkey, which signs the account it creates (a node from before answers
+  the registration at once, so this works against both).
+  `revoke_api_key(key_id, passkey)` now takes the account's passkey and
+  answers the node's `412`. Refresh tokens and passkey counters carry their
+  proofs on the node; nothing changes for the client there.
 - **feat: organization recovery** (core `docs/specs/org-recovery.md`):
   `create_org(name, recovery_key=None)`, `set_recovery_key`,
   `start_recovery` (the seed signs locally), `cancel_recovery`,

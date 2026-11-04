@@ -39,6 +39,8 @@ calimero-client = { git = "https://github.com/calimero-network/core", tag = "1.0
 calimero-identity = { git = "https://github.com/calimero-network/core", tag = "1.0.0-rc.8", features = ["testing"] }
 # Signs the operator's decisions (`use_operator_key`); the major core uses.
 ed25519-dalek = "3"
+# Core's client reports transport errors over eyre (`Error::Transport`).
+eyre = "0.6"
 futures-util = "0.3"
 
 # Python bindings
@@ -60,10 +62,6 @@ hex = "0.4"
 # The node directory (`Client.connect`): plain HTTPS, the same 0.12 and TLS
 # stack core's client already pulls in, so it adds no second copy.
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
-
-[dev-dependencies]
-# A connect error as core's client reports it (`Error::Transport` over eyre).
-eyre = "0.6"
 
 [features]
 default = []
