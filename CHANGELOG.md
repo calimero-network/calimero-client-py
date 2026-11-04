@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- **feat!: answer core's proofs for sign-ups and key revocations** (core
+  "prove sessions, counters, key revocations and sign-ups at apply").
+  `sign_up(passkey, name)` answers the node's `412 CONFIRM_REQUIRED` with the
+  new passkey, which signs the account it creates (a node from before answers
+  the registration at once, so this works against both).
+  `revoke_api_key(key_id, passkey)` now takes the account's passkey and
+  answers the node's `412`. Refresh tokens and passkey counters carry their
+  proofs on the node; nothing changes for the client there.
+
 ## 1.0.0-rc.2
 
 - **chore: build on core's `1.0.0-rc.8` release tag** (was `1.0.0-rc.7`);
