@@ -112,6 +112,29 @@ refresh token, to each next node in turn, once per node. See
 | `list_api_keys()` | The key records. |
 | `revoke_api_key(key_id, passkey)` | `None`; approved with the account's `passkey` (`412 CONFIRM_REQUIRED`). |
 
+### Account recovery
+
+Someone who loses every passkey gets back in with a recovery code made while
+signed in (needs a node with core #4844). The code and a new passkey start a
+recovery that waits 72 hours; during that time any passkey the account still
+has cancels it; after, the new passkey finishes it, which ends every session
+the account had and signs in. `me()` shows `recoveryCode` (whether one is set,
+never the code) and `recoveryPending`.
+
+| Method | Returns |
+| --- | --- |
+| `create_recovery_code(passkey)` | The code (`XXXX-XXXX-...`, 32 Crockford base32 characters), shown once; approved with a passkey the account has. A new code replaces the old. |
+| `remove_recovery_code(passkey)` | `None`; approved with a passkey the account has. |
+| `start_account_recovery(code, passkey)` | Signed out, with a new `passkey`: `{accountId, credentialId, startedAt, readyAt}`. The code is spent. A wrong or spent code raises `LoginRequired`, a recovery under way `RECOVERY_PENDING` (409), and a code that cannot be one `ValueError` before anything is sent. |
+| `cancel_account_recovery(passkey)` | `None`; signed in, approved with a passkey the account already has. |
+| `finish_account_recovery(passkey, account_id=None)` | Signed out, with the passkey the start registered, once `readyAt` has passed (`RECOVERY_NOT_READY`, 409, before): the session, which the client then uses. |
+| `CloudClient.normalize_recovery_code(code)` | The code's canonical form (dashes and spaces dropped, upper case, `O` as `0`, `I`/`L` as `1`); `ValueError` for anything that cannot be a code. |
+| `CloudClient.recovery_code_key(code)` | The Ed25519 public key (hex) the code stands for, the only thing the node records: `SHA-256("calimero.account-recovery-code.v1\0" \|\| canonical code)` is its seed. |
+
+The code goes to the node over the sealed channel; the node signs the start
+with the code's key, over the account and the new passkey, so the signature
+cannot add any other passkey.
+
 ### Aliases
 
 | Method | Returns |

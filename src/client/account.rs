@@ -290,7 +290,7 @@ async fn sign_in_from(
 }
 
 /// The session a `finish` answered, made the client's.
-async fn use_answer(c: &Client, done: Value) -> Result<Session, Error> {
+pub(super) async fn use_answer(c: &Client, done: Value) -> Result<Session, Error> {
     let s: Session =
         serde_json::from_value(done).map_err(|e| Error::Transport(eyre::Report::from(e)))?;
     c.use_session(s.clone()).await;
