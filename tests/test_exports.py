@@ -97,6 +97,7 @@ METHODS = {
     "create_api_key",
     "list_api_keys",
     "revoke_api_key",
+    "api_key_public",
     "set_alias",
     "alias",
     "aliases",
