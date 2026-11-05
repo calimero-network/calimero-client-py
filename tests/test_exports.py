@@ -158,6 +158,13 @@ METHODS = {
     "upgrade_org",
     "upgrade_run",
     "retry_upgrade_run",
+    "new_recovery_seed",
+    "recovery_public_key",
+    "sign_recovery",
+    "set_recovery_key",
+    "start_recovery",
+    "cancel_recovery",
+    "finish_recovery",
     # Ops API
     "ops_status",
     "ops_metrics",

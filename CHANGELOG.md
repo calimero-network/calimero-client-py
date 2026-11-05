@@ -25,6 +25,12 @@
   `revoke_api_key(key_id, passkey)` now takes the account's passkey and
   answers the node's `412`. Refresh tokens and passkey counters carry their
   proofs on the node; nothing changes for the client there.
+- **feat: organization recovery** (core `docs/specs/org-recovery.md`):
+  `create_org(name, recovery_key=None)`, `set_recovery_key`,
+  `start_recovery` (the seed signs locally), `cancel_recovery`,
+  `finish_recovery`, and `CloudClient.new_recovery_seed`,
+  `recovery_public_key`, `sign_recovery`, byte-for-byte with core's
+  `calimero_identity::recovery`. Needs core 1.0.0-rc.10 or later (core #4837).
 
 ## 1.0.0-rc.2
 

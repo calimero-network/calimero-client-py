@@ -13,6 +13,7 @@ mod blobs;
 mod directory;
 mod governance;
 mod ops;
+mod org_recovery;
 mod orgs;
 mod packages;
 mod prelude;
