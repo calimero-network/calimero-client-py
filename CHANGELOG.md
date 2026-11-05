@@ -30,7 +30,7 @@
   `start_recovery` (the seed signs locally), `cancel_recovery`,
   `finish_recovery`, and `CloudClient.new_recovery_seed`,
   `recovery_public_key`, `sign_recovery`, byte-for-byte with core's
-  `calimero_identity::recovery`. Needs a node with core's recovery routes.
+  `calimero_identity::recovery`. Needs core 1.0.0-rc.10 or later (core #4837).
 
 ## 1.0.0-rc.2
 
