@@ -225,6 +225,11 @@ impl PyCloudClient {
     /// this exact upgrade. `package` and `service` move it to another package
     /// or service. A failed migration raises `CloudError` with code
     /// `UPGRADE_FAILED` (422).
+    ///
+    /// With an upgrade key in use (`create_api_key` with `upgrades`), pass a
+    /// `version` of the key's package and no passkey: the node signs the
+    /// upgrade with the key's own Ed25519 key in place of a passkey. A
+    /// `bundle`, another package or another app is refused `403`.
     #[allow(clippy::too_many_arguments)]
     #[pyo3(signature = (app, bundle = None, migrate = None, version = None, passkey = None, package = None, service = None))]
     fn upgrade_app(

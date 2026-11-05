@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **feat: upgrade keys for CI deploys** (core #4852, core 1.0.0-rc.10).
+  `create_api_key({"upgrades": {"app": app, "package": ...}}, passkey)` makes
+  an API key that upgrades that one app to signed releases of its package
+  with `upgrade_app(app, version=...)` and no passkey; the node refuses it
+  everything else (`403 UPGRADE_KEY_ONLY`). `CloudClient.api_key_public(key)`
+  gives the key's Ed25519 public half (hex, core's `proof::api_key_public`),
+  which the key's record shows as `upgrades.proofKey`.
 - **feat: per-package web origins** (core's `/package-origins/{package}`).
   `list_package_origins(package)` lists the origins a package's frontends sign
   in from; `add_package_origin(package, origin, passkey, rp_id=None)` and
