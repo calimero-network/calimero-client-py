@@ -113,6 +113,36 @@ impl PyCloudClient {
     }
 }
 
+/// Send `body` once; a `412 CONFIRM_REQUIRED` is answered with `passkey`'s
+/// assertion over the node's challenge, added to `body` as `confirm:
+/// {challengeId, assertion}`, and the request is sent again. What core's
+/// `post_confirmed` / `delete_confirmed` do, for a request core has no
+/// confirmed form of (a DELETE whose body names what goes).
+pub(crate) async fn confirm_step_up(
+    body: Value,
+    passkey: &mut dyn Passkey,
+    send: impl AsyncFn(Value) -> Result<Value, Error>,
+) -> Result<Value, Error> {
+    let details = match send(body.clone()).await {
+        Err(e) if e.code() == Some("CONFIRM_REQUIRED") => {
+            e.details().cloned().unwrap_or(Value::Null)
+        }
+        other => return other,
+    };
+    let challenge =
+        calimero_identity::from_b64url(details["challenge"].as_str().unwrap_or_default())
+            .map_err(|e| Error::Transport(eyre::eyre!("the node's challenge: {e}")))?;
+    let assertion = passkey.get(&challenge);
+    let mut body = body;
+    if let Some(b) = body.as_object_mut() {
+        let _prev = b.insert(
+            "confirm".into(),
+            serde_json::json!({ "challengeId": details["challengeId"], "assertion": assertion }),
+        );
+    }
+    send(body).await
+}
+
 #[derive(Clone, Copy)]
 pub(crate) enum Verb {
     Get,
@@ -182,6 +212,27 @@ impl PyCloudClient {
         self.run(py, async |c| {
             let mut auth = pk.lock().await;
             c.delete_confirmed(&path, &mut *auth).await
+        })
+    }
+
+    /// DELETE `path` with `body` as JSON, answering `412 CONFIRM_REQUIRED`
+    /// with `passkey` (the node reads what is removed from the body: a
+    /// package's web origin). Core's `delete_confirmed` sends `{}`, so the
+    /// step-up is made here, as [`confirm_step_up`] does it.
+    fn confirmed_delete_with_body(
+        &self,
+        py: Python<'_>,
+        path: String,
+        body: Value,
+        passkey: &PySoftPasskey,
+    ) -> PyResult<Value> {
+        let pk = Arc::clone(&passkey.inner);
+        self.run(py, async |c| {
+            let mut auth = pk.lock().await;
+            confirm_step_up(body.clone(), &mut *auth, async |b| {
+                c.delete_with_body(&path, b).await
+            })
+            .await
         })
     }
 
@@ -534,19 +585,25 @@ impl PyCloudClient {
     }
 
     /// DELETE `path`, answering `412 CONFIRM_REQUIRED` (deleting an
-    /// organization) with `passkey`, as `post_confirmed` does.
+    /// organization) with `passkey`, as `post_confirmed` does. `body`, when
+    /// given, goes as JSON, and the approval is added to it (`{"origin": ...}`
+    /// on `package-origins/{package}`).
+    #[pyo3(signature = (path, passkey, body = None))]
     fn delete_confirmed(
         &self,
         py: Python<'_>,
         path: &str,
         passkey: &PySoftPasskey,
+        body: Option<&Bound<'_, PyAny>>,
     ) -> PyResult<PyObject> {
-        let pk = Arc::clone(&passkey.inner);
         let path = path.trim_start_matches('/').to_owned();
-        let v = self.run(py, async |c| {
-            let mut auth = pk.lock().await;
-            c.delete_confirmed(&path, &mut *auth).await
-        })?;
+        let v = match body {
+            Some(b) if !b.is_none() => {
+                let body = to_json(py, Some(b))?;
+                self.confirmed_delete_with_body(py, path, body, passkey)?
+            }
+            _ => self.confirmed_delete(py, path, passkey)?,
+        };
         to_py(py, &v)
     }
 
@@ -624,5 +681,80 @@ impl PyCloudClient {
     fn attestation(&self, py: Python<'_>) -> PyResult<PyObject> {
         let v = self.run_repeatable(py, async |c| c.attestation().await)?;
         to_py(py, &v)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::cell::RefCell;
+
+    use calimero_identity::testing::SoftAuthenticator;
+    use serde_json::json;
+
+    use super::*;
+
+    fn confirm_required(challenge_id: &str, challenge: &[u8]) -> Error {
+        Error::Api {
+            status: 412,
+            code: "CONFIRM_REQUIRED".into(),
+            message: "confirm with a passkey".into(),
+            details: json!({
+                "challengeId": challenge_id,
+                "challenge": calimero_identity::b64url(challenge),
+                "rpId": "localhost",
+                "allowCredentials": [],
+            }),
+        }
+    }
+
+    #[tokio::test]
+    async fn a_confirm_required_is_answered_once_with_the_body_kept() {
+        let mut pk = SoftAuthenticator::new("localhost", "http://localhost:3000");
+        let sent = RefCell::new(Vec::new());
+        let v = confirm_step_up(
+            json!({ "origin": "https://app.example" }),
+            &mut pk,
+            async |b| {
+                sent.borrow_mut().push(b.clone());
+                if b.get("confirm").is_some() {
+                    Ok(json!({ "removed": true }))
+                } else {
+                    Err(confirm_required("ch-1", b"challenge bytes"))
+                }
+            },
+        )
+        .await
+        .unwrap();
+        assert_eq!(v, json!({ "removed": true }));
+        let sent = sent.into_inner();
+        assert_eq!(sent.len(), 2);
+        assert_eq!(sent[0], json!({ "origin": "https://app.example" }));
+        assert_eq!(sent[1]["origin"], "https://app.example");
+        assert_eq!(sent[1]["confirm"]["challengeId"], "ch-1");
+        // The assertion signs the node's challenge, as core's step-up does.
+        let expected = serde_json::to_value(pk.assert(b"challenge bytes")).unwrap();
+        assert_eq!(
+            sent[1]["confirm"]["assertion"]["clientDataJson"],
+            expected["clientDataJson"]
+        );
+    }
+
+    #[tokio::test]
+    async fn any_other_answer_is_returned_as_it_came() {
+        let mut pk = SoftAuthenticator::new("localhost", "http://localhost:3000");
+        let calls = RefCell::new(0);
+        let err = confirm_step_up(json!({ "origin": "x" }), &mut pk, async |_b| {
+            *calls.borrow_mut() += 1;
+            Err::<Value, _>(Error::Api {
+                status: 404,
+                code: "NOT_FOUND".into(),
+                message: "no such origin".into(),
+                details: Value::Null,
+            })
+        })
+        .await
+        .unwrap_err();
+        assert_eq!(err.code(), Some("NOT_FOUND"));
+        assert_eq!(*calls.borrow(), 1);
     }
 }

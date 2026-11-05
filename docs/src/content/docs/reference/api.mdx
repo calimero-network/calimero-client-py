@@ -90,15 +90,15 @@ refresh token, to each next node in turn, once per node. See
 
 | Method | Returns |
 | --- | --- |
-| `sign_up(passkey, name)` | The new account's session (`dict`). The passkey is asked twice: to register, then to sign the account it creates (the node's `412 CONFIRM_REQUIRED`). |
-| `sign_in(passkey)` | The session. |
+| `sign_up(passkey, name, origin=None)` | The new account's session (`dict`). The passkey is asked twice: to register, then to sign the account it creates (the node's `412 CONFIRM_REQUIRED`). `origin`: the web origin the passkey is made from, one a package registered (`add_package_origin`); without it, the node's own. |
+| `sign_in(passkey, origin=None)` | The session; with `origin`, the session of the app that registered it. |
 | `refresh()` | A new session from the refresh token (one at a time with the client's own refreshes). |
 | `sign_out()` | `None`; the refresh token stops working. |
 | `sign_out_everywhere()` | `None`; every session of the account ends, on every device. |
 | `use_session(session)` | `None`; authenticates with a session from `sign_up`/`sign_in`. |
 | `use_api_key(key)` | `None`; authenticates every request with a `cal_...` key. |
 | `session()` | The session in use, or `None` (none yet, or an API key instead). |
-| `me()` | The caller: `accountId`, `via`, ... |
+| `me()` | The caller: `accountId`, `via`, ..., and `app` and `origin` for a session signed in from a package's origin (nodes with per-package origins). |
 | `usage()` | What the account uses, with the cluster's quotas. |
 
 ### Passkeys and API keys
@@ -130,6 +130,9 @@ refresh token, to each next node in turn, once per node. See
 | `packages()` | Installed packages and their versions. |
 | `package(package)` | One installed package and its versions. |
 | `uninstall_package(package, version=None)` | Uninstalls one version, or all of it. |
+| `list_package_origins(package)` | `{"package", "origins": [{"origin", "rpId", "addedBy", "addedAt"}]}`, the web origins the package's frontends sign in from. |
+| `add_package_origin(package, origin, passkey, rp_id=None)` | `{"package", "origin", "rpId", "addedBy", "addedAt"}`; approved with `passkey`. Without `rp_id` the node resolves the RP ID from the origin. Refusals: `BAD_ORIGIN`, `BAD_RP_ID`, `ORIGIN_TAKEN` (another package has it), `QUOTA_EXCEEDED`. |
+| `remove_package_origin(package, origin, passkey)` | `{"package", "origin", "removed": true}`; approved with `passkey`. |
 
 ### Apps
 
@@ -272,7 +275,7 @@ so they can be sent to any node.
 | `get(path)`, `post(path, body=None)`, `put(path, body=None)`, `delete(path, body=None)` | The node's JSON for any API path; a DELETE sends `body` as JSON when given (a proof the caller made: `confirm`, `operatorProof`). |
 | `get_text(path)` | A text answer (`ops/metrics`). |
 | `post_confirmed(path, body, passkey)` | POST answering a `412 CONFIRM_REQUIRED` with `passkey`'s assertion (owner approvals). |
-| `delete_confirmed(path, passkey)` | The same for a DELETE (an organization, a member, a passkey). |
+| `delete_confirmed(path, passkey, body=None)` | The same for a DELETE (an organization, a member, a passkey); `body`, when given, goes as JSON with the approval added. |
 | `use_operator_key(seed)` | `None`; signs the `ops_*` decisions from now on (`None` forgets it). |
 | `Client.operator_public_key(seed)` | The verify key (hex) the nodes take as `--operator-key`. |
 | `post_operator_signed(path, body=None, operator_key=None)` | POST answering a `428 OPERATOR_SIGNATURE_REQUIRED` with the operator key's signature (`operator_key`, else `use_operator_key`'s). |

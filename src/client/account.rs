@@ -7,45 +7,43 @@ impl PyCloudClient {
     /// Create an account with a new passkey and sign in. Returns the session.
     /// The node then asks the new passkey to sign the account it creates
     /// (`412 CONFIRM_REQUIRED`), which `passkey` answers; a node from before
-    /// that answers the registration at once.
-    fn sign_up(&self, py: Python<'_>, passkey: &PySoftPasskey, name: &str) -> PyResult<PyObject> {
+    /// that answers the registration at once. `origin`: the web origin the
+    /// passkey is made for (one a package registered, `add_package_origin`);
+    /// without it, the node's own.
+    #[pyo3(signature = (passkey, name, origin = None))]
+    fn sign_up(
+        &self,
+        py: Python<'_>,
+        passkey: &PySoftPasskey,
+        name: &str,
+        origin: Option<String>,
+    ) -> PyResult<PyObject> {
         let pk = Arc::clone(&passkey.inner);
         let name = name.to_owned();
         let s = self.run_once(py, async |c| {
-            use calimero_client::Passkey as _;
             let mut auth = pk.lock().await;
-            let begin = c
-                .post(
-                    "auth/passkey/register/begin",
-                    serde_json::json!({ "name": name }),
-                )
-                .await?;
-            let registration = auth.create(&begin["options"]);
-            let done = c
-                .post_confirmed(
-                    "auth/passkey/register/finish",
-                    serde_json::json!({
-                        "challengeId": begin["challengeId"],
-                        "registration": registration,
-                    }),
-                    &mut *auth,
-                )
-                .await?;
-            let s: Session = serde_json::from_value(done)
-                .map_err(|e| Error::Transport(eyre::Report::from(e)))?;
-            c.use_session(s.clone()).await;
-            Ok(s)
+            sign_up_from(&c, &mut *auth, &name, origin.as_deref()).await
         })?;
         self.forget_api_key();
         to_py(py, &s)
     }
 
-    /// Sign in with an existing passkey. Returns the session.
-    fn sign_in(&self, py: Python<'_>, passkey: &PySoftPasskey) -> PyResult<PyObject> {
+    /// Sign in with an existing passkey. Returns the session. `origin` as
+    /// `sign_up`: the session is then the app's that registered it.
+    #[pyo3(signature = (passkey, origin = None))]
+    fn sign_in(
+        &self,
+        py: Python<'_>,
+        passkey: &PySoftPasskey,
+        origin: Option<String>,
+    ) -> PyResult<PyObject> {
         let pk = Arc::clone(&passkey.inner);
         let s = self.run_once(py, async |c| {
             let mut auth = pk.lock().await;
-            c.sign_in(&mut *auth).await
+            match &origin {
+                None => c.sign_in(&mut *auth).await,
+                Some(o) => sign_in_from(&c, &mut *auth, o).await,
+            }
         })?;
         self.forget_api_key();
         to_py(py, &s)
@@ -234,4 +232,67 @@ impl PyCloudClient {
         self.run(py, async |c| c.delete_alias(&alias).await)
             .map(drop)
     }
+}
+
+// Core's `sign_up` / `sign_in` send no `origin` with `begin`, so these are
+// made here; the session is used as theirs use it.
+
+/// Sign up: `register/begin` (naming `origin`, if any), the new passkey made
+/// for the rp-id the node answers, and `register/finish`, whose `412
+/// CONFIRM_REQUIRED` the same passkey answers (core's proofs at apply; a node
+/// from before answers at once). Core's `sign_up` sends no `origin` and
+/// answers no `412`, so it is made here.
+async fn sign_up_from(
+    c: &Client,
+    passkey: &mut dyn Passkey,
+    name: &str,
+    origin: Option<&str>,
+) -> Result<Session, Error> {
+    let mut begin_body = serde_json::json!({ "name": name });
+    if let (Some(b), Some(o)) = (begin_body.as_object_mut(), origin) {
+        let _prev = b.insert("origin".into(), Value::from(o));
+    }
+    let begin = c.post("auth/passkey/register/begin", begin_body).await?;
+    let registration = passkey.create(&begin["options"]);
+    let done = c
+        .post_confirmed(
+            "auth/passkey/register/finish",
+            serde_json::json!({ "challengeId": begin["challengeId"], "registration": registration }),
+            passkey,
+        )
+        .await?;
+    use_answer(c, done).await
+}
+
+/// [`Client::sign_in`] from `origin`.
+async fn sign_in_from(
+    c: &Client,
+    passkey: &mut dyn Passkey,
+    origin: &str,
+) -> Result<Session, Error> {
+    let begin = c
+        .post(
+            "auth/passkey/login/begin",
+            serde_json::json!({ "origin": origin }),
+        )
+        .await?;
+    let challenge =
+        calimero_identity::from_b64url(begin["options"]["challenge"].as_str().unwrap_or_default())
+            .map_err(|e| Error::Transport(eyre::eyre!("the node's challenge: {e}")))?;
+    let assertion = passkey.get(&challenge);
+    let done = c
+        .post(
+            "auth/passkey/login/finish",
+            serde_json::json!({ "challengeId": begin["challengeId"], "assertion": assertion }),
+        )
+        .await?;
+    use_answer(c, done).await
+}
+
+/// The session a `finish` answered, made the client's.
+async fn use_answer(c: &Client, done: Value) -> Result<Session, Error> {
+    let s: Session =
+        serde_json::from_value(done).map_err(|e| Error::Transport(eyre::Report::from(e)))?;
+    c.use_session(s.clone()).await;
+    Ok(s)
 }
