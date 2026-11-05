@@ -180,8 +180,8 @@ cannot add any other passkey.
 | `packages()` | Installed packages and their versions. |
 | `package(package)` | One installed package and its versions. |
 | `uninstall_package(package, version=None)` | Uninstalls one version, or all of it. |
-| `list_package_origins(package)` | `{"package", "origins": [{"origin", "rpId", "addedBy", "addedAt"}]}`, the web origins the package's frontends sign in from. |
-| `add_package_origin(package, origin, passkey, rp_id=None)` | `{"package", "origin", "rpId", "addedBy", "addedAt"}`; approved with `passkey`. Without `rp_id` the node resolves the RP ID from the origin. Refusals: `BAD_ORIGIN`, `BAD_RP_ID`, `ORIGIN_TAKEN` (another package has it), `QUOTA_EXCEEDED`. |
+| `list_package_origins(package)` | `{"package", "origins": [{"origin", "rpId", "addedBy", "addedAt", "served"}]}`, the web origins the package's frontends sign in from. |
+| `add_package_origin(package, origin, passkey, rp_id=None, served=False)` | `{"package", "origin", "rpId", "addedBy", "addedAt", "served"}`; approved with `passkey`. Without `rp_id` the node resolves the RP ID from the origin. Refusals: `BAD_ORIGIN`, `BAD_RP_ID`, `ORIGIN_TAKEN` (another package has it), `QUOTA_EXCEEDED`. `served=True` registers a custom domain the cluster serves the package's frontend on (`https://host`, no port; the consent names `served: true`); further refusals `NOT_SERVING` (the cluster serves no frontends), `CLUSTER_NOT_UPGRADED` (a node runs an older release), `ORIGIN_TAKEN` (held with the other `served`), `QUOTA_EXCEEDED` (4 served per package, 64 per cluster). |
 | `remove_package_origin(package, origin, passkey)` | `{"package", "origin", "removed": true}`; approved with `passkey`. |
 
 ### Apps
@@ -311,6 +311,7 @@ the bytes the node names and sends the decision again.
 | `ops_approve_outbound(package, prefixes=None, replace=False)` | Approves outbound URL prefixes for every app, where the operator holds outbound approvals. |
 | `ops_upgrade_app(app, bundle=None, version=None, package=None, service=None, migrate=None)` | Upgrades an app, where the operator holds app upgrades. |
 | `ops_upgrade_org(org, package, version, team=None, cascade=False, migrate=None)` | Starts an org-wide upgrade run, where the operator holds app upgrades. |
+| `ops_served_origins()` | `{"fresh", "origins": [{"origin", "host", "label", "addedAt"}]}`: every served origin (custom domain) the cluster's log holds, by package label. |
 | `ops_packages()` | The packages the operator installed. |
 | `ops_upload_package(mpk)`, `ops_install_package(package, version)`, `ops_uninstall_package(package, version=None)` | Installs and uninstalls packages for the operator's upgrades. |
 

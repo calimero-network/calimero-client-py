@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **feat: served origins (custom domains)** (core #4864,
+  `docs/specs/custom-domains.md`; needs a core release after 1.0.0-rc.10).
+  `add_package_origin(..., served=True)` registers an origin the cluster also
+  serves the package's frontend on; the body and the consent the passkey
+  signs carry `served: true` only then (`{origin, rpId, served: true}`), so a
+  plain add is unchanged. `list_package_origins` answers `served`. New
+  refusals: `400 NOT_SERVING`, `409 CLUSTER_NOT_UPGRADED`, and the served
+  limits as `429 QUOTA_EXCEEDED`. `ops_served_origins()` reads the
+  operator's `GET /ops/served-origins`.
 - **feat: account recovery** (core #4844, `docs/specs/account-recovery.md`;
   needs a core release after 1.0.0-rc.10). `create_recovery_code(passkey)`,
   `remove_recovery_code(passkey)`, `start_account_recovery(code, passkey)`

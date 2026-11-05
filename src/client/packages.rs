@@ -2,7 +2,10 @@
 //! a package's frontends sign in from. Adding or removing an origin is
 //! approved with the acting account's `passkey`: the node answers `412
 //! CONFIRM_REQUIRED` first; the passkey signs `package:{package}`
-//! / `__add_origin` or `__remove_origin`, bound in its challenge.
+//! / `__add_origin` or `__remove_origin`, bound in its challenge. A served
+//! origin (`served=True`, a custom domain) is one the cluster also serves
+//! the package's frontend on; its consent names it (`{origin, rpId, served:
+//! true}`), so a consent to a plain origin never makes one served.
 
 use super::prelude::*;
 
@@ -50,7 +53,8 @@ impl PyCloudClient {
     }
 
     /// The web origins registered for `package`: `{"package": ...,
-    /// "origins": [{"origin", "rpId", "addedBy", "addedAt"}, ...]}`.
+    /// "origins": [{"origin", "rpId", "addedBy", "addedAt", "served"}, ...]}`
+    /// (`served` absent from a node that predates served origins).
     fn list_package_origins(&self, py: Python<'_>, package: &str) -> PyResult<PyObject> {
         let v = self.send(py, Verb::Get, origins_path(package), Value::Null)?;
         to_py(py, &v)
@@ -59,8 +63,17 @@ impl PyCloudClient {
     /// Register `origin` (`https://app.example`) for `package`'s frontends,
     /// approved with `passkey`. `rp_id` is the WebAuthn RP ID passkeys from
     /// that origin are made for; without it the node derives one from the
-    /// origin. Returns `{"package", "origin", "rpId", "addedBy", "addedAt"}`.
-    #[pyo3(signature = (package, origin, passkey, rp_id = None))]
+    /// origin. Returns `{"package", "origin", "rpId", "addedBy", "addedAt",
+    /// "served"}`.
+    ///
+    /// `served=True` registers a custom domain: the cluster also serves the
+    /// package's frontend on it (`https://host`, no port; not a name under
+    /// the apps domain or the cluster's rp-id). The node refuses it `400
+    /// NOT_SERVING` on a cluster that serves no frontends, `409
+    /// CLUSTER_NOT_UPGRADED` while a node runs an older release, `409
+    /// ORIGIN_TAKEN` when the origin is held with the other `served`, and
+    /// `429 QUOTA_EXCEEDED` past 4 per package or 64 per cluster.
+    #[pyo3(signature = (package, origin, passkey, rp_id = None, served = false))]
     fn add_package_origin(
         &self,
         py: Python<'_>,
@@ -68,11 +81,12 @@ impl PyCloudClient {
         origin: &str,
         passkey: &PySoftPasskey,
         rp_id: Option<&str>,
+        served: bool,
     ) -> PyResult<PyObject> {
         let v = self.confirmed(
             py,
             origins_path(package),
-            add_origin_body(origin, rp_id),
+            add_origin_body(origin, rp_id, served),
             passkey,
         )?;
         to_py(py, &v)
@@ -99,11 +113,18 @@ fn origins_path(package: &str) -> String {
 }
 
 /// `{"origin": ...}`, with `rpId` only when the caller names one (the node
-/// resolves it otherwise, and signs over the one it resolved).
-fn add_origin_body(origin: &str, rp_id: Option<&str>) -> Value {
+/// resolves it otherwise, and signs over the one it resolved), and `served:
+/// true` only for a served origin: a node that predates served origins
+/// refuses unknown fields, and takes a plain add unchanged.
+fn add_origin_body(origin: &str, rp_id: Option<&str>, served: bool) -> Value {
     let mut body = serde_json::json!({ "origin": origin });
-    if let (Some(b), Some(r)) = (body.as_object_mut(), rp_id) {
-        let _prev = b.insert("rpId".into(), Value::from(r));
+    if let Some(b) = body.as_object_mut() {
+        if let Some(r) = rp_id {
+            let _prev = b.insert("rpId".into(), Value::from(r));
+        }
+        if served {
+            let _prev = b.insert("served".into(), Value::Bool(true));
+        }
     }
     body
 }
@@ -124,12 +145,33 @@ mod tests {
     #[test]
     fn rp_id_is_sent_only_when_given() {
         assert_eq!(
-            add_origin_body("https://app.example", None),
+            add_origin_body("https://app.example", None, false),
             serde_json::json!({ "origin": "https://app.example" })
         );
         assert_eq!(
-            add_origin_body("https://app.example", Some("example")),
+            add_origin_body("https://app.example", Some("example"), false),
             serde_json::json!({ "origin": "https://app.example", "rpId": "example" })
         );
+    }
+
+    /// `served` goes out only when true, so a plain add is the body (and
+    /// the consent) it was before served origins.
+    #[test]
+    fn served_is_sent_only_when_true() {
+        assert_eq!(
+            add_origin_body("https://kv.example.com", None, true),
+            serde_json::json!({ "origin": "https://kv.example.com", "served": true })
+        );
+        assert_eq!(
+            add_origin_body("https://kv.example.com", Some("example.com"), true),
+            serde_json::json!({
+                "origin": "https://kv.example.com",
+                "rpId": "example.com",
+                "served": true
+            })
+        );
+        assert!(add_origin_body("https://kv.example.com", None, false)
+            .get("served")
+            .is_none());
     }
 }
