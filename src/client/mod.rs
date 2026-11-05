@@ -8,6 +8,7 @@
 //! and [`ops`]. This file holds the connection and the generic transport.
 
 mod account;
+mod account_recovery;
 mod apps;
 mod blobs;
 mod directory;

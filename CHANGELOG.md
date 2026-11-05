@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **feat: account recovery** (core #4844, `docs/specs/account-recovery.md`;
+  needs a core release after 1.0.0-rc.10). `create_recovery_code(passkey)`,
+  `remove_recovery_code(passkey)`, `start_account_recovery(code, passkey)`
+  (signed out, with a new passkey), `cancel_account_recovery(passkey)` and
+  `finish_account_recovery(passkey, account_id=None)` (signs in after the
+  72-hour delay). `CloudClient.normalize_recovery_code` and
+  `CloudClient.recovery_code_key` read a code as core does (its key is core's
+  `proof::recovery_key`).
 - **feat: upgrade keys for CI deploys** (core #4852, core 1.0.0-rc.10).
   `create_api_key({"upgrades": {"app": app, "package": ...}}, passkey)` makes
   an API key that upgrades that one app to signed releases of its package
