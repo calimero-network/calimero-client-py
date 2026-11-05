@@ -81,7 +81,7 @@ client.delete_team(org, team)                               # takes its sub-team
 | Session | `sign_up`, `sign_in`, `refresh`, `sign_out`, `sign_out_everywhere`, `use_session`, `use_api_key`, `session`, `me`, `usage` |
 | Devices (passkeys) | `add_passkey(new, approver)`, `remove_passkey(credential_id, passkey)`, `label_passkey` |
 | Account recovery | `create_recovery_code(passkey)`, `remove_recovery_code(passkey)`, `start_account_recovery(code, passkey)` (signed out, a new passkey), `cancel_account_recovery(passkey)`, `finish_account_recovery(passkey, account_id=None)`; `CloudClient.normalize_recovery_code`, `CloudClient.recovery_code_key` |
-| API keys | `create_api_key({label, apps, methods, readOnly, allowConfirm, ttlSecs}, passkey)`, `list_api_keys`, `revoke_api_key(key_id, passkey)` |
+| API keys | `create_api_key({label, apps, methods, readOnly, allowConfirm, ttlSecs}, passkey)`, `list_api_keys`, `revoke_api_key(key_id, passkey)`; upgrade keys for CI: `create_api_key({upgrades: {app, package?}}, passkey)`, then `upgrade_app(app, version=...)` with the key alone; `CloudClient.api_key_public(key)` |
 | Aliases | `set_alias`, `alias`, `aliases`, `delete_alias` |
 | Packages | `upload_package`, `install_package`, `packages`, `package`, `uninstall_package`; web origins: `list_package_origins`, `add_package_origin`, `remove_package_origin` (approved with a `passkey`) |
 | Apps | `upload_bundle`, `create_app`, `create_app_from_package`, `list_apps`, `get_app`, `delete_app`, `set_access`, `set_app_metadata`, `app_storage`, `app_abi`, `upgrade_app`, `transfer_app`, `verify_app_cluster` |
@@ -90,7 +90,7 @@ client.delete_team(org, team)                               # takes its sub-team
 | Presence | `publish_presence`, `presence`, `presence_stream` |
 | Calls | `call`, `call_confirmed`, `view`, `events` |
 | Blobs | `upload_blob`, `download_blob`, `list_blobs`, `blob_info`, `delete_blob` |
-| Organizations | `create_org`, `get_org`, `delete_org`, `set_org_metadata`, `set_member`, `set_member_metadata`, `remove_member`, `set_capabilities`, `invite`, `redeem_invite` |
+| Organizations | `create_org`, `get_org`, `delete_org`, `set_org_metadata`, `set_member`, `set_member_metadata`, `remove_member`, `set_capabilities`, `invite`, `redeem_invite`; recovery: `set_recovery_key`, `start_recovery`, `cancel_recovery`, `finish_recovery`, `CloudClient.new_recovery_seed`, `CloudClient.recovery_public_key` |
 | Teams | `create_team`, `get_team`, `update_team`, `delete_team`, `set_team_member`, `remove_team_member` |
 | Ops API (ops token via `use_api_key`, decisions signed after `use_operator_key`) | `ops_status`, `ops_metrics`, `ops_register_node`, `ops_remove_node`, `ops_set_replicas`, `ops_backup`, `ops_quotas`, `ops_set_quotas`, `ops_approve_release`, `ops_approve_outbound`, `ops_upgrade_app`, `ops_upgrade_org`, `ops_packages`, `ops_upload_package`, `ops_install_package`, `ops_uninstall_package` |
 | Anything else | `get`, `get_text`, `post`, `put`, `delete(path, body=None)` on any API path; `post_confirmed`, `delete_confirmed(path, passkey, body=None)` where the node asks for a passkey (`412`); `post_operator_signed`, `delete_operator_signed` where it asks for the operator's signature (`428`); `attestation` |

@@ -108,9 +108,36 @@ refresh token, to each next node in turn, once per node. See
 | `add_passkey(passkey, approver)` | The added credential's id; approved with `approver`, a passkey the account already has. |
 | `remove_passkey(credential_id, passkey)` | `None`; approved with `passkey`. |
 | `label_passkey(credential_id, label)` | `None`; `""` clears the name. |
-| `create_api_key(options, passkey)` | `(key_id, key)`, approved with the account's `passkey` (a session's; an API key is refused); the key is shown once. `options` may be `None`, or `options` may set `label`, `apps`, `methods`, `readOnly`, `allowConfirm`, `ttlSecs` (at most a year). |
-| `list_api_keys()` | The key records. |
+| `create_api_key(options, passkey)` | `(key_id, key)`, approved with the account's `passkey` (a session's; an API key is refused); the key is shown once. `options` may be `None`, or `options` may set `label`, `apps`, `methods`, `readOnly`, `allowConfirm`, `ttlSecs` (at most a year), or `upgrades: {app, package?}` alone for an upgrade key (see below). |
+| `list_api_keys()` | The key records; an upgrade key's has `upgrades: {app, package, signer, proofKey}`. |
+| `CloudClient.api_key_public(key)` | The Ed25519 public key (hex) an API key stands for: an upgrade key's `upgrades.proofKey`. |
 | `revoke_api_key(key_id, passkey)` | `None`; approved with the account's `passkey` (`412 CONFIRM_REQUIRED`). |
+
+#### Upgrade keys: deploy from CI
+
+An upgrade key (core 1.0.0-rc.10) upgrades one app to signed releases of its
+package without a passkey, so a CI job can publish a release and move the app
+to it. Whoever may upgrade the app makes it once, with their passkey; the key
+is bound to the app, its package (by default the one the app runs) and that
+package's signer as pinned when the key is made.
+
+```python
+# Once, signed in with a passkey:
+key_id, key = owner.create_api_key(
+    {"label": "ci", "upgrades": {"app": app_id}, "ttlSecs": 90 * 24 * 3600},
+    passkey,
+)
+# In CI, with the key alone (store it as a secret):
+ci = Client.connect("my-cluster")
+ci.use_api_key(key)
+ci.upgrade_app(app_id, version="1.4.0")
+```
+
+The node signs each such upgrade with the Ed25519 key the API key stands for
+(`SHA-256("calimero.api-key.v1\0" || key)` as the seed) in place of a passkey
+assertion, and logs that proof. Everything else the key is used for is refused
+`403 UPGRADE_KEY_ONLY` (reads too); a `bundle`, another package or another app
+is refused `403`; `revoke_api_key` stops it at once.
 
 ### Account recovery
 
@@ -218,7 +245,7 @@ Each takes the owner's `passkey`, which answers the node's `412 CONFIRM_REQUIRED
 
 | Method | Returns |
 | --- | --- |
-| `create_org(name)` | The organization id; the caller owns it. |
+| `create_org(name, recovery_key=None)` | The organization id; the caller owns it. `recovery_key` is `CloudClient.recovery_public_key(seed)`. |
 | `get_org(org)` | Members, roles and the teams the caller can see. |
 | `delete_org(org, passkey)` | `None`; deletes its teams, invites and apps, approved with the owner's passkey. |
 | `set_org_metadata(org, metadata)` | `None`; `None` clears it. |
@@ -232,6 +259,22 @@ What grants access (a member's role or removal, capabilities, invites, team
 rows) is approved with the acting account's `passkey`: the node answers `412
 CONFIRM_REQUIRED` and the client answers with the passkey's assertion.
 | `redeem_invite(token)` | The node's answer (`dict`). |
+
+### Recovery
+
+An owner who loses every passkey gets the organization back with its recovery
+seed (64 hex digits). The seed signs in the client and is never sent; the node
+keeps only its public key.
+
+| Method | Returns |
+| --- | --- |
+| `CloudClient.new_recovery_seed()` | A new seed, written as eight groups of eight hex digits. Keep it offline. |
+| `CloudClient.recovery_public_key(seed)` | The public key (base64url) the organization stores. |
+| `CloudClient.sign_recovery(seed, org, account, nonce)` | The signature `start_recovery` sends. |
+| `set_recovery_key(org, public_key, passkey)` | `None`; the owner's. `None` removes the key; a new one cancels a recovery under way and retires the old seed. |
+| `start_recovery(org, seed)` | `{ startedAt, readyAt }` for the signed-in account; `WRONG_RECOVERY_KEY` (403) for a wrong seed, `RECOVERY_PENDING` (409) while one is under way. |
+| `cancel_recovery(org, passkey)` | `None`; the owner's. |
+| `finish_recovery(org, passkey)` | `{ org, previousOwners }` once `readyAt` has passed (`RECOVERY_NOT_READY` before): this account owns the organization, the previous owner has left it. |
 
 ### Teams
 
