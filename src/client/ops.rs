@@ -187,6 +187,14 @@ impl PyCloudClient {
         to_py(py, &v)
     }
 
+    /// Every served origin (custom domain) the cluster's log holds: `{"fresh",
+    /// "origins": [{"origin", "host", "label", "addedAt"}, ...]}`, with the
+    /// package's app-host `label` and no package name or account.
+    fn ops_served_origins(&self, py: Python<'_>) -> PyResult<PyObject> {
+        let v = self.send(py, Verb::Get, "ops/served-origins".into(), Value::Null)?;
+        to_py(py, &v)
+    }
+
     /// The packages the operator installed.
     fn ops_packages(&self, py: Python<'_>) -> PyResult<PyObject> {
         let v = self.send(py, Verb::Get, "ops/packages".into(), Value::Null)?;

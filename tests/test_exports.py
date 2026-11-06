@@ -187,6 +187,7 @@ METHODS = {
     "ops_upgrade_app",
     "ops_upgrade_org",
     "ops_packages",
+    "ops_served_origins",
     "ops_upload_package",
     "ops_install_package",
     "ops_uninstall_package",
