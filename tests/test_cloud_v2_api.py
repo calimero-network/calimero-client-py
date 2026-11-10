@@ -608,3 +608,36 @@ def test_an_admin_closes_and_opens_one_app_team(cluster, wasm):
         alice.scope_apps(
             org, pk, apps=[{"package": package, "join": "everyone"}], shared=True
         )
+
+
+def test_a_route_layer_sends_through_request(cluster, wasm):
+    """`request` is the runtime a generated route layer calls: JSON in and
+    out, the query encoded, refusals raised as CloudError, the 412 step-up
+    answered with the passkey, a call retried when it carries its key."""
+    from calimero.transport import route_path
+
+    alice, pk = person(cluster, 0, "alice-request")
+    assert alice.request("GET", "/auth/me")["accountId"] == alice.me()["accountId"]
+    org = alice.request("POST", "orgs", body={"name": "Routed"})["orgId"]
+    with pytest.raises(CloudError) as e:
+        alice.request("DELETE", route_path("orgs/{org}", org=org))
+    assert code(e.value) == "CONFIRM_REQUIRED"
+    alice.request("DELETE", route_path("orgs/{org}", org=org), passkey=pk)
+    with pytest.raises(CloudError):
+        alice.request("GET", route_path("orgs/{org}", org=org))
+
+    app = alice.create_app("routed", alice.upload_bundle(wasm))
+    path = route_path("apps/{app}/intents", app=app)
+    body = {
+        "method": "set",
+        "args": {"key": "r", "value": "1"},
+        "idempotencyKey": "r-1",
+    }
+    first = alice.request("POST", path, body=body, repeatable=True)
+    again = alice.request("POST", path, body=body, repeatable=True)
+    assert first["index"] == again["index"]
+    assert "activity" in alice.request(
+        "GET", "auth/activity", query={"after": 0, "unused": None}
+    )
+    with pytest.raises(ValueError):
+        alice.request("PATCH", "orgs")

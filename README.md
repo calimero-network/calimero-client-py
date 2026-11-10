@@ -121,6 +121,38 @@ print(ops.ops_backup(), "snapshots written")
 `merod` (set `MEROD_BINARY` and `KV_STORE_WASM`, or keep a `core` checkout
 beside this one).
 
+## The runtime and the route layer
+
+`Client` is two layers. The **runtime** is everything that is not a route:
+core's Rust `calimero-client` (attestation, the sealed channel, the session's
+refresh), moving between nodes, the `412 CONFIRM_REQUIRED` passkey step-up and
+error mapping (`src/client/runtime.rs`, `recover.rs`, `directory.rs`). Its
+surface toward routes is one method:
+
+```python
+client.request(method, path, *, query=None, body=None, passkey=None, repeatable=None)
+```
+
+`method` is `GET`, `POST`, `PUT` or `DELETE`; `path` is relative to the node;
+`query` is encoded and appended; `body` goes as JSON; `passkey` answers a
+`412`; `repeatable` lets a `503` or an unreachable node be retried (default:
+GETs only). It answers the node's JSON and raises `CloudError` for a refusal.
+The **routes** (`create_org`, `call`, `upload_blob`, ...; `src/client/{account,apps,
+blobs,orgs,...}.rs`) are the hand-written layer on top. A route layer generated
+from the node's OpenAPI document needs only `request`:
+`calimero.transport.Transport` describes it and `route_path` fills a path with
+encoded segments.
+
+```python
+from calimero.transport import route_path
+
+client.request("DELETE", route_path("orgs/{org}", org=org_id), passkey=pk)
+```
+
+Event streams stay on their own methods (`events`, `presence_stream`) until
+core's `calimero-client` with its `Transport` (core `feat/client-runtime-split`)
+is released and this package moves to it.
+
 ## Development
 
 Build from source with [maturin](https://www.maturin.rs/):

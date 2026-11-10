@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **feat: the runtime split from the routes.** `Client.request(method, path,
+  *, query, body, passkey, repeatable)` is the one call a route layer needs
+  (the attested, sealed channel, the credential and its refresh, node
+  recovery, the `412` step-up, `CloudError`); `calimero.transport` holds its
+  `Transport` protocol and `route_path`. The runtime lives in
+  `src/client/runtime.rs` (with `recover.rs` and `directory.rs`), the route
+  methods in the area files. No method changed.
+
 - **feat: app teams** (core #4890; per-app `join`/`keep` need core #4903).
   `list_app_teams(org)` answers the organization's mode and its app teams;
   `scope_apps(org, passkey, apps=None, shared=None)` gives apps their own

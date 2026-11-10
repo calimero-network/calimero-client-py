@@ -328,6 +328,7 @@ so they can be sent to any node.
 
 | Method | Returns |
 | --- | --- |
+| `request(method, path, *, query=None, body=None, passkey=None, repeatable=None)` | The node's JSON for any route: the runtime's one call, what a route layer of your own (or one generated from the node's OpenAPI document) sends through. `query` is encoded and appended (`None` left out, a list repeated), `body` goes as JSON, `passkey` answers a `412 CONFIRM_REQUIRED` (POST, DELETE), `repeatable` retries a `503` or an unreachable node (default: GETs). `calimero.transport` has its `Transport` protocol and `route_path(template, **params)`. |
 | `get(path)`, `post(path, body=None)`, `put(path, body=None)`, `delete(path, body=None)` | The node's JSON for any API path; a DELETE sends `body` as JSON when given (a proof the caller made: `confirm`, `operatorProof`). |
 | `get_text(path)` | A text answer (`ops/metrics`). |
 | `post_confirmed(path, body, passkey)` | POST answering a `412 CONFIRM_REQUIRED` with `passkey`'s assertion (owner approvals). |
