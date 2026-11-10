@@ -136,6 +136,7 @@ METHODS = {
     "app_abi",
     "upgrade_app",
     "transfer_app",
+    "move_app",
     "verify_app_cluster",
     "call",
     "call_confirmed",

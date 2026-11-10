@@ -238,6 +238,7 @@ Each takes the owner's `passkey`, which answers the node's `412 CONFIRM_REQUIRED
 | Method | Returns |
 | --- | --- |
 | `transfer_app(app, to, passkey)` | Hands the app to account `to` (an org app only to a member). The owner approves; for an org app, its owner only while a member, or an org admin. |
+| `move_app(app, to_org, passkey, bring_members=False)` | Moves the app to organization `to_org`, its data where it is: whoever manages it now, as an admin of `to_org`, approves. Its payer and access go to the target; `bring_members` adds the members who reach it. A node from before the route answers a bare `404`. |
 | `approve_release(version, passkey, org=None)` | Approves a mero-tee release for the org's apps, or the account's own. |
 | `approve_outbound(package, passkey, org=None, prefixes=None, replace=False)` | Approves URL prefixes for the package's publisher: every prefix its manifest declares by default; `replace=True` sets exactly `prefixes` (`[]` revokes). |
 | `upgrade_org(org, package, version, passkey, team=None, cascade=False, migrate=None)` | Starts an org-wide upgrade run: `{"runId", ...}`. |
