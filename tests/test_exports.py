@@ -134,6 +134,8 @@ METHODS = {
     "set_app_metadata",
     "app_storage",
     "app_abi",
+    "app_openapi",
+    "call_method",
     "upgrade_app",
     "transfer_app",
     "move_app",

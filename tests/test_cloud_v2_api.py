@@ -370,6 +370,34 @@ def test_an_app_moves_with_its_people_into_another_org(cluster, wasm):
     assert e.value.args[1] == 403, e.value
 
 
+def test_an_apps_openapi_document_and_its_method_routes(cluster, wasm):
+    alice, pk = person(cluster, 0, "alice-openapi")
+    app = alice.create_app("openapi-kv", alice.upload_bundle(wasm))
+    try:
+        doc = alice.app_openapi(app)
+    except CloudError as e:
+        # A node before core's `feat/app-openapi`: a bare `404`.
+        if e.args[1] != 404 or code(e) == "NOT_FOUND":
+            raise
+        pytest.skip("the node has no OpenAPI documents (core feat/app-openapi)")
+    assert doc["openapi"] == "3.1.0", doc
+    set_op = doc["paths"]["/apps/{app}/methods/set"]["post"]
+    assert (set_op["operationId"], set_op["tags"]) == ("set", ["call"])
+    assert doc["paths"]["/apps/{app}/methods/len"]["post"]["tags"] == ["view"]
+
+    first = alice.call_method(
+        app, "set", {"args": {"key": "a", "value": "1"}, "idempotencyKey": "oa-1"}
+    )
+    replay = alice.call(app, "set", {"key": "a", "value": "2"}, "oa-1")
+    assert replay["index"] == first["index"]
+    assert alice.call_method(app, "get", {"args": {"key": "a"}})["result"] == "1"
+    with pytest.raises(CloudError) as e:
+        alice.call_method(app, "clear")
+    assert code(e.value) == "CONFIRM_REQUIRED", e.value
+    alice.call_method(app, "clear", None, pk)
+    assert alice.view(app, "len", {})["result"] == 0
+
+
 def test_receipts_verify_against_the_attested_cluster(cluster, wasm):
     alice, _pk = person(cluster, 0, "alice-receipts")
     app = alice.create_app("receipted", alice.upload_bundle(wasm))

@@ -84,7 +84,7 @@ client.delete_team(org, team, pk)                           # takes its sub-team
 | API keys | `create_api_key({label, apps, methods, readOnly, allowConfirm, ttlSecs}, passkey)`, `list_api_keys`, `revoke_api_key(key_id, passkey)`; upgrade keys for CI: `create_api_key({upgrades: {app, package?}}, passkey)`, then `upgrade_app(app, version=...)` with the key alone; `CloudClient.api_key_public(key)` |
 | Aliases | `set_alias`, `alias`, `aliases`, `delete_alias` |
 | Packages | `upload_package`, `install_package`, `packages`, `package`, `uninstall_package`; web origins: `list_package_origins`, `add_package_origin`, `remove_package_origin` (approved with a `passkey`; `served=True` for a custom domain the cluster serves the frontend on) |
-| Apps | `upload_bundle`, `create_app`, `create_app_from_package`, `list_apps`, `get_app`, `delete_app`, `set_access`, `set_app_metadata`, `app_storage`, `app_abi`, `upgrade_app`, `transfer_app`, `move_app`, `verify_app_cluster` |
+| Apps | `upload_bundle`, `create_app`, `create_app_from_package`, `list_apps`, `get_app`, `delete_app`, `set_access`, `set_app_metadata`, `app_storage`, `app_abi`, `app_openapi`, `call_method`, `upgrade_app`, `transfer_app`, `move_app`, `verify_app_cluster` |
 | Approvals | `approve_release`, `approve_outbound` (the owner's passkey) |
 | Upgrade runs | `upgrade_org`, `upgrade_run`, `retry_upgrade_run` |
 | Presence | `publish_presence`, `presence`, `presence_stream` |
