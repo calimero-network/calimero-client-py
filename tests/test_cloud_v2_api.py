@@ -239,6 +239,50 @@ def test_passkey_times_and_sessions_listed_and_ended_one_at_a_time(cluster):
     assert laptop.me()["accountId"] == me["accountId"]
 
 
+def test_admins_see_their_members_lockout_risk(cluster):
+    alice, pk = person(cluster, 0, "alice-security")
+    bob, _ = person(cluster, 1, "bob-security")
+    org = alice.create_org("Lockout Co")
+    bob.redeem_invite(alice.invite(org, "member", pk))
+    bob_id = bob.me()["accountId"]
+    try:
+        members = alice.org_members_security(org)
+    except CloudError as e:
+        # A node before core #4902: no `GET /orgs/{org}/members` (a bare
+        # `404`, or `405` beside the existing POST).
+        if e.args[1] not in (404, 405) or code(e) == "NOT_FOUND":
+            raise
+        pytest.skip("the node has no member security listing (core #4902)")
+    assert len(members) == 2, members
+    b = next(m for m in members if m["account"] == bob_id)
+    assert (b["role"], b["passkeys"], b["recoveryCode"], b["sessions"]) == (
+        "member",
+        1,
+        False,
+        1,
+    ), b
+    assert len(b["lastActiveDay"]) == 10, b
+    for m in members:
+        assert sorted(m) == sorted(
+            [
+                "account",
+                "name",
+                "role",
+                "teams",
+                "passkeys",
+                "recoveryCode",
+                "lastActiveDay",
+                "sessions",
+            ]
+        ), m
+    # A member is refused; removed, bob is gone from the listing.
+    with pytest.raises(CloudError) as e:
+        bob.org_members_security(org)
+    assert e.value.args[1] == 403, e.value
+    alice.remove_member(org, bob_id, pk)
+    assert bob_id not in [m["account"] for m in alice.org_members_security(org)]
+
+
 def test_activity_lists_sign_ins_and_approvals(cluster):
     laptop, pk = person(cluster, 0, "alice-activity")
     me = laptop.me()
