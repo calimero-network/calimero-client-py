@@ -246,12 +246,17 @@ impl PyCloudClient {
     }
 
     /// Run `app` on another uploaded bundle (or `version` of its package).
-    /// The node plans the migration from the two bundles' ABIs (`migrate`
-    /// names an export to use instead). Where the app's owner approves
-    /// upgrades, `passkey` is theirs: it answers the node's challenge over
-    /// this exact upgrade. `package` and `service` move it to another package
-    /// or service. A failed migration raises `CloudError` with code
-    /// `UPGRADE_FAILED` (422).
+    /// An upgrade is code only: the app moves to any newer release in one
+    /// step, and its state stays as the old code wrote it (a named `migrate`
+    /// is refused). Where the app's owner approves upgrades, `passkey` is
+    /// theirs: it answers the node's challenge over this exact upgrade.
+    /// `package` and `service` move it to another package or service. One the
+    /// app's group refuses raises `CloudError` with code `UPGRADE_FAILED`
+    /// (422); one a replica's node is too old to run (the release's
+    /// `minRuntimeVersion` is newer than its runtime) with code
+    /// `RUNTIME_TOO_OLD` (409), whose details name the requirement and the
+    /// nodes. The app's report names the newest release it can reach
+    /// (`latestReachable`) and why the latest is not it (`latestBlocked`).
     ///
     /// With an upgrade key in use (`create_api_key` with `upgrades`), pass a
     /// `version` of the key's package and no passkey: the node signs the

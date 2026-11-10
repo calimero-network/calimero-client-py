@@ -59,6 +59,8 @@ impl PyCloudClient {
 
     /// Move `app` to the replica node ids `replicas` (at least 3), signed
     /// with the operator key. Runs on the app group's leader; a `NOT_LEADER` answer is followed there.
+    /// A node the app is not on yet whose runtime is older than its release's
+    /// `minRuntimeVersion` raises `CloudError` with code `RUNTIME_TOO_OLD` (409).
     /// Returns the group's status.
     fn ops_set_replicas(
         &self,

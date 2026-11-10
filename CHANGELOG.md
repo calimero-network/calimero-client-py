@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **docs: upgrades are code only, and `RUNTIME_TOO_OLD`** (core #4919). An
+  upgrade moves an app to any newer release in one step; `upgrade_app` and
+  `ops_set_replicas` raise `CloudError` with code `RUNTIME_TOO_OLD` (409) when
+  a node that would run the app is older than the release's
+  `minRuntimeVersion`. The app reports (`dict`s, as before) carry
+  `latestReachable` and `latestBlocked`.
+
 - **feat: app teams** (core #4890; per-app `join`/`keep` need core #4903).
   `list_app_teams(org)` answers the organization's mode and its app teams;
   `scope_apps(org, passkey, apps=None, shared=None)` gives apps their own
