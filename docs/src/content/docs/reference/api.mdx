@@ -291,6 +291,8 @@ keeps only its public key.
 | `delete_team(org, team, passkey=None)` | `None`; takes its sub-teams and their apps. When they hold apps, approved with `passkey` (without one, the node's `CONFIRM_REQUIRED` lists the `apps` in its details). |
 | `set_team_member(org, team, account, passkey, role=None, capabilities=None)` | `None`. `role` is `lead`, `member` or `readOnly`. |
 | `remove_team_member(org, team, account, passkey)` | `None`. |
+| `set_team_members(org, account, teams, passkey)` | `None`. One account's rows in up to 64 teams with one approval: `teams` lists team ids or `{"team", "role"?, "capabilities"?}`; each judged as `set_team_member`, all or nothing. A node from before the route answers a bare `404`. |
+| `remove_team_members(org, account, teams, passkey)` | `None`. Out of several teams (or leaving them) with one approval, the teams below included; all or nothing. |
 
 ### Ops API
 

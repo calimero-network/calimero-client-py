@@ -370,6 +370,47 @@ def test_an_app_moves_with_its_people_into_another_org(cluster, wasm):
     assert e.value.args[1] == 403, e.value
 
 
+def test_one_account_joins_and_leaves_several_teams_with_one_approval(cluster):
+    alice, pk = person(cluster, 0, "alice-rows")
+    bob, bob_pk = person(cluster, 1, "bob-rows")
+    alice_id = alice.me()["accountId"]
+    bob_id = bob.me()["accountId"]
+    org = alice.create_org("Rows")
+    alice.set_member(org, bob_id, "member", pk)
+    chat, blocks, notes = (
+        alice.create_team(org, n) for n in ("chat", "blocks", "notes")
+    )
+
+    def rows(team):
+        return [m["account"] for m in alice.get_team(org, team)["members"]]
+
+    try:
+        alice.set_team_members(
+            org, bob_id, [chat, {"team": blocks, "role": "readOnly"}, notes], pk
+        )
+    except CloudError as e:
+        # A node before core's `feat/batch-team-members`: no
+        # `/orgs/{org}/members/{account}/teams` (a bare `404`).
+        if e.args[1] != 404 or code(e) == "NOT_FOUND":
+            raise
+        pytest.skip("the node has no team batches (core feat/batch-team-members)")
+    for team in (chat, blocks, notes):
+        assert bob_id in rows(team)
+    time.sleep(0.3)
+    assert bob.get_team(org, blocks)["myRole"] == "readOnly"
+    # Bob manages none of them: refused, nothing set.
+    with pytest.raises(CloudError):
+        bob.set_team_members(org, alice_id, [chat], bob_pk)
+
+    # Out of two with one approval; he leaves the third himself.
+    alice.remove_team_members(org, bob_id, [chat, blocks], pk)
+    assert bob_id not in rows(chat) and bob_id not in rows(blocks)
+    assert bob_id in rows(notes)
+    bob.remove_team_members(org, bob_id, [notes], bob_pk)
+    time.sleep(0.3)
+    assert bob_id not in rows(notes)
+
+
 def test_receipts_verify_against_the_attested_cluster(cluster, wasm):
     alice, _pk = person(cluster, 0, "alice-receipts")
     app = alice.create_app("receipted", alice.upload_bundle(wasm))

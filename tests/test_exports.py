@@ -170,6 +170,8 @@ METHODS = {
     "delete_team",
     "set_team_member",
     "remove_team_member",
+    "set_team_members",
+    "remove_team_members",
     "list_app_teams",
     "scope_apps",
     "upgrade_org",
