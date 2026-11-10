@@ -289,7 +289,10 @@ impl PyCloudClient {
     /// Invite someone into the organization with `role`, and into `teams`,
     /// approved with `passkey`. Returns the token to hand them (valid
     /// `ttl_secs`, default a week, for `uses` redemptions, default one).
-    #[pyo3(signature = (org, role, passkey, teams = Vec::new(), ttl_secs = None, uses = None))]
+    /// `all_apps=True` (the owner's or an admin's) also gives whoever redeems
+    /// it every app added to the organization later (core
+    /// `feat/org-all-apps`); it is sent only when set.
+    #[pyo3(signature = (org, role, passkey, teams = Vec::new(), ttl_secs = None, uses = None, all_apps = false))]
     #[allow(clippy::too_many_arguments)]
     fn invite(
         &self,
@@ -300,11 +303,35 @@ impl PyCloudClient {
         teams: Vec<String>,
         ttl_secs: Option<u64>,
         uses: Option<u32>,
+        all_apps: bool,
     ) -> PyResult<String> {
-        let body =
+        let mut body =
             serde_json::json!({ "role": role, "teams": teams, "ttlSecs": ttl_secs, "uses": uses });
+        if all_apps {
+            body["allApps"] = Value::Bool(true);
+        }
         let v = self.confirmed(py, format!("orgs/{}/invites", seg(org)), body, passkey)?;
         field(&v, "token")
+    }
+
+    /// Give `account` every app added to the organization from now on, or
+    /// stop it (`all_apps=False`), core `POST /orgs/{org}/all-apps`: the
+    /// owner's or an admin's, approved with `passkey` (`__set_all_apps
+    /// {account, allApps}`). Each app team made after gives them a row;
+    /// apps already there are untouched. A member below admin gets `403`,
+    /// someone outside `404 NOT_FOUND`, a node from before the route a bare
+    /// `404`.
+    fn set_all_apps(
+        &self,
+        py: Python<'_>,
+        org: &str,
+        account: &str,
+        all_apps: bool,
+        passkey: &PySoftPasskey,
+    ) -> PyResult<()> {
+        let body = serde_json::json!({ "account": account, "allApps": all_apps });
+        self.confirmed(py, format!("orgs/{}/all-apps", seg(org)), body, passkey)
+            .map(drop)
     }
 
     /// Join an organization (and its invited teams) with an invite token.

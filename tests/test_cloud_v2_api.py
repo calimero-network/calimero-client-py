@@ -370,6 +370,36 @@ def test_an_app_moves_with_its_people_into_another_org(cluster, wasm):
     assert e.value.args[1] == 403, e.value
 
 
+def test_a_member_gets_every_app_added_later_by_invite_and_by_an_admin(cluster):
+    alice, pk = person(cluster, 0, "alice-allapps")
+    bob, _bob_pk = person(cluster, 1, "bob-allapps")
+    carol, carol_pk = person(cluster, 2, "carol-allapps")
+    org = alice.create_org("AllAppsCo")
+    carol_id = carol.me()["accountId"]
+    alice.set_member(org, carol_id, "member", pk)
+    try:
+        alice.set_all_apps(org, carol_id, True, pk)
+    except CloudError as e:
+        # A node before core's `feat/org-all-apps`: no `/orgs/{org}/all-apps`
+        # (a bare `404`).
+        if e.args[1] != 404 or code(e) == "NOT_FOUND":
+            raise
+        pytest.skip("the node has no every-app grant (core feat/org-all-apps)")
+    bob.redeem_invite(alice.invite(org, "member", pk, all_apps=True))
+    bob_id = bob.me()["accountId"]
+    assert sorted(alice.get_org(org)["allApps"]) == sorted([bob_id, carol_id])
+    # A member below admin gives nobody every app, and mints no such invite.
+    for attempt in (
+        lambda: carol.set_all_apps(org, carol_id, False, carol_pk),
+        lambda: carol.invite(org, "member", carol_pk, all_apps=True),
+    ):
+        with pytest.raises(CloudError) as e:
+            attempt()
+        assert e.value.args[1] == 403, e.value
+    alice.set_all_apps(org, carol_id, False, pk)
+    assert alice.get_org(org)["allApps"] == [bob_id]
+
+
 def test_receipts_verify_against_the_attested_cluster(cluster, wasm):
     alice, _pk = person(cluster, 0, "alice-receipts")
     app = alice.create_app("receipted", alice.upload_bundle(wasm))

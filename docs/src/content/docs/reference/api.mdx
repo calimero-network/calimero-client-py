@@ -258,7 +258,8 @@ Each takes the owner's `passkey`, which answers the node's `412 CONFIRM_REQUIRED
 | `set_member(org, account, role, passkey)` | `None`. `role` is `guest`, `member`, `admin` or `owner`. |
 | `remove_member(org, account, passkey)` | `None` (yourself, to leave). |
 | `set_capabilities(org, capabilities, passkey, account=None, team=None)` | `None`. Capability bits for `account` (in `team`), or the organization's default. |
-| `invite(org, role, passkey, teams=[], ttl_secs=None, uses=None)` | The invite token (default a week, one use). |
+| `invite(org, role, passkey, teams=[], ttl_secs=None, uses=None, all_apps=False)` | The invite token (default a week, one use). `all_apps=True` (the owner's or an admin's) also gives whoever redeems it every app added to the organization later. |
+| `set_all_apps(org, account, all_apps, passkey)` | `None`. The owner or an admin gives a member every app added from now on (each app team made after gives them a row), or stops it; `get_org(org)["allApps"]` lists who holds it. A node from before the route answers a bare `404`. |
 
 What grants access (a member's role or removal, capabilities, invites, team
 rows) is approved with the acting account's `passkey`: the node answers `412

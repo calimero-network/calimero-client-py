@@ -162,6 +162,7 @@ METHODS = {
     "set_member_metadata",
     "remove_member",
     "set_capabilities",
+    "set_all_apps",
     "invite",
     "redeem_invite",
     "create_team",
