@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **fix: deleting a team with apps takes a passkey** (core #4891; needs a core
+  release after 1.0.0-rc.13). `delete_team(org, team, passkey=None)`: when the
+  team or a team below it holds apps, the node answers `412 CONFIRM_REQUIRED`
+  with the `apps` that go in its details, and `passkey` approves exactly
+  those (an app added after the approval is refused). Without `passkey` that
+  `412` is raised; an empty team still deletes without one.
+
 - **feat: served origins (custom domains)** (core #4864,
   `docs/specs/custom-domains.md`; needs a core release after 1.0.0-rc.10).
   `add_package_origin(..., served=True)` registers an origin the cluster also

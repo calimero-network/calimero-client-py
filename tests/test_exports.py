@@ -7,6 +7,8 @@ half-wired. `Client` is a name again, for the 1.0 client: the same class as
 `CloudClient`.
 """
 
+import inspect
+
 import calimero
 import calimero_client_py
 
@@ -212,3 +214,11 @@ def test_the_client_binds_every_method():
         m for m in METHODS if not callable(getattr(calimero_client_py.Client, m, None))
     )
     assert not missing, f"Client lacks {missing}"
+
+
+def test_delete_team_takes_an_optional_passkey():
+    # A team holding apps is deleted with the deleter's passkey (core's `412
+    # CONFIRM_REQUIRED` naming them); an empty one without.
+    params = inspect.signature(calimero_client_py.Client.delete_team).parameters
+    assert list(params)[1:] == ["org", "team", "passkey"]
+    assert params["passkey"].default is None

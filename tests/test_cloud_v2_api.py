@@ -103,7 +103,21 @@ def test_orgs_and_teams_end_to_end(cluster, wasm):
         bob.get_team(org, team)
     assert code(e.value) == "NOT_FOUND"
 
-    alice.delete_team(org, team)
+    # The team holds an app: deleting it takes alice's passkey, and the node's
+    # ask names the apps that go. A team with none (`other` keeps only `sub`)
+    # goes without one.
+    with pytest.raises(CloudError) as asked:
+        alice.delete_team(org, team)
+    assert code(asked.value) == "CONFIRM_REQUIRED"
+    assert json.loads(asked.value.args[3])["apps"] == [app]
+    assert alice.get_app(app)["name"] == "eng-kv"
+    alice.delete_team(org, other)
+    time.sleep(0.3)
+    for gone in (other, sub):
+        with pytest.raises(CloudError) as e:
+            alice.get_team(org, gone)
+        assert code(e.value) == "NOT_FOUND"
+    alice.delete_team(org, team, pk)
     time.sleep(0.3)
     with pytest.raises(CloudError) as e:
         alice.get_app(app)
