@@ -283,7 +283,7 @@ keeps only its public key.
 | `create_team(org, name, join="invite", parent=None)` | The team id. `join` is `"invite"` or `"everyone"`. |
 | `get_team(org, team)` | Its members, sub-teams and apps. |
 | `update_team(org, team, name=None, join=None, metadata=None, parent=None, to_top=False)` | `None`; unset arguments stay as they are. |
-| `delete_team(org, team)` | `None`; takes its sub-teams and their apps. |
+| `delete_team(org, team, passkey=None)` | `None`; takes its sub-teams and their apps. When they hold apps, approved with `passkey` (without one, the node's `CONFIRM_REQUIRED` lists the `apps` in its details). |
 | `set_team_member(org, team, account, passkey, role=None, capabilities=None)` | `None`. `role` is `lead`, `member` or `readOnly`. |
 | `remove_team_member(org, team, account, passkey)` | `None`. |
 

@@ -73,7 +73,7 @@ client.set_team_member(org, team, account_id, passkey, role="readOnly")
 app = client.create_app("eng-kv", client.upload_bundle(wasm),
                         {"org": org, "access": {"kind": "team", "team": team}})
 client.update_team(org, team, name="engineering", metadata={"colour": "teal"})
-client.delete_team(org, team)                               # takes its sub-teams and apps
+client.delete_team(org, team, pk)                           # takes its sub-teams and apps (pk: when there are apps)
 ```
 
 | Area | Methods |

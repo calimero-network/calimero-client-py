@@ -151,15 +151,23 @@ impl PyCloudClient {
         .map(drop)
     }
 
-    /// Delete a team, the teams below it and their apps.
-    fn delete_team(&self, py: Python<'_>, org: &str, team: &str) -> PyResult<()> {
-        self.send(
-            py,
-            Verb::Delete,
-            format!("orgs/{}/teams/{}", seg(org), seg(team)),
-            Value::Null,
-        )
-        .map(drop)
+    /// Delete a team, the teams below it and their apps. When any of those
+    /// teams holds apps the node asks for `passkey` (`412 CONFIRM_REQUIRED`,
+    /// its details listing the `apps` that go, which the approval names);
+    /// without one that `412` is raised. A team with no apps needs none.
+    #[pyo3(signature = (org, team, passkey = None))]
+    fn delete_team(
+        &self,
+        py: Python<'_>,
+        org: &str,
+        team: &str,
+        passkey: Option<&PySoftPasskey>,
+    ) -> PyResult<()> {
+        let path = format!("orgs/{}/teams/{}", seg(org), seg(team));
+        match passkey {
+            Some(pk) => self.confirmed_delete(py, path, pk).map(drop),
+            None => self.send(py, Verb::Delete, path, Value::Null).map(drop),
+        }
     }
 
     /// Add `account` to a team, or change its row, approved with `passkey`:
