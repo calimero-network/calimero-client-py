@@ -88,6 +88,8 @@ METHODS = {
     "refresh",
     "sign_out",
     "sign_out_everywhere",
+    "sessions",
+    "revoke_session",
     "use_session",
     "use_api_key",
     "session",
