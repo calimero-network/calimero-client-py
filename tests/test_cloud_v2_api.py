@@ -239,6 +239,36 @@ def test_passkey_times_and_sessions_listed_and_ended_one_at_a_time(cluster):
     assert laptop.me()["accountId"] == me["accountId"]
 
 
+def test_activity_lists_sign_ins_and_approvals(cluster):
+    laptop, pk = person(cluster, 0, "alice-activity")
+    me = laptop.me()
+    try:
+        listed = laptop.activity()
+    except CloudError as e:
+        # A node before core #4901: no `/auth/activity` (a bare `404`).
+        if e.args[1] != 404 or code(e) == "NOT_FOUND":
+            raise
+        pytest.skip("the node has no activity list (core #4901)")
+    assert [(a["kind"], a["passkey"], a["app"]) for a in listed] == [
+        ("signIn", me["passkeyId"], None)
+    ], listed
+    signed_up = listed[0]["at"]
+
+    laptop.create_api_key({"label": "ci"}, pk)
+    listed = laptop.activity()
+    assert [(a["kind"], a["method"]) for a in listed] == [
+        ("approval", "__create_api_key"),
+        ("signIn", None),
+    ], listed
+    assert all(a["passkey"] == me["passkeyId"] for a in listed), listed
+    assert all(a["at"] > signed_up for a in laptop.activity(after=signed_up))
+
+    # Each account reads only its own.
+    bob, _ = person(cluster, 1, "bob-activity")
+    bobs = bob.activity()
+    assert len(bobs) == 1 and bobs[0]["passkey"] != me["passkeyId"], bobs
+
+
 def test_blobs_presence_transfer_and_upgrade_runs_have_typed_calls(cluster, wasm):
     alice, pk = person(cluster, 0, "alice-typed")
     bob, _ = person(cluster, 1, "bob-typed")
