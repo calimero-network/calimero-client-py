@@ -342,6 +342,34 @@ def test_blobs_presence_transfer_and_upgrade_runs_have_typed_calls(cluster, wasm
     assert bob.get(f"apps/{app}")["owner"] == bob_id
 
 
+def test_an_app_moves_with_its_people_into_another_org(cluster, wasm):
+    alice, pk = person(cluster, 0, "alice-move")
+    bob, bob_pk = person(cluster, 1, "bob-move")
+    bob_id = bob.me()["accountId"]
+    src = alice.create_org("MoveSource")
+    dst = alice.create_org("MoveTarget")
+    alice.set_member(src, bob_id, "member", pk)
+    app = alice.create_app("moving", alice.upload_bundle(wasm), {"org": src})
+    alice.call(app, "set", {"key": "a", "value": "1"})
+    try:
+        moved = alice.move_app(app, dst, pk, bring_members=True)
+    except CloudError as e:
+        # A node before core's `feat/move-app-to-org`: no `/apps/{app}/move`
+        # (a bare `404`).
+        if e.args[1] != 404 or code(e) == "NOT_FOUND":
+            raise
+        pytest.skip("the node has no app moves (core feat/move-app-to-org)")
+    assert moved["appId"] == app and moved["from"] == src, moved
+    assert moved["org"] == dst and moved["added"] == [bob_id], moved
+    assert moved["access"] == {"kind": "org"}, moved
+    assert alice.get(f"apps/{app}")["org"] == dst
+    assert bob.view(app, "get", {"key": "a"})["result"] == "1"
+    # Bob, a member of the target only, moves nothing.
+    with pytest.raises(CloudError) as e:
+        bob.move_app(app, src, bob_pk)
+    assert e.value.args[1] == 403, e.value
+
+
 def test_receipts_verify_against_the_attested_cluster(cluster, wasm):
     alice, _pk = person(cluster, 0, "alice-receipts")
     app = alice.create_app("receipted", alice.upload_bundle(wasm))

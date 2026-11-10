@@ -1,4 +1,4 @@
-//! Apps: creating and upgrading them, calls, views, events, presence, bundles and transfers.
+//! Apps: creating and upgrading them, calls, views, events, presence, bundles, transfers and moves.
 
 use super::prelude::*;
 
@@ -37,6 +37,30 @@ impl PyCloudClient {
             let mut auth = pk.lock().await;
             c.transfer_app(&app, &to, &mut *auth).await
         })?;
+        to_py(py, &v)
+    }
+
+    /// Move `app` to the organization `to_org`, its data where it is
+    /// (core `POST /apps/{app}/move`), approved with `passkey`. Whoever
+    /// manages the app now (its owner while a member of its organization, an
+    /// admin there, or a personal app's owner) moves it, as an admin or the
+    /// owner of `to_org`. Its files, runs and quotas go to the target; `org`
+    /// or app-team access becomes the target's app team of its package.
+    /// `bring_members` adds the people of its organization who reach it to
+    /// the target (capped at `member`). Answers `{appId, from, org, access,
+    /// created, added, revokedInvites}`; a node from before the route answers
+    /// a bare `404`.
+    #[pyo3(signature = (app, to_org, passkey, bring_members = false))]
+    fn move_app(
+        &self,
+        py: Python<'_>,
+        app: &str,
+        to_org: &str,
+        passkey: &PySoftPasskey,
+        bring_members: bool,
+    ) -> PyResult<PyObject> {
+        let body = serde_json::json!({ "toOrg": to_org, "bringMembers": bring_members });
+        let v = self.confirmed(py, format!("apps/{}/move", seg(app)), body, passkey)?;
         to_py(py, &v)
     }
 
