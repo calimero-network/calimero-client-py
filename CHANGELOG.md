@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **feat: app teams** (core #4890; per-app `join`/`keep` need core #4903).
+  `list_app_teams(org)` answers the organization's mode and its app teams;
+  `scope_apps(org, passkey, apps=None, shared=None)` gives apps their own
+  access lists in one step. A package's `join` (`"invite"`/`"everyone"`)
+  closes or opens its app team alone; a close keeps everyone who reaches the
+  app, or, with `keep`, only the team's leads and those accounts.
+
 - **fix: deleting a team with apps takes a passkey** (core #4891; needs a core
   release after 1.0.0-rc.13). `delete_team(org, team, passkey=None)`: when the
   team or a team below it holds apps, the node answers `412 CONFIRM_REQUIRED`
