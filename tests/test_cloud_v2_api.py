@@ -557,3 +557,26 @@ def test_a_packages_manager_registers_and_removes_its_web_origin(
     with pytest.raises(CloudError) as e:
         alice.remove_package_origin(NOTES, SITE, alice_pk)
     assert e.value.args[1] == 404, e.value
+
+
+def test_an_admin_closes_and_opens_one_app_team(cluster, wasm):
+    # core #4903: a package's own `join` (and `keep`) in POST /orgs/{org}/app-teams.
+    alice, pk = person(cluster, 0, "alice-appteams")
+    package = "com.test.appteams"
+    alice.upload_package(mpk(package, "1.0.0", wasm))
+    org = alice.create_org("Appteams")
+    assert alice.list_app_teams(org) == {"mode": "legacy", "appTeams": []}
+
+    made = alice.scope_apps(org, pk, apps=[{"package": package, "instances": []}])
+    assert made["mode"] == "standalone" and made["teams"][0]["created"]
+    closed = alice.scope_apps(
+        org, pk, apps=[{"package": package, "join": "invite", "keep": []}]
+    )
+    assert closed["mode"] == "shared" and closed["teams"][0]["join"] == "invite"
+    assert alice.list_app_teams(org)["appTeams"][0]["join"] == "invite"
+    opened = alice.scope_apps(org, pk, apps=[{"package": package, "join": "everyone"}])
+    assert opened["mode"] == "standalone"
+    with pytest.raises(CloudError):
+        alice.scope_apps(
+            org, pk, apps=[{"package": package, "join": "everyone"}], shared=True
+        )

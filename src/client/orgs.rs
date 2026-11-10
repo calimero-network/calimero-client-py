@@ -114,6 +114,54 @@ impl PyCloudClient {
         field(&v, "teamId")
     }
 
+    /// The organization's mode (`legacy`, `standalone`, `shared`) and its app
+    /// teams (one per package): `{"mode", "appTeams"}`. A guest sees only
+    /// the app teams they are in.
+    fn list_app_teams(&self, py: Python<'_>, org: &str) -> PyResult<PyObject> {
+        let v = self.send(
+            py,
+            Verb::Get,
+            format!("orgs/{}/app-teams", seg(org)),
+            Value::Null,
+        )?;
+        to_py(py, &v)
+    }
+
+    /// Give apps their own access lists in one step (owner or admin),
+    /// approved with `passkey`. `apps`: a list of `{"package", "name"?,
+    /// "instances"?, "join"?, "keep"?}`; absent, every package with an
+    /// organization-access instance. A package's `join` (`"invite"` closes
+    /// its app team, `"everyone"` opens it) changes that team alone; a close
+    /// keeps everyone who reaches the app, or, with `keep` (account ids),
+    /// only the team's leads and those accounts. `shared=True` closes every
+    /// app team. Returns `{"mode", "teams"}`.
+    #[pyo3(signature = (org, passkey, apps = None, shared = None))]
+    fn scope_apps(
+        &self,
+        py: Python<'_>,
+        org: &str,
+        passkey: &PySoftPasskey,
+        apps: Option<&Bound<'_, PyAny>>,
+        shared: Option<bool>,
+    ) -> PyResult<PyObject> {
+        // The node refuses unknown fields and reads an absent one as its
+        // default, so only the fields given go.
+        let mut body = serde_json::Map::new();
+        if let Some(apps) = apps {
+            let _prev = body.insert("apps".into(), to_json(py, Some(apps))?);
+        }
+        if let Some(shared) = shared {
+            let _prev = body.insert("shared".into(), shared.into());
+        }
+        let v = self.confirmed(
+            py,
+            format!("orgs/{}/app-teams", seg(org)),
+            Value::Object(body),
+            passkey,
+        )?;
+        to_py(py, &v)
+    }
+
     /// A team: its members, sub-teams and apps.
     fn get_team(&self, py: Python<'_>, org: &str, team: &str) -> PyResult<PyObject> {
         let v = self.send(
