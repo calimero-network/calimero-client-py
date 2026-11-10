@@ -16,6 +16,7 @@ CLIENT = {
     "Client",
     "CloudClient",
     "CloudError",
+    "FeatureNotActive",
     "LoginRequired",
     "SoftPasskey",
     "WrongNode",
@@ -61,7 +62,7 @@ def test_cloud_error_is_an_exception():
 
 def test_login_required_and_wrong_node_are_cloud_errors():
     # Code that catches `CloudError` keeps catching both.
-    for name in ("LoginRequired", "WrongNode"):
+    for name in ("LoginRequired", "WrongNode", "FeatureNotActive"):
         assert issubclass(
             getattr(calimero_client_py, name), calimero_client_py.CloudError
         )

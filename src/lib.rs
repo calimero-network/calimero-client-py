@@ -37,6 +37,10 @@ fn calimero_client_py(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> 
         m.py().get_type_bound::<error::LoginRequired>(),
     )?;
     m.add("WrongNode", m.py().get_type_bound::<error::WrongNode>())?;
+    m.add(
+        "FeatureNotActive",
+        m.py().get_type_bound::<error::FeatureNotActive>(),
+    )?;
 
     m.add("VERSION", env!("CARGO_PKG_VERSION"))?;
 

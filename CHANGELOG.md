@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **feat: `FeatureNotActive`** (core's cluster version gate,
+  `feat/cluster-version-gate`). A `CloudError` subclass for `409
+  FEATURE_NOT_ACTIVE`: during a rollout, a node refuses a command (or a field)
+  that a node still on an older release could not apply, before anything is
+  logged or a passkey is asked for. `details` names the `feature`, the
+  version it `needs` and the cluster's `active` one. Exported from
+  `calimero_client_py` and `calimero`.
+
 - **feat: app teams** (core #4890; per-app `join`/`keep` need core #4903).
   `list_app_teams(org)` answers the organization's mode and its app teams;
   `scope_apps(org, passkey, apps=None, shared=None)` gives apps their own

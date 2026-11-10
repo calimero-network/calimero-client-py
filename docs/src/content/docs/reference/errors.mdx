@@ -1,6 +1,6 @@
 ---
 title: Error handling
-description: What the client raises — CloudError for a failed request (LoginRequired, WrongNode), ValueError for a malformed argument.
+description: What the client raises — CloudError for a failed request (LoginRequired, WrongNode, FeatureNotActive), ValueError for a malformed argument.
 sidebar:
   order: 2
 ---
@@ -17,6 +17,14 @@ sidebar:
 - **`WrongNode`** (a `CloudError`, `421 WRONG_NODE`) — the node runs a mero-tee
   release the account's owners have not approved, and the client knows no other
   node that took the request: connect to another node of the cluster.
+- **`FeatureNotActive`** (a `CloudError`, `409 FEATURE_NOT_ACTIVE`) — the
+  command, or a field of it, needs a cluster version not every node of the
+  cluster supports yet: a rollout from an older release is under way, and
+  nothing was done. `details` is `{"feature", "needs", "active"}` (`active` is
+  `null` until every node said which version it supports). It works once the
+  old nodes have left the cluster; for instance `move_app`, or `scope_apps`
+  naming a package's `join`/`keep`, on a cluster still holding a node from
+  before 1.0.0-rc.15.
 - **`ValueError`** — a malformed argument caught before sending (an `app_hash`
   that is not 32 bytes of hex, an unparseable URL, `parent` and `to_top` given
   together) or an answer missing a field the method returns.
