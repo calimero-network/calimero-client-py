@@ -199,6 +199,46 @@ def test_aliases_org_deletion_and_signing_out_everywhere(cluster, wasm):
         laptop.get("auth/me")
 
 
+def test_passkey_times_and_sessions_listed_and_ended_one_at_a_time(cluster):
+    laptop, pk = person(cluster, 0, "alice-sessions")
+    me = laptop.me()
+    mine = next(p for p in me["passkeys"] if p["id"] == me["passkeyId"])
+    phone = cluster.client(1)
+    phone.sign_in(pk)
+    try:
+        listed = laptop.sessions()
+    except CloudError as e:
+        # 1.0.0-rc.14 and earlier: no `/auth/sessions` (a bare `404`), and
+        # no passkey times.
+        if e.args[1] != 404 or code(e) == "NOT_FOUND":
+            raise
+        assert mine.get("addedAt") is None, me
+        pytest.skip("the node has no session list or passkey times (core #4894)")
+    assert isinstance(mine["addedAt"], int), me
+    assert mine["lastSignInAt"] >= mine["addedAt"], me
+
+    assert len(listed) == 2, listed
+    own = next(s for s in listed if s["current"])
+    other = next(s for s in listed if not s["current"])
+    for s in listed:
+        assert s["passkey"] == me["passkeyId"], s
+        assert s["app"] is None, s
+        assert isinstance(s["lastActiveAt"], int), s
+    assert [s["session"] for s in phone.sessions() if s["current"]] == [
+        other["session"]
+    ]
+
+    # The laptop ends the phone's session: the phone must sign in again.
+    laptop.revoke_session(other["session"])
+    with pytest.raises(LoginRequired):
+        phone.me()
+    assert [s["session"] for s in laptop.sessions()] == [own["session"]]
+    with pytest.raises(CloudError) as e:
+        laptop.revoke_session(other["session"])
+    assert (e.value.args[1], code(e.value)) == (404, "NOT_FOUND"), e.value
+    assert laptop.me()["accountId"] == me["accountId"]
+
+
 def test_blobs_presence_transfer_and_upgrade_runs_have_typed_calls(cluster, wasm):
     alice, pk = person(cluster, 0, "alice-typed")
     bob, _ = person(cluster, 1, "bob-typed")

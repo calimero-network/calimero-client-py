@@ -20,7 +20,10 @@ impl PyCloudClient {
     }
 
     /// Hand `app` to the account `to` (an org app only to one of its members),
-    /// approved with the owner's `passkey`.
+    /// approved with `passkey`. The app's owner may; for an organization's
+    /// app, its owner only while a member of the organization (`member` or
+    /// above), and the organization's admins (`admin`, `owner`) too, so an
+    /// organization can hand on an app whose owner left (core #4893).
     fn transfer_app(
         &self,
         py: Python<'_>,

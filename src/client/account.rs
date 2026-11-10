@@ -111,6 +111,17 @@ impl PyCloudClient {
         to_py(py, &s)
     }
 
+    /// Who the caller is (`GET /auth/me`): `accountId`, `name`, `passkeys`
+    /// (each `{id, label, signCount, addedAt, lastSignInAt}`), `orgs` (each
+    /// `{orgId, name, role}`), `via` (`"session"` or `"apiKey"`), `passkeyId`
+    /// (the passkey this session was opened with; `None` for an API key), and
+    /// `app` and `origin` for a session signed in from a package's origin.
+    ///
+    /// A passkey's `addedAt` and `lastSignInAt` (Unix seconds; core #4894)
+    /// say when it was added and last signed in (a sign-up, a sign-in or an
+    /// account recovery's finish; a refresh does not move it). `None` for
+    /// what happened on a release that kept no times; absent on such a node
+    /// (1.0.0-rc.14 and earlier).
     fn me(&self, py: Python<'_>) -> PyResult<PyObject> {
         let v = self.run(py, async |c| c.me().await)?;
         to_py(py, &v)
@@ -171,6 +182,32 @@ impl PyCloudClient {
     fn sign_out_everywhere(&self, py: Python<'_>) -> PyResult<()> {
         self.run(py, async |c| c.sign_out_everywhere().await)
             .map(drop)
+    }
+
+    /// The account's live sessions (`GET /auth/sessions`, core #4894), latest
+    /// active first, at most 256: a list of `{session, passkey, app, origin,
+    /// openedAt, lastActiveAt, current}`. `passkey` is the passkey it was
+    /// opened with, `app` and `origin` the package and registered origin it
+    /// is bound to (`None`: the cluster's own origin), `openedAt` when it
+    /// opened (`None`: before the node kept it), `current` marks this one.
+    /// `lastActiveAt` is when its refresh token was last exchanged; the
+    /// session may have been used up to about 1 h 15 min later. The account
+    /// holder's own session on the cluster's origin only: an API key or a
+    /// package-bound session is refused `403`. A node without the route
+    /// answers a bare `404`.
+    fn sessions(&self, py: Python<'_>) -> PyResult<PyObject> {
+        let v = self.send(py, Verb::Get, "auth/sessions".into(), Value::Null)?;
+        to_py(py, &v["sessions"])
+    }
+
+    /// End one of the account's sessions (`DELETE /auth/sessions/{session}`),
+    /// a lost device's say, from another; no passkey is asked. A session the
+    /// account does not hold live (ended already, or another account's) is
+    /// `404 NOT_FOUND`; gated as `sessions`. Ending this client's own
+    /// session leaves it holding dead tokens: use `sign_out` for that.
+    fn revoke_session(&self, py: Python<'_>, session: &str) -> PyResult<()> {
+        let path = format!("auth/sessions/{}", seg(session));
+        self.send(py, Verb::Delete, path, Value::Null).map(drop)
     }
 
     /// Remove a passkey (a device) from the signed-in account, approved with

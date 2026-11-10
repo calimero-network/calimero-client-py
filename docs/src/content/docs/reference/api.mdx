@@ -95,10 +95,12 @@ refresh token, to each next node in turn, once per node. See
 | `refresh()` | A new session from the refresh token (one at a time with the client's own refreshes). |
 | `sign_out()` | `None`; the refresh token stops working. |
 | `sign_out_everywhere()` | `None`; every session of the account ends, on every device. |
+| `sessions()` | The account's live sessions, latest active first: `[{session, passkey, app, origin, openedAt, lastActiveAt, current}]` (`current` marks this one). The account holder's own session only; an API key or a package-bound session is refused `403`. |
+| `revoke_session(session)` | `None`; ends one of the account's sessions, from another (no passkey asked). `404 NOT_FOUND` for one the account does not hold live. |
 | `use_session(session)` | `None`; authenticates with a session from `sign_up`/`sign_in`. |
 | `use_api_key(key)` | `None`; authenticates every request with a `cal_...` key. |
 | `session()` | The session in use, or `None` (none yet, or an API key instead). |
-| `me()` | The caller: `accountId`, `via`, ..., and `app` and `origin` for a session signed in from a package's origin (nodes with per-package origins). |
+| `me()` | The caller: `accountId`, `name`, `passkeys` (each with `addedAt` and `lastSignInAt`, Unix seconds or `None` for before the node kept times), `orgs` (with the caller's `role`), `via`, `passkeyId` (the passkey this session was opened with), ..., and `app` and `origin` for a session signed in from a package's origin (nodes with per-package origins). |
 | `usage()` | What the account uses, with the cluster's quotas. |
 
 ### Passkeys and API keys
@@ -234,7 +236,7 @@ Each takes the owner's `passkey`, which answers the node's `412 CONFIRM_REQUIRED
 
 | Method | Returns |
 | --- | --- |
-| `transfer_app(app, to, passkey)` | Hands the app to account `to` (an org app only to a member). |
+| `transfer_app(app, to, passkey)` | Hands the app to account `to` (an org app only to a member). The owner approves; for an org app, its owner only while a member, or an org admin. |
 | `approve_release(version, passkey, org=None)` | Approves a mero-tee release for the org's apps, or the account's own. |
 | `approve_outbound(package, passkey, org=None, prefixes=None, replace=False)` | Approves URL prefixes for the package's publisher: every prefix its manifest declares by default; `replace=True` sets exactly `prefixes` (`[]` revokes). |
 | `upgrade_org(org, package, version, passkey, team=None, cascade=False, migrate=None)` | Starts an org-wide upgrade run: `{"runId", ...}`. |
