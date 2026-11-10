@@ -149,6 +149,9 @@ METHODS = {
     "list_blobs",
     "blob_info",
     "delete_blob",
+    "upload_file",
+    "list_files",
+    "get_file",
     "approve_release",
     "approve_outbound",
     # organizations and teams

@@ -14,7 +14,8 @@
 // pyo3 0.22's `#[pymethods]` expands each `PyResult` return through an
 // `Into<PyErr>` that newer clippy reports as `useless_conversion`; the lint
 // points at macro-generated code, not ours. pyo3 0.23 fixed it upstream.
-#[allow(clippy::useless_conversion)]
+// Core's `Error` is large and every call here returns it as it came.
+#[allow(clippy::useless_conversion, clippy::result_large_err)]
 pub mod client;
 pub mod convert;
 pub mod error;

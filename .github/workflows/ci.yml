@@ -121,7 +121,7 @@ jobs:
         pytest -o addopts="" scripts/test_check_workflow_hardening.py
         python scripts/check_workflow_hardening.py
 
-  # Cargo.toml pins core's 1.0.0-rc.1 tag, so a change on core master to
+  # Cargo.toml pins core at a tag or commit, so a change on core master to
   # `calimero-client` (a field added to a request type, a renamed method)
   # breaks only the next pin bump. This builds against core master as it is
   # today. `calimero-identity` moves with it, or cargo resolves two copies of
@@ -139,7 +139,7 @@ jobs:
 
     - name: Check against core master
       run: |
-        sed -i 's/tag = "[^"]*"/branch = "master"/' Cargo.toml
+        sed -i -E 's/(tag|rev) = "[^"]*"/branch = "master"/' Cargo.toml
         grep -n 'branch = "master"' Cargo.toml
         cargo update -p calimero-client -p calimero-identity
         cargo check --all-targets

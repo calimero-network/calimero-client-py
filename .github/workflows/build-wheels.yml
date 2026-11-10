@@ -105,6 +105,9 @@ jobs:
         maturin-version: v1.15.0
         target: ${{ matrix.target }}
         manylinux: ${{ matrix.manylinux }}
+        # The vendored OpenSSL (Cargo.toml) is configured with perl, and the
+        # manylinux image's perl lacks IPC::Cmd.
+        before-script-linux: yum install -y perl-IPC-Cmd perl-core
         args: --release --out dist
 
     - name: Show what was produced

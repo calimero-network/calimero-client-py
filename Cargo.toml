@@ -28,15 +28,14 @@ name = "calimero_client_py"
 crate-type = ["cdylib"]
 
 [dependencies]
-# Core's client, from the 1.0.0-rc.8 release tag (core #4791, first released
-# in rc.7: passkey step-ups for credentials and memberships, operator
-# signatures for the fleet and quotas).
+# Core's client, at a master commit until rc.15 is tagged (core's file upload,
+# `Client::upload_file`, is on master only).
 #
 # The two move TOGETHER or not at all: moving one alone makes cargo resolve two
 # copies of the crates they share, and the error names types rather than
 # revisions, which reads as a code problem rather than a resolution one.
-calimero-client = { git = "https://github.com/calimero-network/core", tag = "1.0.0-rc.8", features = ["testing"] }
-calimero-identity = { git = "https://github.com/calimero-network/core", tag = "1.0.0-rc.8", features = ["testing"] }
+calimero-client = { git = "https://github.com/calimero-network/core", rev = "f1ca5b858c608d43cc4b546a780dd06dd6238d7a", features = ["testing"] }
+calimero-identity = { git = "https://github.com/calimero-network/core", rev = "f1ca5b858c608d43cc4b546a780dd06dd6238d7a", features = ["testing"] }
 # Signs the operator's decisions (`use_operator_key`); the major core uses.
 ed25519-dalek = "3"
 # Core's client reports transport errors over eyre (`Error::Transport`).
@@ -62,6 +61,11 @@ hex = "0.4"
 # The node directory (`Client.connect`): plain HTTPS, the same 0.12 and TLS
 # stack core's client already pulls in, so it adds no second copy.
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+
+# Core's linux-only TDX attestation links OpenSSL; vendored, so a manylinux
+# wheel needs no libssl-dev and carries no libssl.so.
+[target.'cfg(target_os = "linux")'.dependencies]
+openssl = { version = "0.10", features = ["vendored"] }
 
 [features]
 default = []

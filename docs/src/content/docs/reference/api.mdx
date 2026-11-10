@@ -222,6 +222,9 @@ cannot add any other passkey.
 | `list_blobs(app)` | `{"blobs": [{"blobId", "id", "size"}, ...]}`. |
 | `blob_info(app, id)` | The blob's id and size. |
 | `delete_blob(app, id)` | Deletes it (the app's owner or an org admin). |
+| `upload_file(app, file)` | Uploads a sealed file to a component app; `file` is a path (streamed) or `bytes`. `{"id", "blobId", "size", "sha256", "index"}`. |
+| `list_files(app)` | `{"files": [{"id", "size", "sha256", ...}, ...]}`. |
+| `get_file(app, id)` | The file's size and plaintext SHA-256. |
 
 ### Presence
 
