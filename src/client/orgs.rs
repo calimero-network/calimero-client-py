@@ -318,6 +318,24 @@ impl PyCloudClient {
         to_py(py, &v)
     }
 
+    /// Rename an organization (core `POST /orgs/{org}/name`): its owner or
+    /// an admin, approved with `passkey` (`__rename_org {name}`). The name is
+    /// one line of 1 to 64 characters with no space at either end, as
+    /// `create_org` takes it (`400` otherwise). Answers `{orgId, name}`; a
+    /// member below admin gets `403`, someone outside `404 NOT_FOUND`, and a
+    /// node from before the route a bare `404`.
+    fn rename_org(
+        &self,
+        py: Python<'_>,
+        org: &str,
+        name: &str,
+        passkey: &PySoftPasskey,
+    ) -> PyResult<PyObject> {
+        let body = serde_json::json!({ "name": name });
+        let v = self.confirmed(py, format!("orgs/{}/name", seg(org)), body, passkey)?;
+        to_py(py, &v)
+    }
+
     /// Delete an organization with its teams, invites and apps: the owner's,
     /// approved with their `passkey`.
     fn delete_org(&self, py: Python<'_>, org: &str, passkey: &PySoftPasskey) -> PyResult<()> {

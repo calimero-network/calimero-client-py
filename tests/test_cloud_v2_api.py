@@ -370,6 +370,35 @@ def test_an_app_moves_with_its_people_into_another_org(cluster, wasm):
     assert e.value.args[1] == 403, e.value
 
 
+def test_an_admin_renames_an_org_and_every_reader_answers_the_new_name(cluster):
+    alice, pk = person(cluster, 0, "alice-rename")
+    bob, bob_pk = person(cluster, 1, "bob-rename")
+    carol, carol_pk = person(cluster, 2, "carol-rename")
+    org = alice.create_org("RenameCo")
+    alice.set_member(org, bob.me()["accountId"], "admin", pk)
+    alice.set_member(org, carol.me()["accountId"], "member", pk)
+    try:
+        renamed = bob.rename_org(org, "Renamed Co", bob_pk)
+    except CloudError as e:
+        # A node before core's `feat/org-rename`: no `/orgs/{org}/name`
+        # (a bare `404`).
+        if e.args[1] != 404 or code(e) == "NOT_FOUND":
+            raise
+        pytest.skip("the node has no organization renames (core feat/org-rename)")
+    assert renamed == {"orgId": org, "name": "Renamed Co"}, renamed
+    for p in (alice, bob, carol):
+        assert p.get_org(org)["name"] == "Renamed Co"
+        mine = [o for o in p.me()["orgs"] if o["orgId"] == org]
+        assert mine and mine[0]["name"] == "Renamed Co", mine
+    # A member below admin is refused; a name that would not make an org is too.
+    with pytest.raises(CloudError) as e:
+        carol.rename_org(org, "Carol Co", carol_pk)
+    assert e.value.args[1] == 403, e.value
+    with pytest.raises(CloudError) as e:
+        alice.rename_org(org, " padded", pk)
+    assert e.value.args[1] == 400, e.value
+
+
 def test_receipts_verify_against_the_attested_cluster(cluster, wasm):
     alice, _pk = person(cluster, 0, "alice-receipts")
     app = alice.create_app("receipted", alice.upload_bundle(wasm))

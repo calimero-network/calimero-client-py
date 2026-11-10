@@ -156,6 +156,7 @@ METHODS = {
     "create_org",
     "get_org",
     "org_members_security",
+    "rename_org",
     "delete_org",
     "set_org_metadata",
     "set_member",
