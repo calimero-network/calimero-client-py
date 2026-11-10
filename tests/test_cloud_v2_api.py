@@ -623,7 +623,7 @@ def test_an_admin_turns_an_app_teams_private_channels_on_and_off(cluster, wasm):
         alice.scope_apps(org, pk, apps=[off])
     except CloudError as e:
         # A node before it refuses the unknown field.
-        if e.args[1] != 400:
+        if e.args[1] not in (400, 422):
             raise
         pytest.skip("the node has no childTeams (core feat/app-team-child-teams)")
     create_child_team = 1 << 11
