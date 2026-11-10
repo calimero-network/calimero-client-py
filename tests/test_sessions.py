@@ -27,3 +27,9 @@ def test_me_documents_the_passkey_times():
     doc = Client.me.__doc__ or ""
     for field in ("passkeys", "addedAt", "lastSignInAt", "passkeyId", "orgs"):
         assert field in doc, field
+
+
+def test_activity_takes_an_optional_after():
+    sig = inspect.signature(Client.activity)
+    assert list(sig.parameters)[1:] == ["after"]
+    assert sig.parameters["after"].default is None

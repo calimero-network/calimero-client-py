@@ -97,6 +97,7 @@ refresh token, to each next node in turn, once per node. See
 | `sign_out_everywhere()` | `None`; every session of the account ends, on every device. |
 | `sessions()` | The account's live sessions, latest active first: `[{session, passkey, app, origin, openedAt, lastActiveAt, current}]` (`current` marks this one). The account holder's own session only; an API key or a package-bound session is refused `403`. |
 | `revoke_session(session)` | `None`; ends one of the account's sessions, from another (no passkey asked). `404 NOT_FOUND` for one the account does not hold live. |
+| `activity(after=None)` | What the account's passkeys did, newest first (the last 100): `[{at, passkey, kind, app, origin, method, subject}]`. `kind` is `"signIn"` (with the package `app` and `origin` the session is bound to) or `"approval"` (a step-up, with its `method` and `subject`). `after` (Unix seconds) keeps only what came later. Gated as `sessions`. |
 | `use_session(session)` | `None`; authenticates with a session from `sign_up`/`sign_in`. |
 | `use_api_key(key)` | `None`; authenticates every request with a `cal_...` key. |
 | `session()` | The session in use, or `None` (none yet, or an API key instead). |

@@ -90,6 +90,7 @@ METHODS = {
     "sign_out_everywhere",
     "sessions",
     "revoke_session",
+    "activity",
     "use_session",
     "use_api_key",
     "session",
