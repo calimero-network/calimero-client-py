@@ -30,6 +30,22 @@ impl PyCloudClient {
         to_py(py, &v)
     }
 
+    /// Each member's lockout risk, for the organization's owner and admins
+    /// (`GET /orgs/{org}/members?detail=security`, core #4902): a list of
+    /// `{account, name, role, teams, passkeys, recoveryCode, lastActiveDay,
+    /// sessions}`. `passkeys` is `1`, `2` or `"3+"`; `lastActiveDay` the UTC
+    /// day (`YYYY-MM-DD`) of the member's latest sign-in or session exchange,
+    /// `None` when unknown. Never a credential id, a passkey label, a session
+    /// or an activity entry. A member below admin gets `403`, someone outside
+    /// the organization `404 NOT_FOUND`; the admin's own session on the
+    /// cluster's origin only. A node without the route answers a bare `404`
+    /// or `405`.
+    fn org_members_security(&self, py: Python<'_>, org: &str) -> PyResult<PyObject> {
+        let path = format!("orgs/{}/members?detail=security", seg(org));
+        let v = self.send(py, Verb::Get, path, Value::Null)?;
+        to_py(py, &v["members"])
+    }
+
     /// Add `account` to the organization, or change its role
     /// (`guest`, `member`, `admin`, `owner`), approved with `passkey`.
     fn set_member(
