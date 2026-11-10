@@ -62,6 +62,11 @@ hex = "0.4"
 # stack core's client already pulls in, so it adds no second copy.
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
 
+# Core's linux-only TDX attestation links OpenSSL; vendored, so a manylinux
+# wheel needs no libssl-dev and carries no libssl.so.
+[target.'cfg(target_os = "linux")'.dependencies]
+openssl = { version = "0.10", features = ["vendored"] }
+
 [features]
 default = []
 # What maturin builds with (see `[tool.maturin] features` in pyproject.toml).
