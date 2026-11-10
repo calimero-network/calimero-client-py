@@ -210,6 +210,26 @@ impl PyCloudClient {
         self.send(py, Verb::Delete, path, Value::Null).map(drop)
     }
 
+    /// What the account's passkeys did (`GET /auth/activity`, core #4901),
+    /// newest first, the last 100: a list of `{at, passkey, kind, app,
+    /// origin, method, subject}`. `kind` is `"signIn"` (a sign-up, a sign-in
+    /// or a recovery's finish; a refresh is none), with the package `app` and
+    /// registered `origin` its session is bound to (`None`: the cluster's own
+    /// origin), or `"approval"` (a change the passkey approved with a
+    /// step-up), with the `method` and `subject` its consent states. `after`
+    /// (Unix seconds) keeps only what came later. Gated as `sessions`: the
+    /// account holder's own session on the cluster's origin only. A node
+    /// without the route answers a bare `404`.
+    #[pyo3(signature = (after = None))]
+    fn activity(&self, py: Python<'_>, after: Option<u64>) -> PyResult<PyObject> {
+        let path = after.map_or_else(
+            || "auth/activity".to_owned(),
+            |t| format!("auth/activity?after={t}"),
+        );
+        let v = self.send(py, Verb::Get, path, Value::Null)?;
+        to_py(py, &v["activity"])
+    }
+
     /// Remove a passkey (a device) from the signed-in account, approved with
     /// `passkey`, one the account has.
     fn remove_passkey(

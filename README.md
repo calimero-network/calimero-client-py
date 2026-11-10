@@ -78,7 +78,7 @@ client.delete_team(org, team, pk)                           # takes its sub-team
 
 | Area | Methods |
 | --- | --- |
-| Session | `sign_up`, `sign_in`, `refresh`, `sign_out`, `sign_out_everywhere`, `sessions`, `revoke_session`, `use_session`, `use_api_key`, `session`, `me`, `usage` |
+| Session | `sign_up`, `sign_in`, `refresh`, `sign_out`, `sign_out_everywhere`, `sessions`, `revoke_session`, `activity`, `use_session`, `use_api_key`, `session`, `me`, `usage` |
 | Devices (passkeys) | `add_passkey(new, approver)`, `remove_passkey(credential_id, passkey)`, `label_passkey` |
 | Account recovery | `create_recovery_code(passkey)`, `remove_recovery_code(passkey)`, `start_account_recovery(code, passkey)` (signed out, a new passkey), `cancel_account_recovery(passkey)`, `finish_account_recovery(passkey, account_id=None)`; `CloudClient.normalize_recovery_code`, `CloudClient.recovery_code_key` |
 | API keys | `create_api_key({label, apps, methods, readOnly, allowConfirm, ttlSecs}, passkey)`, `list_api_keys`, `revoke_api_key(key_id, passkey)`; upgrade keys for CI: `create_api_key({upgrades: {app, package?}}, passkey)`, then `upgrade_app(app, version=...)` with the key alone; `CloudClient.api_key_public(key)` |
