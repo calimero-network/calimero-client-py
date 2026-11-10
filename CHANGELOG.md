@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **feat: `childTeams` in `scope_apps`** (core `feat/app-team-child-teams`).
+  A package's `"childTeams": True` lets its app team's members make private
+  channels below it (`CREATE_CHILD_TEAM` in its default and in the rows that
+  set their own), `False` takes it away; how an app team made before that
+  default gets it. Passed through as given.
+
 - **feat: app teams** (core #4890; per-app `join`/`keep` need core #4903).
   `list_app_teams(org)` answers the organization's mode and its app teams;
   `scope_apps(org, passkey, apps=None, shared=None)` gives apps their own

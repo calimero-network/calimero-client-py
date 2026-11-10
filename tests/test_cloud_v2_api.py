@@ -608,3 +608,28 @@ def test_an_admin_closes_and_opens_one_app_team(cluster, wasm):
         alice.scope_apps(
             org, pk, apps=[{"package": package, "join": "everyone"}], shared=True
         )
+
+
+def test_an_admin_turns_an_app_teams_private_channels_on_and_off(cluster, wasm):
+    # core `feat/app-team-child-teams`: a package's `childTeams` in
+    # POST /orgs/{org}/app-teams.
+    alice, pk = person(cluster, 0, "alice-childteams")
+    package = "com.test.childteams"
+    alice.upload_package(mpk(package, "1.0.0", wasm))
+    org = alice.create_org("Childteams")
+    alice.scope_apps(org, pk, apps=[{"package": package, "instances": []}])
+    off = {"package": package, "instances": [], "childTeams": False}
+    try:
+        alice.scope_apps(org, pk, apps=[off])
+    except CloudError as e:
+        # A node before it refuses the unknown field.
+        if e.args[1] != 400:
+            raise
+        pytest.skip("the node has no childTeams (core feat/app-team-child-teams)")
+    create_child_team = 1 << 11
+    team = alice.list_app_teams(org)["appTeams"][0]
+    assert not (team["defaultCapabilities"] or 0) & create_child_team, team
+    alice.scope_apps(org, pk, apps=[dict(off, childTeams=True)])
+    team = alice.list_app_teams(org)["appTeams"][0]
+    assert team["defaultCapabilities"] & create_child_team, team
+    assert team["join"] == "everyone", team

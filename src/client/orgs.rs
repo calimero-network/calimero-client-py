@@ -129,12 +129,15 @@ impl PyCloudClient {
 
     /// Give apps their own access lists in one step (owner or admin),
     /// approved with `passkey`. `apps`: a list of `{"package", "name"?,
-    /// "instances"?, "join"?, "keep"?}`; absent, every package with an
+    /// "instances"?, "join"?, "keep"?, "childTeams"?}`; absent, every package with an
     /// organization-access instance. A package's `join` (`"invite"` closes
     /// its app team, `"everyone"` opens it) changes that team alone; a close
     /// keeps everyone who reaches the app, or, with `keep` (account ids),
-    /// only the team's leads and those accounts. `shared=True` closes every
-    /// app team. Returns `{"mode", "teams"}`.
+    /// only the team's leads and those accounts. A package's `childTeams`
+    /// (`True`/`False`) lets its app team's members make private channels
+    /// below it, or no longer (an app team made before that default gets it
+    /// this way; with `"instances": []` nothing else changes). `shared=True`
+    /// closes every app team. Returns `{"mode", "teams"}`.
     #[pyo3(signature = (org, passkey, apps = None, shared = None))]
     fn scope_apps(
         &self,
