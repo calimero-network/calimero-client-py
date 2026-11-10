@@ -168,3 +168,27 @@ def test_backup_releases_outbound_and_upgrades(cluster, wasm):
     run = ops.ops_upgrade_org(org, "com.example.kv", "1.0.0")
     assert run["runId"], run
     assert alice.upgrade_run(org, run["runId"])["runId"] == run["runId"]
+
+
+def test_an_app_is_restored_from_its_backup(cluster, wasm):
+    alice, _pk = person(cluster, 0, "alice-restored")
+    bundle = alice.upload_bundle(wasm)
+    app = alice.create_app("restored", bundle)
+    alice.call(app, "set", {"key": "k", "value": "before"})
+    # Every node writes to the one backup directory, so any of them restores.
+    assert sum(operator(cluster, i).ops_backup() for i in range(3)) >= 1
+    alice.call(app, "set", {"key": "k", "value": "after"})
+
+    ops = operator(cluster)
+    with pytest.raises(CloudError) as e:
+        ops.ops_restore(app, backup="00000000000000000001.2.none.snap")
+    assert (e.value.args[1], code(e.value)) == (404, "BACKUP_NOT_FOUND"), e.value.args
+    with pytest.raises(CloudError) as e:
+        operator(cluster, signed=False).ops_restore(app)
+    assert code(e.value) == "OPERATOR_SIGNATURE_REQUIRED", e.value.args
+
+    out = ops.ops_restore(app)
+    assert out["app"] == app and out["backup"]["format"] == 1, out
+    assert alice.view(app, "get", {"key": "k"})["result"] == "before"
+    alice.call(app, "set", {"key": "k", "value": "again"})
+    assert alice.view(app, "get", {"key": "k"})["result"] == "again"

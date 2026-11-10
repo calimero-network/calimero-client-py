@@ -82,6 +82,29 @@ impl PyCloudClient {
         Ok(v["written"].as_u64().unwrap_or_default())
     }
 
+    /// Restore `app` from a sealed backup in this node's `--backup-dir`
+    /// (`{backup-dir}/{app}/{backup}`, the newest when `backup` is `None`),
+    /// signed with the operator key. This node seeds the app's new group and
+    /// becomes its first replica; what the app wrote after the backup is
+    /// gone. Returns `{"app", "group", "rows", "backup": {"name", "index",
+    /// "format", "merod", "release"}, "status"}` once every replica holds it.
+    /// Refused before anything changes: `BACKUP_NOT_FOUND`, `BAD_BACKUP`,
+    /// `UNKNOWN_BACKUP_FORMAT`, `BACKUP_FROM_NEWER_RELEASE`, `BUNDLE_GONE`.
+    #[pyo3(signature = (app, backup = None))]
+    fn ops_restore(&self, py: Python<'_>, app: &str, backup: Option<&str>) -> PyResult<PyObject> {
+        let mut body = serde_json::json!({});
+        if let Some(name) = backup {
+            body["backup"] = serde_json::json!(name);
+        }
+        let v = self.send_operator(
+            py,
+            Verb::Post,
+            format!("ops/apps/{}/restore", seg(app)),
+            body,
+        )?;
+        to_py(py, &v)
+    }
+
     /// The per-account quotas.
     fn ops_quotas(&self, py: Python<'_>) -> PyResult<PyObject> {
         let v = self.send(py, Verb::Get, "ops/quotas".into(), Value::Null)?;

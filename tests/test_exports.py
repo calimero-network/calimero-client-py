@@ -189,6 +189,7 @@ METHODS = {
     "ops_remove_node",
     "ops_set_replicas",
     "ops_backup",
+    "ops_restore",
     "ops_quotas",
     "ops_set_quotas",
     "ops_approve_release",

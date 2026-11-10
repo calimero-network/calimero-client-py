@@ -311,6 +311,7 @@ the bytes the node names and sends the decision again.
 | `ops_remove_node(node_id)` | The system group's status; refused while an app keeps a replica there. Runs on the system leader. |
 | `ops_set_replicas(app, replicas)` | The app group's status after moving it to these node ids (at least 3). Runs on the app group's leader. |
 | `ops_backup()` | How many encrypted snapshots this node wrote (the apps it leads, to `--backup-dir`). |
+| `ops_restore(app, backup=None)` | Restore an app from a sealed backup in this node's `--backup-dir` (the newest when `backup` is `None`), signed with the operator key; this node seeds it. What the app wrote after the backup is gone. Returns `{app, group, rows, backup, status}`; refused before anything changes with `BACKUP_NOT_FOUND`, `BAD_BACKUP`, `UNKNOWN_BACKUP_FORMAT`, `BACKUP_FROM_NEWER_RELEASE` or `BUNDLE_GONE`. |
 | `ops_quotas()`, `ops_set_quotas(quotas)` | The per-account limits; `ops_set_quotas` changes those it names (an unknown name is `UNKNOWN_QUOTA`). |
 | `ops_approve_release(version, withdraw=False)` | Approves (or withdraws) a mero-tee release for every app, where the operator holds release approvals. |
 | `ops_approve_outbound(package, prefixes=None, replace=False)` | Approves outbound URL prefixes for every app, where the operator holds outbound approvals. |

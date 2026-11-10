@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **feat: restore an app from its sealed backup** (core `POST
+  /ops/apps/{app}/restore`, needs a core release after 1.0.0-rc.15).
+  `ops_restore(app, backup=None)` restores the app from a backup in the
+  node's `--backup-dir`, signed with the operator key like every operator
+  decision; the node it is sent to seeds the restore.
+
 - **feat: app teams** (core #4890; per-app `join`/`keep` need core #4903).
   `list_app_teams(org)` answers the organization's mode and its app teams;
   `scope_apps(org, passkey, apps=None, shared=None)` gives apps their own
