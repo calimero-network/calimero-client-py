@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **feat: one account in several teams with one approval** (core
+  `feat/batch-team-members`). `set_team_members(org, account, teams, passkey)`
+  sets the account's row in every team listed (ids, or `{"team", "role"?,
+  "capabilities"?}`) and `remove_team_members(org, account, teams, passkey)`
+  takes it out of them (or leaves them), each with one passkey approval; each
+  team is judged as its single-team call would be, and the node applies all
+  or nothing.
+
 - **feat: app teams** (core #4890; per-app `join`/`keep` need core #4903).
   `list_app_teams(org)` answers the organization's mode and its app teams;
   `scope_apps(org, passkey, apps=None, shared=None)` gives apps their own

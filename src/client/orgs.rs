@@ -286,6 +286,62 @@ impl PyCloudClient {
         .map(drop)
     }
 
+    /// Set `account`'s row in several teams of `org` at once (core `POST
+    /// /orgs/{org}/members/{account}/teams`), approved with one `passkey`:
+    /// Calimero Home's "give all apps". `teams`: a list of team ids (a plain
+    /// member row) or `{"team", "role"?, "capabilities"?}` dicts, at most 64,
+    /// each named once. Each team is judged as `set_team_member` would judge
+    /// it, and nothing is set unless every one may be. A node from before the
+    /// route answers a bare `404`.
+    fn set_team_members(
+        &self,
+        py: Python<'_>,
+        org: &str,
+        account: &str,
+        teams: &Bound<'_, PyAny>,
+        passkey: &PySoftPasskey,
+    ) -> PyResult<()> {
+        let Value::Array(teams) = to_json(py, Some(teams))? else {
+            return Err(PyValueError::new_err("teams is a list"));
+        };
+        let teams: Vec<Value> = teams
+            .into_iter()
+            .map(|t| match t {
+                Value::String(team) => serde_json::json!({ "team": team }),
+                row => row,
+            })
+            .collect();
+        self.confirmed(
+            py,
+            format!("orgs/{}/members/{}/teams", seg(org), seg(account)),
+            serde_json::json!({ "teams": teams }),
+            passkey,
+        )
+        .map(drop)
+    }
+
+    /// Take `account` out of several teams of `org` at once, or leave them
+    /// (`account` being the caller), approved with one `passkey` (core
+    /// `DELETE /orgs/{org}/members/{account}/teams`): each judged as
+    /// `remove_team_member` would judge it, the teams below included, and
+    /// nothing taken unless every one may be.
+    fn remove_team_members(
+        &self,
+        py: Python<'_>,
+        org: &str,
+        account: &str,
+        teams: Vec<String>,
+        passkey: &PySoftPasskey,
+    ) -> PyResult<()> {
+        self.confirmed_delete_with_body(
+            py,
+            format!("orgs/{}/members/{}/teams", seg(org), seg(account)),
+            serde_json::json!({ "teams": teams }),
+            passkey,
+        )
+        .map(drop)
+    }
+
     /// Invite someone into the organization with `role`, and into `teams`,
     /// approved with `passkey`. Returns the token to hand them (valid
     /// `ttl_secs`, default a week, for `uses` redemptions, default one).
