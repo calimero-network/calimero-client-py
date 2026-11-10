@@ -249,6 +249,7 @@ Each takes the owner's `passkey`, which answers the node's `412 CONFIRM_REQUIRED
 | --- | --- |
 | `create_org(name, recovery_key=None)` | The organization id; the caller owns it. `recovery_key` is `CloudClient.recovery_public_key(seed)`. |
 | `get_org(org)` | Members, roles and the teams the caller can see. |
+| `org_members_security(org)` | For the owner and admins: each member's `{account, name, role, teams, passkeys, recoveryCode, lastActiveDay, sessions}` (`passkeys` capped at `"3+"`, `lastActiveDay` a UTC day). Never ids, labels, sessions or activity. `403` below admin. |
 | `delete_org(org, passkey)` | `None`; deletes its teams, invites and apps, approved with the owner's passkey. |
 | `set_org_metadata(org, metadata)` | `None`; `None` clears it. |
 | `set_member_metadata(org, account, metadata)` | `None` (the member's own, or an admin's). |

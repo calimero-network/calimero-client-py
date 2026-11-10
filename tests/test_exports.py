@@ -153,6 +153,7 @@ METHODS = {
     # organizations and teams
     "create_org",
     "get_org",
+    "org_members_security",
     "delete_org",
     "set_org_metadata",
     "set_member",
