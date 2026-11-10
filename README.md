@@ -90,6 +90,7 @@ client.delete_team(org, team, pk)                           # takes its sub-team
 | Presence | `publish_presence`, `presence`, `presence_stream` |
 | Calls | `call`, `call_confirmed`, `view`, `events` |
 | Blobs | `upload_blob`, `download_blob`, `list_blobs`, `blob_info`, `delete_blob` |
+| Sealed files | `upload_file`, `list_files`, `get_file` |
 | Organizations | `create_org`, `get_org`, `org_members_security`, `delete_org`, `set_org_metadata`, `set_member`, `set_member_metadata`, `remove_member`, `set_capabilities`, `invite`, `redeem_invite`; recovery: `set_recovery_key`, `start_recovery`, `cancel_recovery`, `finish_recovery`, `CloudClient.new_recovery_seed`, `CloudClient.recovery_public_key` |
 | Teams | `create_team`, `get_team`, `update_team`, `delete_team`, `set_team_member`, `remove_team_member` |
 | Ops API (ops token via `use_api_key`, decisions signed after `use_operator_key`) | `ops_status`, `ops_metrics`, `ops_register_node`, `ops_remove_node`, `ops_set_replicas`, `ops_backup`, `ops_quotas`, `ops_set_quotas`, `ops_approve_release`, `ops_approve_outbound`, `ops_upgrade_app`, `ops_upgrade_org`, `ops_packages`, `ops_served_origins`, `ops_upload_package`, `ops_install_package`, `ops_uninstall_package` |

@@ -1,6 +1,15 @@
-//! An app's blobs.
+//! An app's blobs and sealed files.
+
+use std::path::PathBuf;
 
 use super::prelude::*;
+
+/// What `upload_file` reads: a file on disk, streamed, or bytes already in hand.
+#[derive(FromPyObject)]
+enum FileSource {
+    Bytes(Vec<u8>),
+    Path(PathBuf),
+}
 
 #[pymethods]
 impl PyCloudClient {
@@ -39,6 +48,51 @@ impl PyCloudClient {
     fn delete_blob(&self, py: Python<'_>, app: &str, id: &str) -> PyResult<PyObject> {
         let (app, id) = (app.to_owned(), id.to_owned());
         let v = self.run(py, async |c| c.delete_blob(&app, &id).await)?;
+        to_py(py, &v)
+    }
+
+    /// Upload a sealed file for component app `app`: `file` is a path
+    /// (streamed, never read whole) or `bytes`. Up to 16 MiB it is one
+    /// request, else a resumable session. Returns `{"id", "blobId", "size",
+    /// "sha256", "index"}`.
+    fn upload_file(&self, py: Python<'_>, app: &str, file: FileSource) -> PyResult<PyObject> {
+        let app = app.to_owned();
+        let v = match file {
+            FileSource::Bytes(data) => {
+                let size = data.len() as u64;
+                self.run(py, async |c| {
+                    c.upload_file(&app, std::io::Cursor::new(data.as_slice()), size)
+                        .await
+                })?
+            }
+            FileSource::Path(path) => {
+                let size = std::fs::metadata(&path)?.len();
+                self.run(py, async |c| {
+                    let f = tokio::fs::File::open(&path)
+                        .await
+                        .map_err(eyre::Report::from)?;
+                    c.upload_file(&app, f, size).await
+                })?
+            }
+        };
+        to_py(py, &v)
+    }
+
+    /// `app`'s sealed files: `{"files": [{"id", "size", "sha256", ...}, ...]}`.
+    fn list_files(&self, py: Python<'_>, app: &str) -> PyResult<PyObject> {
+        let v = self.send(
+            py,
+            Verb::Get,
+            format!("apps/{}/files", seg(app)),
+            Value::Null,
+        )?;
+        to_py(py, &v)
+    }
+
+    /// One sealed file's size and plaintext SHA-256, by id.
+    fn get_file(&self, py: Python<'_>, app: &str, id: &str) -> PyResult<PyObject> {
+        let path = format!("apps/{}/files/{}", seg(app), seg(id));
+        let v = self.send(py, Verb::Get, path, Value::Null)?;
         to_py(py, &v)
     }
 }
