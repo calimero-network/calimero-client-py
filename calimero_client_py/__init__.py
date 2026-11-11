@@ -12,6 +12,7 @@ native extension's (`calimero_client_py._native`), over core's Rust
 from ._native import (
     VERSION,
     CloudError,
+    FeatureNotActive,
     LoginRequired,
     SoftPasskey,
     WrongNode,
@@ -22,6 +23,7 @@ __all__ = [
     "Client",
     "CloudClient",
     "CloudError",
+    "FeatureNotActive",
     "LoginRequired",
     "SoftPasskey",
     "WrongNode",

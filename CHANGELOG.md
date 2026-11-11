@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- **feat: `FeatureNotActive`** (core's cluster version gate). A `CloudError`
+  subclass for `409 FEATURE_NOT_ACTIVE`: during a rollout, a node refuses a command (or a field)
+  that a node still on an older release could not apply, before anything is
+  logged or a passkey is asked for. `details` names the `feature`, the
+  version it `needs` and the cluster's `active` one. Raised by every call: the
+  generated facade's methods (`client.apps.move(...)`), `client.json.*`, the
+  calls on any path and the native ones (streams, passkey ceremonies).
+  Exported from `calimero_client_py` and `calimero`.
+
 ## 1.0.0-rc.4
 
 **Breaking.** The method per route that 1.0.0rc3 and earlier had on `Client` is
@@ -166,14 +177,6 @@ Migrating a call:
   takes it out of them (or leaves them), each with one passkey approval; each
   team is judged as its single-team call would be, and the node applies all
   or nothing.
-
-- **feat: `FeatureNotActive`** (core's cluster version gate,
-  `feat/cluster-version-gate`). A `CloudError` subclass for `409
-  FEATURE_NOT_ACTIVE`: during a rollout, a node refuses a command (or a field)
-  that a node still on an older release could not apply, before anything is
-  logged or a passkey is asked for. `details` names the `feature`, the
-  version it `needs` and the cluster's `active` one. Exported from
-  `calimero_client_py` and `calimero`.
 
 - **feat: app teams** (core #4890; per-app `join`/`keep` need core #4903).
   `list_app_teams(org)` answers the organization's mode and its app teams;

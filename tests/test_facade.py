@@ -12,7 +12,7 @@ import json
 
 import pytest
 
-from calimero_client_py import CloudError, SoftPasskey, facade
+from calimero_client_py import CloudError, FeatureNotActive, SoftPasskey, facade
 from calimero_client_py.openapi.models import (
     InviteCreateResponse200,
     OrgCreateResponse200,
@@ -134,6 +134,30 @@ def test_operator_proof_takes_a_seed_or_false():
     native = Native(refusal(428, "OPERATOR_SIGNATURE_REQUIRED", details))
     with pytest.raises(CloudError):
         client_on(native).ops.quotas_set(operator_proof=False)
+
+
+def test_feature_not_active_is_raised_by_a_generated_method():
+    # During a rollout a node refuses a command an older node could not apply.
+    details = {"feature": "app_move", "needs": 3, "active": None}
+    native = Native(
+        refusal(
+            409, "FEATURE_NOT_ACTIVE", details, message="not every node supports it"
+        )
+    )
+    with pytest.raises(FeatureNotActive) as e:
+        client_on(native).apps.move(app="a1", to_org="o2", confirm=False)
+    assert isinstance(e.value, CloudError)
+    assert e.value.args[1:3] == (409, "FEATURE_NOT_ACTIVE")
+    assert json.loads(e.value.args[3]) == details
+    # And through the JSON facade, as raw.
+    native = Native(refusal(409, "FEATURE_NOT_ACTIVE", details))
+    with pytest.raises(FeatureNotActive):
+        client_on(native).json.apps.move(app="a1", to_org="o2", confirm=False)
+    # Another 409 stays a plain CloudError.
+    native = Native(refusal(409, "CONFLICT"))
+    with pytest.raises(CloudError) as e:
+        client_on(native).apps.move(app="a1", to_org="o2", confirm=False)
+    assert type(e.value) is CloudError
 
 
 def test_a_refusal_raises_cloud_error():
