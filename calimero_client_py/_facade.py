@@ -131,6 +131,8 @@ class Group:
                 options["operator_signed"] = True
             elif isinstance(operator_proof, str):
                 options["operator_key"] = operator_proof
+            elif callable(operator_proof):
+                options["operator_signer"] = operator_proof
             elif fields is not None:
                 fields["operatorProof"] = _plain(operator_proof)
         if op.leader:

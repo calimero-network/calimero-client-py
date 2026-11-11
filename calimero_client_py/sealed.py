@@ -15,7 +15,8 @@ request again with the proof added to its JSON body:
   with (`Client.api(passkey)`);
 - `428 OPERATOR_SIGNATURE_REQUIRED`: the operator key's Ed25519 signature over
   `details.message`, as `operatorProof: {nonce, signature}`, with the key
-  `Client.use_operator_key` set (`Client.api(operator_signed=True)`).
+  `Client.use_operator_key` set (`Client.api(operator_signed=True)`), or the
+  proof a signer `Client.use_operator_signer` set makes from `details`.
 
 and, when asked (`follow_leader=True`), a `421 NOT_LEADER`: the request goes
 to the `details.leaderUrl` the node names, attested under the client's policy,
@@ -138,6 +139,7 @@ class SealedTransport(httpx.BaseTransport):
         *,
         operator_signed: bool = False,
         operator_key: Optional[str] = None,
+        operator_signer: Any = None,
         follow_leader: bool = False,
         repeatable: bool = False,
         retry_unavailable: bool = False,
@@ -145,8 +147,11 @@ class SealedTransport(httpx.BaseTransport):
     ):
         self._native = native
         self._passkey = passkey
-        self._operator = operator_signed or operator_key is not None
+        self._operator = (
+            operator_signed or operator_key is not None or operator_signer is not None
+        )
         self._operator_key = operator_key
+        self._operator_signer = operator_signer
         self._follow_leader = follow_leader
         self._repeatable = repeatable
         self._retry = retry_unavailable
@@ -216,14 +221,18 @@ class SealedTransport(httpx.BaseTransport):
             if details is None:
                 break
             signed_at.add(leader)
-            message = details.get("message")
-            signature = self._native.operator_sign(
-                base64.b64decode(message if isinstance(message, str) else ""),
-                self._operator_key,
-            )
-            if signature is None:
-                break
-            proof = {"nonce": details.get("nonce"), "signature": signature}
+            if self._operator_signer is not None:
+                # The caller's own signer (it may check the statement first).
+                proof = self._operator_signer(dict(details))
+            else:
+                message = details.get("message")
+                signature = self._native.operator_sign(
+                    base64.b64decode(message if isinstance(message, str) else ""),
+                    self._operator_key,
+                )
+                if signature is None:
+                    break
+                proof = {"nonce": details.get("nonce"), "signature": signature}
             again = _with_proof(headers, body, "operatorProof", proof)
             if again is None:
                 break

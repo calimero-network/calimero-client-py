@@ -8,9 +8,10 @@ raw-byte body is `body=`. Each returns the generated model of the success
 answer and raises `CloudError` on a refusal. A `412 CONFIRM_REQUIRED` is
 answered with the client's passkey (`Client.use_passkey`) and a `428
 OPERATOR_SIGNATURE_REQUIRED` with its operator key
-(`Client.use_operator_key`); per call, `confirm=` takes a passkey, a
-ready `confirm` value or `False`, and `operator_proof=` an operator seed
-(hex), a ready `operatorProof` value or `False`.
+or signer (`Client.use_operator_key`, `Client.use_operator_signer`); per
+call, `confirm=` takes a passkey, a ready `confirm` value or `False`, and
+`operator_proof=` an operator seed (hex), a signer, a ready
+`operatorProof` value or `False`. `client.json.<group>` answers JSON.
 """
 
 from .openapi.api.accounts import account_apps as _account_apps
@@ -2630,7 +2631,7 @@ class Ops(Group):
 
         Args:
             owner: body `owner`
-            operator_proof: an operator seed (hex), a ready `operatorProof`, or False
+            operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
 
         Returns: OpsClusterOwnerResponse200
         """
@@ -2648,7 +2649,7 @@ class Ops(Group):
         Args:
             deployer: body `deployer`
             until: body `until`
-            operator_proof: an operator seed (hex), a ready `operatorProof`, or False
+            operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
 
         Returns: OpsDeployerGrantResponse200
         """
@@ -2667,7 +2668,7 @@ class Ops(Group):
 
         Args:
             key: path
-            operator_proof: an operator seed (hex), a ready `operatorProof`, or False
+            operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
 
         Returns: OpsDeployerRevokeDeleteResponse200
         """
@@ -2684,7 +2685,7 @@ class Ops(Group):
 
         Args:
             key: path
-            operator_proof: an operator seed (hex), a ready `operatorProof`, or False
+            operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
 
         Returns: OpsDeployerRevokePostResponse200
         """
@@ -2700,7 +2701,7 @@ class Ops(Group):
         **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first; send it again with `operatorProof`, the operator key's signature over `details.message` and its `nonce`.
 
         Args:
-            operator_proof: an operator seed (hex), a ready `operatorProof`, or False
+            operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
 
         Returns: OpsDeploymentsGrantedResponse200
         """
@@ -2741,7 +2742,7 @@ class Ops(Group):
             team: body `team`
             cascade: body `cascade`
             migrate: body `migrate`
-            operator_proof: an operator seed (hex), a ready `operatorProof`, or False
+            operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
 
         Returns: UpgradeRun
         """
@@ -2783,7 +2784,7 @@ class Ops(Group):
             package: body `package`
             prefixes: body `prefixes`
             replace: body `replace`
-            operator_proof: an operator seed (hex), a ready `operatorProof`, or False
+            operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
 
         Returns: Written
         """
@@ -2895,7 +2896,7 @@ class Ops(Group):
 
         Args:
             pools: body `pools`
-            operator_proof: an operator seed (hex), a ready `operatorProof`, or False
+            operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
 
         Returns: OpsPoolsSetResponse200
         """
@@ -2923,7 +2924,7 @@ class Ops(Group):
 
         Args:
             org: body `org`
-            operator_proof: an operator seed (hex), a ready `operatorProof`, or False
+            operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
 
         Returns: OpsQuotasSetResponse200
         """
@@ -2958,7 +2959,7 @@ class Ops(Group):
             zone: body `zone`
             role: body `role`
             pool: body `pool`
-            operator_proof: an operator seed (hex), a ready `operatorProof`, or False
+            operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
 
         Returns: OpsRegisterNodeResponse200
         """
@@ -2980,7 +2981,7 @@ class Ops(Group):
         Args:
             version: body `version`
             approved: body `approved`
-            operator_proof: an operator seed (hex), a ready `operatorProof`, or False
+            operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
 
         Returns: Written
         """
@@ -3002,7 +3003,7 @@ class Ops(Group):
         Args:
             version: path
             after: body `after`
-            operator_proof: an operator seed (hex), a ready `operatorProof`, or False
+            operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
 
         Returns: Written
         """
@@ -3021,7 +3022,7 @@ class Ops(Group):
 
         Args:
             version: path
-            operator_proof: an operator seed (hex), a ready `operatorProof`, or False
+            operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
 
         Returns: Written
         """
@@ -3042,7 +3043,7 @@ class Ops(Group):
 
         Args:
             id: path
-            operator_proof: an operator seed (hex), a ready `operatorProof`, or False
+            operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
 
         Returns: OpsRemoveNodeResponse200
         """
@@ -3058,7 +3059,7 @@ class Ops(Group):
         Args:
             app: path
             backup: body `backup`
-            operator_proof: an operator seed (hex), a ready `operatorProof`, or False
+            operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
 
         Returns: OpsRestoreResponse200
         """
@@ -3087,7 +3088,7 @@ class Ops(Group):
         Args:
             app: path
             replicas: body `replicas`
-            operator_proof: an operator seed (hex), a ready `operatorProof`, or False
+            operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
 
         Returns: OpsSetReplicasResponse200
         """
@@ -3110,7 +3111,7 @@ class Ops(Group):
             token: body `token`
             uses: body `uses`
             expires_at: body `expiresAt`
-            operator_proof: an operator seed (hex), a ready `operatorProof`, or False
+            operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
 
         Returns: OpsSignUpInviteCreateResponse200
         """
@@ -3138,7 +3139,7 @@ class Ops(Group):
 
         Args:
             key: path
-            operator_proof: an operator seed (hex), a ready `operatorProof`, or False
+            operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
 
         Returns: Written
         """
@@ -3159,7 +3160,7 @@ class Ops(Group):
 
         Args:
             key: path
-            operator_proof: an operator seed (hex), a ready `operatorProof`, or False
+            operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
 
         Returns: Written
         """
@@ -3180,7 +3181,7 @@ class Ops(Group):
 
         Args:
             policy: body `policy`
-            operator_proof: an operator seed (hex), a ready `operatorProof`, or False
+            operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
 
         Returns: Written
         """
@@ -3223,7 +3224,7 @@ class Ops(Group):
             version: body `version`
             service: body `service`
             migrate: body `migrate`
-            operator_proof: an operator seed (hex), a ready `operatorProof`, or False
+            operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
 
         Returns: OpsUpgradeResponse200
         """
@@ -4250,7 +4251,7 @@ class Orgs(Group):
             org: path
             run: path
             confirm: a passkey for the step-up, a ready `confirm`, or False
-            operator_proof: an operator seed (hex), a ready `operatorProof`, or False
+            operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
 
         Returns: UpgradeRun
         """

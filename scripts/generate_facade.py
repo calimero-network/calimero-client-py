@@ -140,9 +140,10 @@ def generate(document: dict) -> str:
         "answer and raises `CloudError` on a refusal. A `412 CONFIRM_REQUIRED` is",
         "answered with the client's passkey (`Client.use_passkey`) and a `428",
         "OPERATOR_SIGNATURE_REQUIRED` with its operator key",
-        "(`Client.use_operator_key`); per call, `confirm=` takes a passkey, a",
-        "ready `confirm` value or `False`, and `operator_proof=` an operator seed",
-        "(hex), a ready `operatorProof` value or `False`.",
+        "or signer (`Client.use_operator_key`, `Client.use_operator_signer`); per",
+        "call, `confirm=` takes a passkey, a ready `confirm` value or `False`, and",
+        "`operator_proof=` an operator seed (hex), a signer, a ready",
+        "`operatorProof` value or `False`. `client.json.<group>` answers JSON.",
         '"""',
         "",
         "IMPORTS",
@@ -270,7 +271,7 @@ def generate(document: dict) -> str:
             if operator:
                 args.append("operator_proof=None")
                 argdocs.append(
-                    "            operator_proof: an operator seed (hex), a ready `operatorProof`, or False"
+                    "            operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False"
                 )
             answer = "json"
             ok = responses.get("200", {}).get("content", {})

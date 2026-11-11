@@ -886,3 +886,43 @@ def test_the_typed_answer_is_the_generated_model():
     r = client_on(native).orgs.create(name="Acme")
     assert isinstance(r, OrgCreateResponse200)
     assert r.org_id == "o1"
+
+
+def test_an_operator_signer_makes_the_proof():
+    details = {
+        "subject": "s",
+        "method": "__set_quotas",
+        "args": "{}",
+        "nonce": "n-9",
+        "cluster": "c",
+        "message": base64.b64encode(b"m").decode(),
+    }
+    native = Native(
+        refusal(428, "OPERATOR_SIGNATURE_REQUIRED", details),
+        answer(200, {}),
+        operator_seed="ignored",
+    )
+    seen = []
+
+    def signer(d):
+        seen.append(d)
+        return {"nonce": d["nonce"], "signature": "sig"}
+
+    client = client_on(native)
+    client.use_operator_signer(signer)
+    assert client.json.ops.quotas_set() == {}
+    assert seen[0]["cluster"] == "c"
+    assert native.sent[1]["body"]["operatorProof"] == {
+        "nonce": "n-9",
+        "signature": "sig",
+    }
+
+
+def test_json_answers_what_the_node_sent():
+    native = Native(answer(200, {"orgId": "o1", "name": "A", "extra": [1]}))
+    # No `owner`, which the document requires: the model could not read it.
+    assert client_on(native).json.orgs.get(org="o1") == {
+        "orgId": "o1",
+        "name": "A",
+        "extra": [1],
+    }

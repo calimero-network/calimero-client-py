@@ -91,6 +91,19 @@ class _GroupAttribute:
         return group
 
 
+class _JsonGroups:
+    """`client.json`: each facade group, answering JSON."""
+
+    def __init__(self, client: Any):
+        self._client = client
+
+    def __getattr__(self, name: str) -> Any:
+        group = facade.GROUPS.get(name)
+        if group is None:
+            raise AttributeError(name)
+        return group(self._client, as_json=True)
+
+
 class _CallableGroup:
     """A group whose name was a method: attributes are the group's, a call is
     the method's."""
@@ -200,6 +213,7 @@ class Client:
     def _init(self, native: Any) -> None:
         self._native = native
         self._passkey: Any = None
+        self._operator_signer: Any = None
         self._clients: Dict[Tuple[Any, ...], AuthenticatedClient] = {}
 
     @classmethod
@@ -251,6 +265,7 @@ class Client:
         *,
         operator_signed: bool = False,
         operator_key: Optional[str] = None,
+        operator_signer: Optional[Callable[[Dict[str, Any]], Any]] = None,
         follow_leader: bool = False,
         repeatable: bool = False,
         retry_unavailable: bool = False,
@@ -263,7 +278,8 @@ class Client:
         `passkey` answers a `412 CONFIRM_REQUIRED` (what an owner approves):
         the request is sent again with its assertion over the node's
         challenge. `operator_signed` answers a `428
-        OPERATOR_SIGNATURE_REQUIRED` with the key `use_operator_key` set (or
+        OPERATOR_SIGNATURE_REQUIRED` with the signer `use_operator_signer` set,
+        else the key `use_operator_key` set (or `operator_signer`, or
         `operator_key`, a seed in hex). `follow_leader` sends a request a node
         answers `421 NOT_LEADER` to the leader it names (the Ops API's replica
         moves and node removal). `repeatable` marks requests safe to send
@@ -271,9 +287,12 @@ class Client:
         same node while it answers `503` (a call with an idempotency key),
         `once` sends them once (a sign-in or sign-up).
         """
+        if operator_signed and operator_key is None and operator_signer is None:
+            operator_signer = self._operator_signer
         options = dict(
             operator_signed=operator_signed,
             operator_key=operator_key,
+            operator_signer=operator_signer,
             follow_leader=follow_leader,
             repeatable=repeatable,
             retry_unavailable=retry_unavailable,
@@ -281,7 +300,7 @@ class Client:
         )
         if passkey is not None:
             return sealed_client(self._native, passkey, **options)
-        key = tuple(sorted(options.items()))
+        key = tuple(sorted(options.items(), key=lambda kv: kv[0]))
         client = self._clients.get(key)
         if client is None:
             client = self._clients[key] = sealed_client(self._native, **options)
@@ -304,6 +323,25 @@ class Client:
         return Group(self, as_json=True)._run(
             op, path, query or {}, body, confirm, operator_proof
         )
+
+    def use_operator_signer(
+        self, signer: Optional[Callable[[Dict[str, Any]], Any]]
+    ) -> None:
+        """Answer the node's `428 OPERATOR_SIGNATURE_REQUIRED` with
+        `signer(details)`, the `operatorProof` (`{nonce, signature}`) for the
+        statement `details` names (`{subject, method, args, nonce, cluster,
+        message}`): for a key the client never holds, or a signer that checks
+        the statement before it signs. It takes precedence over
+        `use_operator_key`. `None` forgets it."""
+        self._operator_signer = signer
+
+    @property
+    def json(self) -> Any:
+        """The facade's groups answering the node's JSON as it came (dicts and
+        lists) rather than the generated models: `client.json.ops.status()`.
+        For a node older than the document, whose answers may lack a field the
+        document requires."""
+        return _JsonGroups(self)
 
     def use_passkey(self, passkey: Any) -> None:
         """Answer the node's `412 CONFIRM_REQUIRED` in the facade's methods
