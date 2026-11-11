@@ -10,6 +10,18 @@
   generated facade's methods (`client.apps.move(...)`), `client.json.*`, the
   calls on any path and the native ones (streams, passkey ceremonies).
   Exported from `calimero_client_py` and `calimero`.
+- **docs: the docs site describes the generated client.** "Using the client"
+  covers the groups and their method names, keyword arguments (left out is not
+  sent, `None` is an explicit null), `confirm=` / `operator_proof=` and the
+  client-wide `use_passkey` / `use_operator_key` / `use_operator_signer`,
+  models and `client.json`, the streams, and the hand-written flows (sign-in,
+  account and organization recovery, uploads in parts). A migration guide maps
+  every 0.9 and 1.0.0rc3 method to its replacement. The method reference
+  (`docs/src/content/docs/reference/methods.mdx`) is generated, by
+  `scripts/generate_api_docs.py`, from the facade and core's document: one
+  table per group with each method's route, step-up and refusal codes.
+  `generate_openapi_client.py` writes it with the client and `--check` covers
+  it, so the OpenAPI sync keeps it current.
 
 ## 1.0.0-rc.4
 

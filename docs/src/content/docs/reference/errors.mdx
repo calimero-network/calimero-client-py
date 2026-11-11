@@ -2,7 +2,7 @@
 title: Error handling
 description: What the client raises — CloudError for a failed request (LoginRequired, WrongNode, FeatureNotActive), ValueError for a malformed argument.
 sidebar:
-  order: 2
+  order: 3
 ---
 
 - **`CloudError`** — a request failed. Its `args` are
@@ -11,6 +11,11 @@ sidebar:
     reached or attested (`code` is then `"TRANSPORT"`);
   - `code` is the node's error code, for example `CONFIRM_REQUIRED`;
   - `details` is a JSON string (`"null"` when there are none).
+
+  Every way of calling the node raises it the same way: the generated methods
+  (`client.apps.call(...)`), `client.json.*`, the calls on any path and the
+  hand-written flows. The [method reference](/reference/methods/) lists the
+  codes core's document names for each method.
 - **`LoginRequired`** (a `CloudError`, `401 UNAUTHENTICATED`) — the client's own
   refresh did not help, or there was no refresh token (an API key): sign in
   again.
@@ -25,16 +30,18 @@ sidebar:
   old nodes have left the cluster; for instance `client.apps.move(...)`, or
   `client.orgs.app_teams_scope(...)` naming a package's `join`/`keep`, on a cluster still holding a node from
   before 1.0.0-rc.15.
-- **`ValueError`** — a malformed argument caught before sending (an `app_hash`
-  that is not 32 bytes of hex, an unparseable URL, `parent` and `to_top` given
-  together) or an answer missing a field the method returns.
+- **`ValueError`** — an argument caught before sending: a body the document
+  does not allow (a value outside an enum, a missing required field), an
+  `app_hash` that is not 32 bytes of hex, an unparseable URL. A generated
+  model also raises it, or `KeyError`, for an answer missing a field the
+  document requires (an older node): use `client.json.*` there.
 
 ```python
 import json
 from calimero_client_py import CloudError
 
 try:
-    client.call(app, "clear")
+    client.apps.call(app=app, method="clear")
 except CloudError as e:
     message, status, code, details = e.args
     if status == 0:
@@ -85,7 +92,7 @@ from calimero_client_py import Client, LoginRequired, WrongNode
 
 client = Client(urls[0], nodes=urls[1:], tee_profiles=["..."])
 try:
-    client.call(app, "set", {"key": "a"})
+    client.apps.call(app=app, method="set", args={"key": "a"})
 except LoginRequired:
     client.sign_in(passkey)
 except WrongNode as e:

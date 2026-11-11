@@ -64,7 +64,11 @@ export default defineConfig({
         },
         {
           label: 'Reference',
-          items: ['reference/api', 'reference/errors'],
+          items: ['reference/client', 'reference/methods', 'reference/errors'],
+        },
+        {
+          label: 'Guides',
+          items: ['guides/migration'],
         },
       ],
     }),

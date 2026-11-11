@@ -123,7 +123,7 @@ jobs:
           fi
           echo "changed=true" >> "$GITHUB_OUTPUT"
           # New generated files count in the diffs below.
-          git add --intent-to-add openapi calimero_client_py/openapi
+          git add --intent-to-add openapi calimero_client_py/openapi docs/src/content/docs/reference/methods.mdx
           git --no-pager diff --stat
 
       - name: Write the pull request body
@@ -201,7 +201,7 @@ jobs:
           git config user.name "${SLUG}[bot]"
           git config user.email "${APP_UID}+${SLUG}[bot]@users.noreply.github.com"
           git checkout -b "$branch"
-          git add openapi calimero_client_py/openapi calimero_client_py/facade.py
+          git add openapi calimero_client_py/openapi calimero_client_py/facade.py docs/src/content/docs/reference/methods.mdx
           leftover=$(git status --porcelain --untracked-files=all | grep -vE '^[MADR] ' || true)
           if [ -n "$leftover" ]; then
             echo "::warning::files the sync does not own changed and were NOT committed:"
