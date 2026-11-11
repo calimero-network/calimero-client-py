@@ -111,6 +111,15 @@ def test_a_ready_confirm_goes_in_the_body():
     assert native.sent[0]["body"]["confirm"] == ready
 
 
+def test_a_body_open_to_other_fields_takes_them():
+    # `POST /ops/quotas` names only `org`: each limit is a field by its key.
+    native = Native(answer(200, {}))
+    client_on(native).ops.quotas_set(maxAppsPerAccount=3, operator_proof=False)
+    assert native.sent[0]["body"] == {"maxAppsPerAccount": 3}
+    with pytest.raises(TypeError):
+        client_on(native).orgs.create(name="o", colour="red")
+
+
 def test_operator_proof_takes_a_seed_or_false():
     details = {"nonce": "n", "message": base64.b64encode(b"m").decode()}
     native = Native(
