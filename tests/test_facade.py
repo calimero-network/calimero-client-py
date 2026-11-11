@@ -1,7 +1,7 @@
 """
 The facade (`calimero_client_py.facade`, generated): one method per operation
 of core's OpenAPI document on `Client`, grouped by tag. The table below is the
-1.x route methods' (removed in 2.0): each call now as its facade method, and
+route methods of 1.0.0rc3 (removed in 1.0.0rc4): each call now as its facade method, and
 what that sends and answers.
 
 Runs on the stand-in native client of test_openapi_client.py: no node.
@@ -177,11 +177,11 @@ def test_packages_is_a_group():
     assert callable(client.packages.get)
 
 
-# ------------------------------------------------------------ the 1.x route methods, as facade calls
+# ------------------------------------------------------------ rc3's route methods, as facade calls
 
 PK = SoftPasskey()
 
-# (call, method, path, body sent first, answer, what it returns): each 1.x
+# (call, method, path, body sent first, answer, what it returns): each rc3
 # route method's call rewritten onto the facade, and what it sends and answers.
 CASES = [
     (

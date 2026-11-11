@@ -362,11 +362,11 @@ def test_the_generated_package_names_its_source():
     assert source["commit"] in (generated.__doc__ or "")
 
 
-# ------------------------------------------------------------ 2.0: the routes are the facade's
+# ------------------------------------------------------------ rc4: the routes are the facade's
 
 
 def test_the_route_methods_are_gone():
-    # 2.0 removed the 1.x method per route; the facade has each route.
+    # 1.0.0rc4 removed rc3's method per route; the facade has each route.
     for name in ("create_org", "call", "view", "ops_status", "packages"):
         assert not callable(getattr(Client, name, None)) or isinstance(
             getattr(Client, name), type

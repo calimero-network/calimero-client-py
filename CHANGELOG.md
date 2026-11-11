@@ -1,11 +1,12 @@
 # Changelog
 
-## 2.0.0 (unreleased)
+## 1.0.0-rc.4
 
-**Breaking.** The method per route that 1.x had on `Client` is removed: every
+**Breaking.** The method per route that 1.0.0rc3 and earlier had on `Client` is
+removed, before 1.0.0 is final rather than in a 2.0: every
 route is the facade's method, generated from core's OpenAPI document
 (`client.<group>.<operation>(...)`, keyword arguments, the generated model of
-the answer, `CloudError` on a refusal). 1.0 deprecated them (1.0's
+the answer, `CloudError` on a refusal). 1.0.0rc3 deprecated them (its
 `DeprecationWarning` named each replacement). What is not a route stays on
 `Client`: `connect`, the credentials (`use_api_key`, `use_session`,
 `session`, `refresh`, `use_passkey`, `use_operator_key`,
@@ -28,18 +29,18 @@ Migrating a call:
   before.
 - The answer is the generated model (`client.orgs.create(name=...).org_id`,
   `.to_dict()` for the JSON). `client.json.<group>.<operation>(...)` answers
-  the node's JSON as it came, as 1.x did, and suits a node older than the
-  document. 1.x unwrapped some answers: `create_org` answered the id where
+  the node's JSON as it came, as rc3's route methods did, and suits a node older than the
+  document. rc3's route methods unwrapped some answers: `create_org` answered the id where
   `orgs.create` answers `{orgId}`, and `list_apps` the list where `apps.list`
   answers `{apps}`.
-- Fields 1.x always sent are sent only when given (`call`'s `args`, `view`'s
+- Fields rc3's route methods always sent are sent only when given (`call`'s `args`, `view`'s
   `consistency`, `invite`'s `ttlSecs`). The node reads an absent field as its
-  default. Pass `consistency="stale", min_index=...` for 1.x's
+  default. Pass `consistency="stale", min_index=...` for rc3's
   `stale=True`, and `approved=False` for `ops_approve_release(withdraw=True)`.
 - `POST /apps`' `confirmMethods` is not in core's document: send it with
   `client.post("apps", {...})`.
 
-| 1.x method | 2.0 |
+| 1.0.0rc3 method | 1.0.0rc4 |
 | --- | --- |
 | `activity(after)` | `client.auth.activity_list(...)` |
 | `add_package_origin(package, origin, passkey, rp_id, served)` | `client.packages.origins_add(...)` |
@@ -137,6 +138,7 @@ Migrating a call:
 | `upload_package(mpk)` | `client.packages.upload(...)` |
 | `usage()` | `client.auth.usage(...)` |
 | `view(app, method, args, stale, min_index)` | `client.apps.view(...)` |
+## 1.0.0-rc.3
 
 - **feat: a client generated from core's OpenAPI document.** The routes are
   now `calimero_client_py.openapi` (openapi-python-client 0.26.2, from

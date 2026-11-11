@@ -65,7 +65,7 @@ sealed channel (the native `SealedClient`, which the generated code's httpx
 transport sends through), the step-ups (`calimero_client_py/sealed.py`), the
 passkey ceremonies (`sign_up`, `sign_in`, `add_passkey`, account recovery) and
 the event streams (`events`, `presence_stream`). Earlier releases had a method
-per route; 2.0 removed them (CHANGELOG.md maps each to its facade method).
+per route; 1.0.0rc4 removed them (CHANGELOG.md maps each to its facade method).
 
 Regenerate after a change to core's API:
 
@@ -136,7 +136,7 @@ organization's `start_recovery(org, seed)`; the streams `events` and
 `new_recovery_seed`, `recovery_public_key`, `sign_recovery`,
 `operator_public_key`); and, for any path, `get`, `get_text`, `post`, `put`,
 `delete`, `post_confirmed`, `delete_confirmed`, `post_operator_signed`,
-`delete_operator_signed`. 1.x's method per route is gone in 2.0;
+`delete_operator_signed`. The method per route of 1.0.0rc3 and earlier is gone in 1.0.0rc4;
 [CHANGELOG.md](CHANGELOG.md) maps each to its facade method.
 
 `SoftPasskey` is an in-memory passkey for scripts and tests against development

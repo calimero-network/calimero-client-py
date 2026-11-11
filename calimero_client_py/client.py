@@ -8,7 +8,7 @@ sealed channel, the move between nodes and the refresh of a session, the event
 streams, and the keys the client signs with.
 
 The routes are the facade's methods (`client.orgs.invite_create(...)`, one
-per operation, generated): 2.0 removed the method per route earlier releases
+per operation, generated): 1.0.0rc4 removed the method per route earlier releases
 had (CHANGELOG.md maps each to its facade method). What stays here is what is
 not a route: the passkey ceremonies, the streams, the generic path calls and
 the key helpers.
