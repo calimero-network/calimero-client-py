@@ -64,10 +64,8 @@ Hand-written, because a generated client cannot be made of it: the attested
 sealed channel (the native `SealedClient`, which the generated code's httpx
 transport sends through), the step-ups (`calimero_client_py/sealed.py`), the
 passkey ceremonies (`sign_up`, `sign_in`, `add_passkey`, account recovery) and
-the event streams (`events`, `presence_stream`). The methods earlier releases
-had, one per route, keep their names and signatures and answer as before, and
-are deprecated (`DeprecationWarning`) in favour of the facade method their
-docstring names.
+the event streams (`events`, `presence_stream`). Earlier releases had a method
+per route; 2.0 removed them (CHANGELOG.md maps each to its facade method).
 
 Regenerate after a change to core's API:
 
@@ -90,8 +88,9 @@ from calimero_client_py import Client, CloudError
 
 client = Client("https://eu1.cloud.calimero.network")  # allow_mock=True for dev clusters
 client.use_api_key("cal_...")
-r = client.call(app_id, "set", {"key": "a", "value": "1"}, idempotency_key="k1")
-print(client.view(app_id, "get", {"key": "a"})["result"])
+r = client.apps.call(app=app_id, method="set", args={"key": "a", "value": "1"},
+                     idempotency_key="k1")
+print(client.apps.view(app=app_id, method="get", args={"key": "a"}).to_dict()["result"])
 for e in client.events(app_id, start=0, limit=10, timeout=5):
     print(e["kind"], e["data"])
 ```
@@ -109,39 +108,39 @@ print(client.node_url, client.node_urls)  # the node in use, and the rest in ord
 Organizations, teams and invites:
 
 ```python
-org = client.create_org("Acme")
-# What grants access is approved with the acting account's passkey (412 first).
-token = client.invite(org, "member", passkey, teams=[], ttl_secs=86400, uses=1)
-other.redeem_invite(token)
-team = client.create_team(org, "eng", join="invite")      # or join="everyone", parent=...
-client.set_team_member(org, team, account_id, passkey, role="readOnly")
-app = client.create_app("eng-kv", client.upload_bundle(wasm),
-                        {"org": org, "access": {"kind": "team", "team": team}})
-client.update_team(org, team, name="engineering", metadata={"colour": "teal"})
-client.delete_team(org, team, pk)                           # takes its sub-teams and apps (pk: when there are apps)
+client.use_passkey(passkey)  # what grants access is approved with it (412 first)
+org = client.orgs.create(name="Acme").org_id
+token = client.orgs.invite_create(org=org, role="member", ttl_secs=86400, uses=1).token
+other.orgs.invite_redeem(token=token)
+team = client.orgs.team_create(org=org, name="eng", join="invite").team_id
+client.orgs.team_set_member(org=org, team=team, account=account_id, role="readOnly")
+bundle = client.packages.bundle_put(body=wasm).hash_
+app = client.apps.create(name="eng-kv", bundle=bundle, org=org,
+                         access={"kind": "team", "team": team}).app_id
+client.orgs.team_update(org=org, team=team, name="engineering", metadata={"colour": "teal"})
+client.orgs.team_delete(org=org, team=team)  # takes its sub-teams and apps
 ```
 
-| Area | Methods |
-| --- | --- |
-| Session | `sign_up`, `sign_in`, `refresh`, `sign_out`, `sign_out_everywhere`, `sessions`, `revoke_session`, `activity`, `use_session`, `use_api_key`, `session`, `me`, `usage` |
-| Devices (passkeys) | `add_passkey(new, approver)`, `remove_passkey(credential_id, passkey)`, `label_passkey` |
-| Account recovery | `create_recovery_code(passkey)`, `remove_recovery_code(passkey)`, `start_account_recovery(code, passkey)` (signed out, a new passkey), `cancel_account_recovery(passkey)`, `finish_account_recovery(passkey, account_id=None)`; `CloudClient.normalize_recovery_code`, `CloudClient.recovery_code_key` |
-| API keys | `create_api_key({label, apps, methods, readOnly, allowConfirm, ttlSecs}, passkey)`, `list_api_keys`, `revoke_api_key(key_id, passkey)`; upgrade keys for CI: `create_api_key({upgrades: {app, package?}}, passkey)`, then `upgrade_app(app, version=...)` with the key alone; `CloudClient.api_key_public(key)` |
-| Aliases | `set_alias`, `alias`, `aliases`, `delete_alias` |
-| Packages | `upload_package`, `install_package`, `packages`, `package`, `uninstall_package`; web origins: `list_package_origins`, `add_package_origin`, `remove_package_origin` (approved with a `passkey`; `served=True` for a custom domain the cluster serves the frontend on) |
-| Apps | `upload_bundle`, `create_app`, `create_app_from_package`, `list_apps`, `get_app`, `delete_app`, `set_access`, `set_app_metadata`, `app_storage`, `app_abi`, `upgrade_app`, `transfer_app`, `move_app`, `verify_app_cluster` |
-| Approvals | `approve_release`, `approve_outbound` (the owner's passkey) |
-| Upgrade runs | `upgrade_org`, `upgrade_run`, `retry_upgrade_run` |
-| Presence | `publish_presence`, `presence`, `presence_stream` |
-| Calls | `call`, `call_confirmed`, `view`, `events` |
-| Blobs | `upload_blob`, `download_blob`, `list_blobs`, `blob_info`, `delete_blob` |
-| Organizations | `create_org`, `get_org`, `org_members_security`, `delete_org`, `set_org_metadata`, `set_member`, `set_member_metadata`, `remove_member`, `set_capabilities`, `invite`, `redeem_invite`; recovery: `set_recovery_key`, `start_recovery`, `cancel_recovery`, `finish_recovery`, `CloudClient.new_recovery_seed`, `CloudClient.recovery_public_key` |
-| Teams | `create_team`, `get_team`, `update_team`, `delete_team`, `set_team_member`, `remove_team_member`, `set_team_members`/`remove_team_members` (one account in several teams with one approval), `list_app_teams`, `scope_apps` (one app team per package; `join`/`keep` close or open one alone) |
-| Ops API (ops token via `use_api_key`, decisions signed after `use_operator_key`) | `ops_status`, `ops_metrics`, `ops_register_node`, `ops_remove_node`, `ops_set_replicas`, `ops_backup`, `ops_quotas`, `ops_set_quotas`, `ops_approve_release`, `ops_approve_outbound`, `ops_upgrade_app`, `ops_upgrade_org`, `ops_packages`, `ops_served_origins`, `ops_upload_package`, `ops_install_package`, `ops_uninstall_package` |
-| Anything else | `get`, `get_text`, `post`, `put`, `delete(path, body=None)` on any API path; `post_confirmed`, `delete_confirmed(path, passkey, body=None)` where the node asks for a passkey (`412`); `post_operator_signed`, `delete_operator_signed` where it asks for the operator's signature (`428`); `attestation` |
+Every route is a method of its group: `client.auth`, `client.apps`,
+`client.orgs`, `client.packages`, `client.ops`, `client.deployments`,
+`client.consent`, `client.public` (`help(client.orgs)` lists them; see "The
+generated client" above). `client.json.<group>` answers the node's JSON as it
+came, for a node older than the document. Not routes, and so methods of
+`Client` itself: `sign_up`, `sign_in`, `add_passkey`, `refresh`,
+`use_session`, `use_api_key`, `session`, `use_passkey`, `use_operator_key`,
+`use_operator_signer`; account recovery's `start_account_recovery(code,
+passkey)` and `finish_account_recovery(passkey, account_id=None)`; an
+organization's `start_recovery(org, seed)`; the streams `events` and
+`presence_stream`; `verify_app_cluster`, `attestation`; the key helpers
+(`api_key_public`, `normalize_recovery_code`, `recovery_code_key`,
+`new_recovery_seed`, `recovery_public_key`, `sign_recovery`,
+`operator_public_key`); and, for any path, `get`, `get_text`, `post`, `put`,
+`delete`, `post_confirmed`, `delete_confirmed`, `post_operator_signed`,
+`delete_operator_signed`. 1.x's method per route is gone in 2.0;
+[CHANGELOG.md](CHANGELOG.md) maps each to its facade method.
 
 `SoftPasskey` is an in-memory passkey for scripts and tests against development
-clusters (`client.sign_up(SoftPasskey(), "alice")`, `client.call_confirmed(...)`).
+clusters (`client.sign_up(SoftPasskey(), "alice")`, `client.apps.call(..., confirm=pk)`).
 Errors raise `CloudError(message, status, code, details)`; `LoginRequired`
 (`401` the client's own refresh did not answer) and `WrongNode` (`421
 WRONG_NODE` with no other node to move to, given in `nodes`) are its subclasses.
@@ -155,10 +154,10 @@ $(python -c 'from calimero_client_py import Client; print(Client.operator_public
 ops = Client(node_url, tee_profiles=["..."])
 ops.use_api_key(ops_token)
 ops.use_operator_key(operator_seed_hex)   # answers 428 OPERATOR_SIGNATURE_REQUIRED
-print(ops.ops_status()["nodes"])
-ops.ops_register_node(4, "https://node4.example/", zone="eu1-b")
-ops.ops_set_replicas(app_id, [1, 2, 4])   # sent on to the app group's leader
-print(ops.ops_backup(), "snapshots written")
+print(ops.json.ops.status()["nodes"])
+ops.ops.register_node(id=4, addr="https://node4.example/", zone="eu1-b")
+ops.ops.set_replicas(app=app_id, replicas=[1, 2, 4])  # sent on to the app group's leader
+print(ops.ops.backup().written, "snapshots written")
 ```
 
 `tests/test_cloud_v2.py`, `tests/test_cloud_v2_api.py` and

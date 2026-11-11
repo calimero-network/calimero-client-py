@@ -27,16 +27,23 @@ def main() -> int:
     passkey = SoftPasskey()
     try:
         client.sign_up(passkey, "example")
-        print("signed in as", client.me()["accountId"])
+        print("signed in as", client.json.auth.me()["accountId"])
 
         with open(wasm_path, "rb") as f:
-            bundle = client.upload_bundle(f.read())
-        app = client.create_app("example-kv", bundle)
+            bundle = client.json.packages.bundle_put(body=f.read())["hash"]
+        app = client.json.apps.create(name="example-kv", bundle=bundle)["appId"]
         print("created app", app)
 
-        r = client.call(app, "set", {"key": "greeting", "value": "hello"})
+        r = client.json.apps.call(
+            app=app, method="set", args={"key": "greeting", "value": "hello"}
+        )
         print("committed at index", r["index"])
-        print("read back:", client.view(app, "get", {"key": "greeting"})["result"])
+        print(
+            "read back:",
+            client.json.apps.view(app=app, method="get", args={"key": "greeting"})[
+                "result"
+            ],
+        )
 
         for e in client.events(app, start=0, limit=10, timeout=2):
             print("event", e["id"], e["kind"], e["data"])

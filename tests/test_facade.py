@@ -1,18 +1,18 @@
 """
 The facade (`calimero_client_py.facade`, generated): one method per operation
-of core's OpenAPI document on `Client`, grouped by tag, and the deprecated
-methods, each now a call onto one of them that sends what it always sent.
+of core's OpenAPI document on `Client`, grouped by tag. The table below is the
+1.x route methods' (removed in 2.0): each call now as its facade method, and
+what that sends and answers.
 
 Runs on the stand-in native client of test_openapi_client.py: no node.
 """
 
 import base64
 import json
-import warnings
 
 import pytest
 
-from calimero_client_py import Client, CloudError, SoftPasskey, facade
+from calimero_client_py import CloudError, SoftPasskey, facade
 from calimero_client_py.openapi.models import (
     InviteCreateResponse200,
     OrgCreateResponse200,
@@ -158,73 +158,113 @@ def test_a_call_with_an_idempotency_key_is_retried():
     assert (native.sent[0]["mode"], native.sent[0]["retry"]) == ("repeatable", True)
 
 
-def test_packages_is_still_the_method_and_a_group():
+def test_packages_is_a_group():
     native = Native(answer(200, {"packages": [{"name": "p"}]}))
     client = client_on(native)
-    with pytest.warns(DeprecationWarning):
-        assert client.packages() == [{"name": "p"}]
-    assert callable(Client.packages)
+    assert client.json.packages.list()["packages"] == [{"name": "p"}]
     assert callable(client.packages.get)
 
 
-# ------------------------------------------------------------ the deprecated methods
+# ------------------------------------------------------------ the 1.x route methods, as facade calls
 
 PK = SoftPasskey()
 
-# (call, method, path, body sent first, answer, what it returns): what the
-# Rust implementation sent and answered, route by route.
+# (call, method, path, body sent first, answer, what it returns): each 1.x
+# route method's call rewritten onto the facade, and what it sends and answers.
 CASES = [
-    (lambda c: c.me(), "GET", "/auth/me", None, {"accountId": "a"}, {"accountId": "a"}),
     (
-        lambda c: c.create_api_key({"label": "ci"}, PK),
+        lambda c: c.json.auth.me(),
+        "GET",
+        "/auth/me",
+        None,
+        {"accountId": "a"},
+        {"accountId": "a"},
+    ),
+    (
+        lambda c: c.json.auth.apikey_create(label="ci", confirm=PK),
         "POST",
         "/auth/apikeys",
         {"label": "ci"},
         {"keyId": "k", "key": "cal_x"},
-        ("k", "cal_x"),
+        {"keyId": "k", "key": "cal_x"},
     ),
-    (lambda c: c.sign_out(), "POST", "/auth/logout", None, {}, None),
-    (lambda c: c.sign_out_everywhere(), "POST", "/auth/logout-all", None, {}, None),
-    (lambda c: c.sessions(), "GET", "/auth/sessions", None, {"sessions": [1]}, [1]),
+    (lambda c: c.json.auth.logout(), "POST", "/auth/logout", None, {}, {}),
+    (lambda c: c.json.auth.logout_all(), "POST", "/auth/logout-all", None, {}, {}),
     (
-        lambda c: c.revoke_session("s/1"),
+        lambda c: c.json.auth.sessions_list()["sessions"],
+        "GET",
+        "/auth/sessions",
+        None,
+        {"sessions": [1]},
+        [1],
+    ),
+    (
+        lambda c: c.json.auth.session_revoke(session="s/1"),
         "DELETE",
         "/auth/sessions/s%2F1",
         None,
         {},
-        None,
+        {},
     ),
     (
-        lambda c: c.activity(after=5),
+        lambda c: c.json.auth.activity_list(after=5)["activity"],
         "GET",
         "/auth/activity?after=5",
         None,
         {"activity": []},
         [],
     ),
-    (lambda c: c.activity(), "GET", "/auth/activity", None, {"activity": [1]}, [1]),
-    (lambda c: c.remove_passkey("cr", PK), "DELETE", "/auth/passkeys/cr", {}, {}, None),
-    (lambda c: c.list_api_keys(), "GET", "/auth/apikeys", None, {"keys": []}, []),
-    (lambda c: c.revoke_api_key("k1", PK), "DELETE", "/auth/apikeys/k1", {}, {}, None),
-    (lambda c: c.usage(), "GET", "/auth/usage", None, {"u": 1}, {"u": 1}),
     (
-        lambda c: c.label_passkey("cr", "phone"),
+        lambda c: c.json.auth.activity_list()["activity"],
+        "GET",
+        "/auth/activity",
+        None,
+        {"activity": [1]},
+        [1],
+    ),
+    (
+        lambda c: c.json.auth.passkey_remove(cred="cr", confirm=PK),
+        "DELETE",
+        "/auth/passkeys/cr",
+        {},
+        {},
+        {},
+    ),
+    (
+        lambda c: c.json.auth.apikey_list()["keys"],
+        "GET",
+        "/auth/apikeys",
+        None,
+        {"keys": []},
+        [],
+    ),
+    (
+        lambda c: c.json.auth.apikey_revoke(key="k1", confirm=PK),
+        "DELETE",
+        "/auth/apikeys/k1",
+        {},
+        {},
+        {},
+    ),
+    (lambda c: c.json.auth.usage(), "GET", "/auth/usage", None, {"u": 1}, {"u": 1}),
+    (
+        lambda c: c.json.auth.passkey_label(cred="cr", label="phone"),
         "POST",
         "/auth/passkeys/cr",
         {"label": "phone"},
         {},
-        None,
+        {},
     ),
     (
-        lambda c: c.set_alias("kv", "app1"),
+        lambda c: c.json.auth.alias_set(alias="kv", app="app1"),
         "PUT",
         "/auth/aliases/kv",
         {"app": "app1"},
         {},
-        None,
+        {},
     ),
     (
-        lambda c: c.alias("kv"),
+        lambda c: c.json.auth.alias_get(alias="kv"),
         "GET",
         "/auth/aliases/kv",
         None,
@@ -232,33 +272,47 @@ CASES = [
         {"alias": "kv", "appId": "a"},
     ),
     (
-        lambda c: c.aliases(),
+        lambda c: c.json.auth.alias_list()["aliases"],
         "GET",
         "/auth/aliases",
         None,
         {"aliases": {"kv": "a"}},
         {"kv": "a"},
     ),
-    (lambda c: c.delete_alias("kv"), "DELETE", "/auth/aliases/kv", None, {}, None),
     (
-        lambda c: c.create_recovery_code(PK),
+        lambda c: c.json.auth.alias_delete(alias="kv"),
+        "DELETE",
+        "/auth/aliases/kv",
+        None,
+        {},
+        {},
+    ),
+    (
+        lambda c: c.json.auth.recovery_create(confirm=PK)["code"],
         "POST",
         "/auth/recovery",
         {},
         {"code": "XXXX"},
         "XXXX",
     ),
-    (lambda c: c.remove_recovery_code(PK), "DELETE", "/auth/recovery", {}, {}, None),
     (
-        lambda c: c.cancel_account_recovery(PK),
+        lambda c: c.json.auth.recovery_remove(confirm=PK),
+        "DELETE",
+        "/auth/recovery",
+        {},
+        {},
+        {},
+    ),
+    (
+        lambda c: c.json.auth.account_recovery_cancel(confirm=PK),
         "POST",
         "/auth/recovery/cancel",
         {},
         {},
-        None,
+        {},
     ),
     (
-        lambda c: c.transfer_app("a1", "acc", PK),
+        lambda c: c.json.apps.transfer(app="a1", to="acc", confirm=PK),
         "POST",
         "/apps/a1/transfer",
         {"to": "acc"},
@@ -266,15 +320,17 @@ CASES = [
         {"ok": 1},
     ),
     (
-        lambda c: c.move_app("a1", "o2", PK),
+        lambda c: c.json.apps.move(app="a1", to_org="o2", confirm=PK),
         "POST",
         "/apps/a1/move",
-        {"toOrg": "o2", "bringMembers": False},
+        {"toOrg": "o2"},
         {},
         {},
     ),
     (
-        lambda c: c.publish_presence("a1", 3, b"\x01\xff"),
+        lambda c: c.json.apps.presence_publish(
+            app="a1", seq=3, state=(b"\x01\xff").hex()
+        ),
         "POST",
         "/apps/a1/presence",
         {"seq": 3, "state": "01ff"},
@@ -282,15 +338,15 @@ CASES = [
         {},
     ),
     (
-        lambda c: c.publish_presence("a1", 4),
+        lambda c: c.json.apps.presence_publish(app="a1", seq=4),
         "POST",
         "/apps/a1/presence",
-        {"seq": 4, "state": None},
+        {"seq": 4},
         {},
         {},
     ),
     (
-        lambda c: c.presence("a1"),
+        lambda c: c.json.apps.presence_get(app="a1"),
         "GET",
         "/apps/a1/presence",
         None,
@@ -298,9 +354,9 @@ CASES = [
         {"present": []},
     ),
     (
-        lambda c: c.create_app_from_package(
-            "n", "com.x", version="1.0.0", options={"org": "o"}
-        ),
+        lambda c: c.json.apps.create(
+            name="n", package="com.x", version="1.0.0", **{"org": "o"}
+        )["appId"],
         "POST",
         "/apps",
         {"name": "n", "package": "com.x", "version": "1.0.0", "org": "o"},
@@ -308,7 +364,7 @@ CASES = [
         "a9",
     ),
     (
-        lambda c: c.create_app("n", "h", {"org": "o"}),
+        lambda c: c.json.apps.create(name="n", bundle="h", **{"org": "o"})["appId"],
         "POST",
         "/apps",
         {"name": "n", "bundle": "h", "org": "o"},
@@ -316,45 +372,47 @@ CASES = [
         "a9",
     ),
     (
-        lambda c: c.call("a1", "set", {"k": 1}, idempotency_key="key"),
+        lambda c: c.json.apps.call(
+            app="a1", method="set", args={"k": 1}, idempotency_key="key"
+        ),
         "POST",
         "/apps/a1/intents",
         {"method": "set", "args": {"k": 1}, "idempotencyKey": "key"},
         {"index": 7, "result": 1, "extra": 0},
-        {"index": 7, "result": 1, "events": [], "receipt": None},
+        {"index": 7, "result": 1, "extra": 0},
     ),
     (
-        lambda c: c.call_confirmed("a1", "pay", None, PK),
+        lambda c: c.json.apps.call(app="a1", method="pay", args=None, confirm=PK),
         "POST",
         "/apps/a1/intents",
-        {"method": "pay", "args": {}},
+        {"method": "pay", "args": None},
         {"index": 1, "result": None, "events": [{"kind": "k", "data": 1}]},
-        {
-            "index": 1,
-            "result": None,
-            "events": [{"kind": "k", "data": 1}],
-            "receipt": None,
-        },
+        {"index": 1, "result": None, "events": [{"kind": "k", "data": 1}]},
     ),
     (
-        lambda c: c.view("a1", "get", stale=True, min_index=4),
+        lambda c: c.json.apps.view(
+            app="a1",
+            method="get",
+            consistency="stale",
+            min_index=4,
+        ),
         "POST",
         "/apps/a1/views",
-        {"method": "get", "args": {}, "consistency": "stale", "minIndex": 4},
+        {"method": "get", "consistency": "stale", "minIndex": 4},
         {"index": 4, "result": "v"},
-        {"index": 4, "result": "v", "receipt": None},
+        {"index": 4, "result": "v"},
     ),
     (
-        lambda c: c.view("a1", "get"),
+        lambda c: c.json.apps.view(app="a1", method="get"),
         "POST",
         "/apps/a1/views",
-        {"method": "get", "args": {}, "consistency": "strong"},
+        {"method": "get"},
         {"index": 4, "result": "v"},
-        {"index": 4, "result": "v", "receipt": None},
+        {"index": 4, "result": "v"},
     ),
-    (lambda c: c.list_apps(), "GET", "/apps", None, {"apps": [1]}, [1]),
+    (lambda c: c.json.apps.list()["apps"], "GET", "/apps", None, {"apps": [1]}, [1]),
     (
-        lambda c: c.get_app("a1"),
+        lambda c: c.json.apps.get(app="a1"),
         "GET",
         "/apps/a1",
         None,
@@ -362,47 +420,48 @@ CASES = [
         {"appId": "a1"},
     ),
     (
-        lambda c: c.set_access("a1", {"kind": "public"}),
+        lambda c: c.json.apps.access(app="a1", access={"kind": "public"}),
         "POST",
         "/apps/a1/access",
         {"access": {"kind": "public"}},
         {},
-        None,
+        {},
     ),
     (
-        lambda c: c.upgrade_app("a1", version="2.0.0"),
+        lambda c: c.json.apps.upgrade(app="a1", version="2.0.0"),
         "POST",
         "/apps/a1/upgrade",
-        {
-            "bundle": None,
-            "version": "2.0.0",
-            "migrate": None,
-            "package": None,
-            "service": None,
-        },
+        {"version": "2.0.0"},
         {"index": 1},
         {"index": 1},
     ),
-    (lambda c: c.delete_app("a1"), "DELETE", "/apps/a1", None, {}, None),
+    (lambda c: c.json.apps.delete(app="a1"), "DELETE", "/apps/a1", None, {}, {}),
     (
-        lambda c: c.app_storage("a1"),
+        lambda c: c.json.apps.storage(app="a1"),
         "GET",
         "/apps/a1/storage",
         None,
         {"keys": 1},
         {"keys": 1},
     ),
-    (lambda c: c.app_abi("a1"), "GET", "/apps/a1/abi", None, {"abi": {}}, {"abi": {}}),
     (
-        lambda c: c.set_app_metadata("a1", None),
+        lambda c: c.json.apps.abi(app="a1"),
+        "GET",
+        "/apps/a1/abi",
+        None,
+        {"abi": {}},
+        {"abi": {}},
+    ),
+    (
+        lambda c: c.json.apps.metadata(app="a1", metadata=None),
         "POST",
         "/apps/a1/metadata",
         {"metadata": None},
         {},
-        None,
+        {},
     ),
     (
-        lambda c: c.list_blobs("a1"),
+        lambda c: c.json.apps.blob_list(app="a1"),
         "GET",
         "/apps/a1/blobs",
         None,
@@ -410,7 +469,7 @@ CASES = [
         {"blobs": []},
     ),
     (
-        lambda c: c.blob_info("a1", "b1"),
+        lambda c: c.json.apps.blob_info(app="a1", id="b1"),
         "GET",
         "/apps/a1/blobs/b1/info",
         None,
@@ -418,7 +477,7 @@ CASES = [
         {"id": "b1"},
     ),
     (
-        lambda c: c.delete_blob("a1", "b1"),
+        lambda c: c.json.apps.blob_delete(app="a1", id="b1"),
         "DELETE",
         "/apps/a1/blobs/b1",
         None,
@@ -426,7 +485,7 @@ CASES = [
         {"deleted": True},
     ),
     (
-        lambda c: c.create_org("Acme", recovery_key="pk"),
+        lambda c: c.json.orgs.create(name="Acme", recovery_key="pk")["orgId"],
         "POST",
         "/orgs",
         {"name": "Acme", "recoveryKey": "pk"},
@@ -434,7 +493,7 @@ CASES = [
         "o1",
     ),
     (
-        lambda c: c.get_org("o1"),
+        lambda c: c.json.orgs.get(org="o1"),
         "GET",
         "/orgs/o1",
         None,
@@ -442,7 +501,7 @@ CASES = [
         {"orgId": "o1"},
     ),
     (
-        lambda c: c.org_members_security("o1"),
+        lambda c: c.json.orgs.members(org="o1", detail="security")["members"],
         "GET",
         "/orgs/o1/members?detail=security",
         None,
@@ -450,39 +509,43 @@ CASES = [
         [],
     ),
     (
-        lambda c: c.set_member("o1", "acc", "admin", PK),
+        lambda c: c.json.orgs.set_member(
+            org="o1", account="acc", role="admin", confirm=PK
+        ),
         "POST",
         "/orgs/o1/members",
         {"account": "acc", "role": "admin"},
         {},
-        None,
+        {},
     ),
     (
-        lambda c: c.remove_member("o1", "acc", PK),
+        lambda c: c.json.orgs.remove_member(org="o1", account="acc", confirm=PK),
         "DELETE",
         "/orgs/o1/members/acc",
         {},
         {},
-        None,
+        {},
     ),
     (
-        lambda c: c.set_capabilities("o1", 3, PK),
+        lambda c: c.json.orgs.capabilities(org="o1", capabilities=3, confirm=PK),
         "POST",
         "/orgs/o1/capabilities",
-        {"capabilities": 3, "account": None, "team": None},
+        {"capabilities": 3},
         {},
-        None,
+        {},
     ),
     (
-        lambda c: c.create_team("o1", "eng"),
+        lambda c: c.json.orgs.team_create(org="o1", name="eng", join="invite")[
+            "teamId"
+        ],
         "POST",
         "/orgs/o1/teams",
-        {"name": "eng", "join": "invite", "parent": None},
+        {"name": "eng", "join": "invite"},
         {"teamId": "t1"},
         "t1",
     ),
     (
-        lambda c: c.list_app_teams("o1"),
+        lambda c: c.json.orgs.app_team_list(org="o1"),
         "GET",
         "/orgs/o1/app-teams",
         None,
@@ -490,7 +553,7 @@ CASES = [
         {"mode": "shared"},
     ),
     (
-        lambda c: c.scope_apps("o1", PK, shared=True),
+        lambda c: c.json.orgs.app_teams_scope(org="o1", confirm=PK, shared=True),
         "POST",
         "/orgs/o1/app-teams",
         {"shared": True},
@@ -498,7 +561,7 @@ CASES = [
         {"mode": "shared"},
     ),
     (
-        lambda c: c.get_team("o1", "t1"),
+        lambda c: c.json.orgs.team_get(org="o1", team="t1"),
         "GET",
         "/orgs/o1/teams/t1",
         None,
@@ -506,99 +569,127 @@ CASES = [
         {"teamId": "t1"},
     ),
     (
-        lambda c: c.update_team("o1", "t1", name="x", to_top=True),
+        lambda c: c.json.orgs.team_update(org="o1", team="t1", name="x", parent=None),
         "POST",
         "/orgs/o1/teams/t1",
         {"name": "x", "parent": None},
         {},
-        None,
+        {},
     ),
-    (lambda c: c.delete_team("o1", "t1"), "DELETE", "/orgs/o1/teams/t1", {}, {}, None),
     (
-        lambda c: c.set_team_member("o1", "t1", "acc", PK, role="readOnly"),
+        lambda c: c.json.orgs.team_delete(org="o1", team="t1"),
+        "DELETE",
+        "/orgs/o1/teams/t1",
+        {},
+        {},
+        {},
+    ),
+    (
+        lambda c: c.json.orgs.team_set_member(
+            org="o1", team="t1", account="acc", confirm=PK, role="readOnly"
+        ),
         "POST",
         "/orgs/o1/teams/t1/members",
-        {"account": "acc", "role": "readOnly", "capabilities": None},
+        {"account": "acc", "role": "readOnly"},
         {},
-        None,
+        {},
     ),
     (
-        lambda c: c.remove_team_member("o1", "t1", "acc", PK),
+        lambda c: c.json.orgs.team_remove_member(
+            org="o1", team="t1", account="acc", confirm=PK
+        ),
         "DELETE",
         "/orgs/o1/teams/t1/members/acc",
         {},
         {},
-        None,
+        {},
     ),
     (
-        lambda c: c.set_team_members(
-            "o1", "acc", ["t1", {"team": "t2", "role": "lead"}], PK
+        lambda c: c.json.orgs.member_set_teams(
+            org="o1",
+            account="acc",
+            teams=[
+                t if isinstance(t, dict) else {"team": t}
+                for t in ["t1", {"team": "t2", "role": "lead"}]
+            ],
+            confirm=PK,
         ),
         "POST",
         "/orgs/o1/members/acc/teams",
         {"teams": [{"team": "t1"}, {"team": "t2", "role": "lead"}]},
         {},
-        None,
+        {},
     ),
     (
-        lambda c: c.remove_team_members("o1", "acc", ["t1"], PK),
+        lambda c: c.json.orgs.member_remove_teams(
+            org="o1", account="acc", teams=["t1"], confirm=PK
+        ),
         "DELETE",
         "/orgs/o1/members/acc/teams",
         {"teams": ["t1"]},
         {},
-        None,
+        {},
     ),
     (
-        lambda c: c.invite("o1", "member", PK),
+        lambda c: c.json.orgs.invite_create(org="o1", role="member", confirm=PK)[
+            "token"
+        ],
         "POST",
         "/orgs/o1/invites",
-        {"role": "member", "teams": [], "ttlSecs": None, "uses": None},
+        {"role": "member"},
         {"token": "tok"},
         "tok",
     ),
     (
-        lambda c: c.redeem_invite("tok"),
+        lambda c: c.json.orgs.invite_redeem(token="tok"),
         "POST",
         "/invites/tok/redeem",
         None,
         {"orgId": "o1"},
         {"orgId": "o1"},
     ),
-    (lambda c: c.delete_org("o1", PK), "DELETE", "/orgs/o1", {}, {}, None),
     (
-        lambda c: c.set_org_metadata("o1", {"a": 1}),
+        lambda c: c.json.orgs.delete(org="o1", confirm=PK),
+        "DELETE",
+        "/orgs/o1",
+        {},
+        {},
+        {},
+    ),
+    (
+        lambda c: c.json.orgs.metadata(org="o1", metadata={"a": 1}),
         "POST",
         "/orgs/o1/metadata",
         {"metadata": {"a": 1}},
         {},
-        None,
+        {},
     ),
     (
-        lambda c: c.set_member_metadata("o1", "acc", None),
+        lambda c: c.json.orgs.member_metadata(org="o1", account="acc", metadata=None),
         "POST",
         "/orgs/o1/members/acc/metadata",
         {"metadata": None},
         {},
-        None,
+        {},
     ),
     (
-        lambda c: c.set_recovery_key("o1", None, PK),
+        lambda c: c.json.orgs.recovery_set(org="o1", public_key=None, confirm=PK),
         "POST",
         "/orgs/o1/recovery",
         {"publicKey": None},
         {},
-        None,
+        {},
     ),
     (
-        lambda c: c.cancel_recovery("o1", PK),
+        lambda c: c.json.orgs.recovery_cancel(org="o1", confirm=PK),
         "POST",
         "/orgs/o1/recovery/cancel",
         {},
         {},
-        None,
+        {},
     ),
     (
-        lambda c: c.finish_recovery("o1", PK),
+        lambda c: c.json.orgs.recovery_finish(org="o1", confirm=PK),
         "POST",
         "/orgs/o1/recovery/finish",
         {},
@@ -606,7 +697,7 @@ CASES = [
         {"org": "o1"},
     ),
     (
-        lambda c: c.approve_release("1.0.0", PK),
+        lambda c: c.json.auth.account_release_approval(version="1.0.0", confirm=PK),
         "POST",
         "/auth/releases",
         {"version": "1.0.0"},
@@ -614,7 +705,7 @@ CASES = [
         {},
     ),
     (
-        lambda c: c.approve_release("1.0.0", PK, org="o1"),
+        lambda c: c.json.orgs.release_approval(version="1.0.0", confirm=PK, org="o1"),
         "POST",
         "/orgs/o1/releases",
         {"version": "1.0.0"},
@@ -622,15 +713,19 @@ CASES = [
         {},
     ),
     (
-        lambda c: c.approve_outbound("com.x", PK),
+        lambda c: c.json.auth.account_outbound_approval(
+            package="com.x", confirm=PK, prefixes="manifest"
+        ),
         "POST",
         "/auth/outbound",
-        {"package": "com.x", "prefixes": "manifest", "replace": False},
+        {"package": "com.x", "prefixes": "manifest"},
         {},
         {},
     ),
     (
-        lambda c: c.approve_outbound("com.x", PK, org="o1", prefixes=[], replace=True),
+        lambda c: c.json.orgs.outbound_approval(
+            package="com.x", confirm=PK, org="o1", prefixes=[], replace=True
+        ),
         "POST",
         "/orgs/o1/outbound",
         {"package": "com.x", "prefixes": [], "replace": True},
@@ -638,21 +733,17 @@ CASES = [
         {},
     ),
     (
-        lambda c: c.upgrade_org("o1", "com.x", "2", PK),
+        lambda c: c.json.orgs.upgrade(
+            org="o1", package="com.x", version="2", confirm=PK
+        ),
         "POST",
         "/orgs/o1/upgrade",
-        {
-            "package": "com.x",
-            "version": "2",
-            "team": None,
-            "cascade": False,
-            "migrate": None,
-        },
+        {"package": "com.x", "version": "2"},
         {"runId": "r"},
         {"runId": "r"},
     ),
     (
-        lambda c: c.upgrade_run("o1", "r"),
+        lambda c: c.json.orgs.upgrade_status(org="o1", run="r"),
         "GET",
         "/orgs/o1/upgrades/r",
         None,
@@ -660,7 +751,7 @@ CASES = [
         {"runId": "r"},
     ),
     (
-        lambda c: c.retry_upgrade_run("o1", "r", PK),
+        lambda c: c.json.orgs.upgrade_retry(org="o1", run="r", confirm=PK),
         "POST",
         "/orgs/o1/upgrades/r/retry",
         {},
@@ -668,7 +759,7 @@ CASES = [
         {"runId": "r2"},
     ),
     (
-        lambda c: c.install_package("com.x", "1"),
+        lambda c: c.json.packages.install(package="com.x", version="1"),
         "POST",
         "/packages/install",
         {"package": "com.x", "version": "1"},
@@ -676,16 +767,23 @@ CASES = [
         {},
     ),
     (
-        lambda c: c.package("com.x"),
+        lambda c: c.json.packages.get(package="com.x"),
         "GET",
         "/packages/com.x",
         None,
         {"name": "com.x"},
         {"name": "com.x"},
     ),
-    (lambda c: c.uninstall_package("com.x"), "DELETE", "/packages/com.x", None, {}, {}),
     (
-        lambda c: c.uninstall_package("com.x", "1"),
+        lambda c: c.json.packages.uninstall(package="com.x"),
+        "DELETE",
+        "/packages/com.x",
+        None,
+        {},
+        {},
+    ),
+    (
+        lambda c: c.json.packages.version_uninstall(package="com.x", version="1"),
         "DELETE",
         "/packages/com.x/1",
         None,
@@ -693,7 +791,7 @@ CASES = [
         {},
     ),
     (
-        lambda c: c.list_package_origins("com.x"),
+        lambda c: c.json.packages.origins_list(package="com.x"),
         "GET",
         "/package-origins/com.x",
         None,
@@ -701,7 +799,9 @@ CASES = [
         {"origins": []},
     ),
     (
-        lambda c: c.add_package_origin("com.x", "https://a.example", PK),
+        lambda c: c.json.packages.origins_add(
+            package="com.x", origin="https://a.example", confirm=PK
+        ),
         "POST",
         "/package-origins/com.x",
         {"origin": "https://a.example"},
@@ -709,8 +809,12 @@ CASES = [
         {},
     ),
     (
-        lambda c: c.add_package_origin(
-            "com.x", "https://a.example", PK, rp_id="example", served=True
+        lambda c: c.json.packages.origins_add(
+            package="com.x",
+            origin="https://a.example",
+            confirm=PK,
+            rp_id="example",
+            served=True,
         ),
         "POST",
         "/package-origins/com.x",
@@ -719,24 +823,33 @@ CASES = [
         {},
     ),
     (
-        lambda c: c.remove_package_origin("com.x", "https://a.example", PK),
+        lambda c: c.json.packages.origins_remove(
+            package="com.x", origin="https://a.example", confirm=PK
+        ),
         "DELETE",
         "/package-origins/com.x",
         {"origin": "https://a.example"},
         {"removed": True},
         {"removed": True},
     ),
-    (lambda c: c.ops_status(), "GET", "/ops/status", None, {"node": 1}, {"node": 1}),
     (
-        lambda c: c.ops_register_node(4, "https://n4/", zone="z"),
+        lambda c: c.json.ops.status(),
+        "GET",
+        "/ops/status",
+        None,
+        {"node": 1},
+        {"node": 1},
+    ),
+    (
+        lambda c: c.json.ops.register_node(id=4, addr="https://n4/", zone="z"),
         "POST",
         "/ops/nodes",
         {"id": 4, "addr": "https://n4/", "zone": "z"},
         {},
-        None,
+        {},
     ),
     (
-        lambda c: c.ops_remove_node(4),
+        lambda c: c.json.ops.remove_node(id=4),
         "DELETE",
         "/ops/nodes/4",
         {},
@@ -744,17 +857,31 @@ CASES = [
         {"status": "s"},
     ),
     (
-        lambda c: c.ops_set_replicas("a1", [1, 2, 4]),
+        lambda c: c.json.ops.set_replicas(app="a1", replicas=[1, 2, 4]),
         "POST",
         "/ops/apps/a1/replicas",
         {"replicas": [1, 2, 4]},
         {"status": "s"},
         {"status": "s"},
     ),
-    (lambda c: c.ops_backup(), "POST", "/ops/backup", None, {"written": 3}, 3),
-    (lambda c: c.ops_quotas(), "GET", "/ops/quotas", None, {"apps": 1}, {"apps": 1}),
     (
-        lambda c: c.ops_set_quotas({"apps": 2}),
+        lambda c: c.json.ops.backup()["written"],
+        "POST",
+        "/ops/backup",
+        None,
+        {"written": 3},
+        3,
+    ),
+    (
+        lambda c: c.json.ops.quotas_get(),
+        "GET",
+        "/ops/quotas",
+        None,
+        {"apps": 1},
+        {"apps": 1},
+    ),
+    (
+        lambda c: c.json.ops.quotas_set(**{"apps": 2}),
         "POST",
         "/ops/quotas",
         {"apps": 2},
@@ -762,7 +889,7 @@ CASES = [
         {},
     ),
     (
-        lambda c: c.ops_approve_release("1.0.0", withdraw=True),
+        lambda c: c.json.ops.release(version="1.0.0", approved=not (True)),
         "POST",
         "/ops/releases",
         {"version": "1.0.0", "approved": False},
@@ -770,43 +897,31 @@ CASES = [
         {},
     ),
     (
-        lambda c: c.ops_approve_outbound("com.x"),
+        lambda c: c.json.ops.outbound(package="com.x", prefixes="manifest"),
         "POST",
         "/ops/outbound",
-        {"package": "com.x", "prefixes": "manifest", "replace": False},
+        {"package": "com.x", "prefixes": "manifest"},
         {},
         {},
     ),
     (
-        lambda c: c.ops_upgrade_app("a1", version="2"),
+        lambda c: c.json.ops.upgrade(app="a1", version="2"),
         "POST",
         "/ops/apps/a1/upgrade",
-        {
-            "bundle": None,
-            "version": "2",
-            "package": None,
-            "service": None,
-            "migrate": None,
-        },
+        {"version": "2"},
         {},
         {},
     ),
     (
-        lambda c: c.ops_upgrade_org("o1", "com.x", "2"),
+        lambda c: c.json.ops.org_upgrade(org="o1", package="com.x", version="2"),
         "POST",
         "/ops/orgs/o1/upgrade",
-        {
-            "package": "com.x",
-            "version": "2",
-            "team": None,
-            "cascade": False,
-            "migrate": None,
-        },
+        {"package": "com.x", "version": "2"},
         {},
         {},
     ),
     (
-        lambda c: c.ops_served_origins(),
+        lambda c: c.json.ops.served(),
         "GET",
         "/ops/served-origins",
         None,
@@ -814,7 +929,7 @@ CASES = [
         {"origins": []},
     ),
     (
-        lambda c: c.ops_packages(),
+        lambda c: c.json.ops.package_list(),
         "GET",
         "/ops/packages",
         None,
@@ -822,7 +937,7 @@ CASES = [
         {"packages": []},
     ),
     (
-        lambda c: c.ops_install_package("com.x", "1"),
+        lambda c: c.json.ops.package_install(package="com.x", version="1"),
         "POST",
         "/ops/packages/install",
         {"package": "com.x", "version": "1"},
@@ -830,7 +945,7 @@ CASES = [
         {},
     ),
     (
-        lambda c: c.ops_uninstall_package("com.x", "1"),
+        lambda c: c.json.ops.package_version_uninstall(package="com.x", version="1"),
         "DELETE",
         "/ops/packages/com.x/1",
         None,
@@ -841,11 +956,10 @@ CASES = [
 
 
 @pytest.mark.parametrize("case", CASES, ids=[str(i) for i in range(len(CASES))])
-def test_a_deprecated_method_sends_what_it_sent(case):
+def test_a_facade_call_sends_what_the_route_takes(case):
     call, method, path, body, reply, returns = case
     native = Native(answer(200, reply))
-    with pytest.warns(DeprecationWarning):
-        got = call(client_on(native))
+    got = call(client_on(native))
     (sent,) = native.sent
     assert (sent["method"], sent["path"], sent["body"]) == (method, path, body)
     assert got == returns
@@ -859,26 +973,13 @@ def test_the_byte_routes():
         answer(200, {"name": "p"}),
     )
     client = client_on(native)
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", DeprecationWarning)
-        assert client.upload_bundle(b"\0asm") == "h"
-        assert client.download_blob("a1", "b1") == b"\x00\x01"
-        assert client.ops_metrics() == "metric 1\n"
-        assert client.upload_package(b"mpk") == {"name": "p"}
+    assert client.json.packages.bundle_put(body=b"\0asm")["hash"] == "h"
+    assert client.json.apps.blob_download(app="a1", id="b1") == b"\x00\x01"
+    assert client.json.ops.metrics() == "metric 1\n"
+    assert client.json.packages.upload(body=b"mpk") == {"name": "p"}
     assert native.sent[0]["headers"]["content-type"] == "application/wasm"
     assert native.sent[0]["raw"] == b"\0asm"
     assert native.sent[3]["path"] == "/packages"
-
-
-def test_every_deprecated_method_names_a_facade_method():
-    client = client_on(Native())
-    for name in dir(Client):
-        replacement = getattr(getattr(Client, name), "__deprecated__", None)
-        if replacement is None:
-            continue
-        for r in replacement.split("/"):
-            group, method = r.strip().split(".")
-            assert callable(getattr(getattr(client, group), method)), (name, r)
 
 
 def test_the_typed_answer_is_the_generated_model():

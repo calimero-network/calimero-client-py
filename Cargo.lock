@@ -480,7 +480,7 @@ dependencies = [
 
 [[package]]
 name = "calimero-client-py"
-version = "1.0.0-rc.2"
+version = "2.0.0"
 dependencies = [
  "calimero-client",
  "calimero-identity",
