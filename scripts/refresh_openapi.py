@@ -8,8 +8,8 @@ byte for byte, from one core commit and records which in
 openapi/source.json; `scripts/generate_openapi_client.py` then regenerates
 the client from it.
 
-    python scripts/refresh_openapi.py                       # core's docs/openapi
-    python scripts/refresh_openapi.py --ref master
+    python scripts/refresh_openapi.py                       # core's master
+    python scripts/refresh_openapi.py --ref v1.0.0          # a tag, branch or sha
     python scripts/refresh_openapi.py --core ../core        # a local checkout
 
 With `--core`, the ref is fetched into that checkout from `origin` and read
@@ -30,9 +30,7 @@ DOCUMENT = ROOT / "openapi" / "openapi.json"
 SOURCE = ROOT / "openapi" / "source.json"
 REPOSITORY = "calimero-network/core"
 PATH = "docs/public/openapi.json"
-# Core's OpenAPI document lives on this branch until core #4937 merges; then
-# pass `--ref master`.
-DEFAULT_REF = "docs/openapi"
+DEFAULT_REF = "master"
 
 
 def from_checkout(core: Path, ref: str):

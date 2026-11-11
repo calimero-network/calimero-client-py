@@ -6,26 +6,86 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
+from ..models.ops_sign_up_invite_list_response_200_run_by import (
+    OpsSignUpInviteListResponse200RunBy,
+)
+from typing import cast
+
+if TYPE_CHECKING:
+    from ..models.sign_up_invite import SignUpInvite
+    from ..models.ops_sign_up_invite_list_response_200_sign_up import (
+        OpsSignUpInviteListResponse200SignUp,
+    )
+
+
 T = TypeVar("T", bound="OpsSignUpInviteListResponse200")
 
 
 @_attrs_define
 class OpsSignUpInviteListResponse200:
-    """ """
+    """
+    Attributes:
+        sign_up (OpsSignUpInviteListResponse200SignUp):
+        run_by (OpsSignUpInviteListResponse200RunBy):
+        invites (list['SignUpInvite']):
+    """
 
+    sign_up: "OpsSignUpInviteListResponse200SignUp"
+    run_by: OpsSignUpInviteListResponse200RunBy
+    invites: list["SignUpInvite"]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.sign_up_invite import SignUpInvite
+        from ..models.ops_sign_up_invite_list_response_200_sign_up import (
+            OpsSignUpInviteListResponse200SignUp,
+        )
+
+        sign_up = self.sign_up.to_dict()
+
+        run_by = self.run_by.value
+
+        invites = []
+        for invites_item_data in self.invites:
+            invites_item = invites_item_data.to_dict()
+            invites.append(invites_item)
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
+        field_dict.update(
+            {
+                "signUp": sign_up,
+                "runBy": run_by,
+                "invites": invites,
+            }
+        )
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.sign_up_invite import SignUpInvite
+        from ..models.ops_sign_up_invite_list_response_200_sign_up import (
+            OpsSignUpInviteListResponse200SignUp,
+        )
+
         d = dict(src_dict)
-        ops_sign_up_invite_list_response_200 = cls()
+        sign_up = OpsSignUpInviteListResponse200SignUp.from_dict(d.pop("signUp"))
+
+        run_by = OpsSignUpInviteListResponse200RunBy(d.pop("runBy"))
+
+        invites = []
+        _invites = d.pop("invites")
+        for invites_item_data in _invites:
+            invites_item = SignUpInvite.from_dict(invites_item_data)
+
+            invites.append(invites_item)
+
+        ops_sign_up_invite_list_response_200 = cls(
+            sign_up=sign_up,
+            run_by=run_by,
+            invites=invites,
+        )
 
         ops_sign_up_invite_list_response_200.additional_properties = d
         return ops_sign_up_invite_list_response_200

@@ -11,6 +11,7 @@ from typing import cast, Union
 
 if TYPE_CHECKING:
     from ..models.ops_orgs_response_200_orgs_item import OpsOrgsResponse200OrgsItem
+    from ..models.governance import Governance
 
 
 T = TypeVar("T", bound="OpsOrgsResponse200")
@@ -21,23 +22,26 @@ class OpsOrgsResponse200:
     """
     Attributes:
         fresh (bool):
-        governance (Any):
+        governance (Governance): Who decides what on this cluster: release approvals, app upgrades and outbound
+            approvals (`owner`: each app's owner; `operator`: the operator), and, left out at their defaults, `deployments`
+            (`open`), `deployers` (`operator`) and `signUp` (`open`).
         orgs (list['OpsOrgsResponse200OrgsItem']):
         next_ (Union[None, str]):
     """
 
     fresh: bool
-    governance: Any
+    governance: "Governance"
     orgs: list["OpsOrgsResponse200OrgsItem"]
     next_: Union[None, str]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         from ..models.ops_orgs_response_200_orgs_item import OpsOrgsResponse200OrgsItem
+        from ..models.governance import Governance
 
         fresh = self.fresh
 
-        governance = self.governance
+        governance = self.governance.to_dict()
 
         orgs = []
         for orgs_item_data in self.orgs:
@@ -63,11 +67,12 @@ class OpsOrgsResponse200:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.ops_orgs_response_200_orgs_item import OpsOrgsResponse200OrgsItem
+        from ..models.governance import Governance
 
         d = dict(src_dict)
         fresh = d.pop("fresh")
 
-        governance = d.pop("governance")
+        governance = Governance.from_dict(d.pop("governance"))
 
         orgs = []
         _orgs = d.pop("orgs")

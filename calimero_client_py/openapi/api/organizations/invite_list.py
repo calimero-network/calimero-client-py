@@ -78,7 +78,8 @@ def sync_detailed(
 ) -> Response[Union[Error, InviteListResponse200]]:
     """The organization's invites
 
-     Their keys and terms, never a token.
+     Their keys and terms, never a token: `expiresAt` Unix seconds; `createdBy` and `createdAt` are
+    `null` on an invite from before they were kept.
 
     **Who:** a passkey session (an API key is refused).
 
@@ -111,7 +112,8 @@ def sync(
 ) -> Optional[Union[Error, InviteListResponse200]]:
     """The organization's invites
 
-     Their keys and terms, never a token.
+     Their keys and terms, never a token: `expiresAt` Unix seconds; `createdBy` and `createdAt` are
+    `null` on an invite from before they were kept.
 
     **Who:** a passkey session (an API key is refused).
 
@@ -139,7 +141,8 @@ async def asyncio_detailed(
 ) -> Response[Union[Error, InviteListResponse200]]:
     """The organization's invites
 
-     Their keys and terms, never a token.
+     Their keys and terms, never a token: `expiresAt` Unix seconds; `createdBy` and `createdAt` are
+    `null` on an invite from before they were kept.
 
     **Who:** a passkey session (an API key is refused).
 
@@ -170,7 +173,8 @@ async def asyncio(
 ) -> Optional[Union[Error, InviteListResponse200]]:
     """The organization's invites
 
-     Their keys and terms, never a token.
+     Their keys and terms, never a token: `expiresAt` Unix seconds; `createdBy` and `createdAt` are
+    `null` on an invite from before they were kept.
 
     **Who:** a passkey session (an API key is refused).
 

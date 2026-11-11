@@ -7,6 +7,16 @@ from attrs import field as _attrs_field
 from ..types import UNSET, Unset
 
 from typing import cast
+from typing import cast, Union
+
+if TYPE_CHECKING:
+    from ..models.app_attestation_response_200_replicas_item_type_1 import (
+        AppAttestationResponse200ReplicasItemType1,
+    )
+    from ..models.app_attestation_response_200_replicas_item_type_0 import (
+        AppAttestationResponse200ReplicasItemType0,
+    )
+
 
 T = TypeVar("T", bound="AppAttestationResponse200")
 
@@ -16,17 +26,40 @@ class AppAttestationResponse200:
     """
     Attributes:
         app_id (str):
-        replicas (list[Any]):
+        replicas (list[Union['AppAttestationResponse200ReplicasItemType0',
+            'AppAttestationResponse200ReplicasItemType1']]):
     """
 
     app_id: str
-    replicas: list[Any]
+    replicas: list[
+        Union[
+            "AppAttestationResponse200ReplicasItemType0",
+            "AppAttestationResponse200ReplicasItemType1",
+        ]
+    ]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.app_attestation_response_200_replicas_item_type_1 import (
+            AppAttestationResponse200ReplicasItemType1,
+        )
+        from ..models.app_attestation_response_200_replicas_item_type_0 import (
+            AppAttestationResponse200ReplicasItemType0,
+        )
+
         app_id = self.app_id
 
-        replicas = self.replicas
+        replicas = []
+        for replicas_item_data in self.replicas:
+            replicas_item: dict[str, Any]
+            if isinstance(
+                replicas_item_data, AppAttestationResponse200ReplicasItemType0
+            ):
+                replicas_item = replicas_item_data.to_dict()
+            else:
+                replicas_item = replicas_item_data.to_dict()
+
+            replicas.append(replicas_item)
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -41,10 +74,47 @@ class AppAttestationResponse200:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.app_attestation_response_200_replicas_item_type_1 import (
+            AppAttestationResponse200ReplicasItemType1,
+        )
+        from ..models.app_attestation_response_200_replicas_item_type_0 import (
+            AppAttestationResponse200ReplicasItemType0,
+        )
+
         d = dict(src_dict)
         app_id = d.pop("appId")
 
-        replicas = cast(list[Any], d.pop("replicas"))
+        replicas = []
+        _replicas = d.pop("replicas")
+        for replicas_item_data in _replicas:
+
+            def _parse_replicas_item(
+                data: object,
+            ) -> Union[
+                "AppAttestationResponse200ReplicasItemType0",
+                "AppAttestationResponse200ReplicasItemType1",
+            ]:
+                try:
+                    if not isinstance(data, dict):
+                        raise TypeError()
+                    replicas_item_type_0 = (
+                        AppAttestationResponse200ReplicasItemType0.from_dict(data)
+                    )
+
+                    return replicas_item_type_0
+                except:  # noqa: E722
+                    pass
+                if not isinstance(data, dict):
+                    raise TypeError()
+                replicas_item_type_1 = (
+                    AppAttestationResponse200ReplicasItemType1.from_dict(data)
+                )
+
+                return replicas_item_type_1
+
+            replicas_item = _parse_replicas_item(replicas_item_data)
+
+            replicas.append(replicas_item)
 
         app_attestation_response_200 = cls(
             app_id=app_id,

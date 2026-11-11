@@ -6,6 +6,9 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
+from typing import cast
+from typing import cast, Union
+
 T = TypeVar("T", bound="OpsOrgsResponse200OrgsItem")
 
 
@@ -14,17 +17,22 @@ class OpsOrgsResponse200OrgsItem:
     """
     Attributes:
         org (str):
-        approved_releases (Any):
+        approved_releases (Union[None, list[str]]):
     """
 
     org: str
-    approved_releases: Any
+    approved_releases: Union[None, list[str]]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         org = self.org
 
-        approved_releases = self.approved_releases
+        approved_releases: Union[None, list[str]]
+        if isinstance(self.approved_releases, list):
+            approved_releases = self.approved_releases
+
+        else:
+            approved_releases = self.approved_releases
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -42,7 +50,20 @@ class OpsOrgsResponse200OrgsItem:
         d = dict(src_dict)
         org = d.pop("org")
 
-        approved_releases = d.pop("approvedReleases")
+        def _parse_approved_releases(data: object) -> Union[None, list[str]]:
+            if data is None:
+                return data
+            try:
+                if not isinstance(data, list):
+                    raise TypeError()
+                approved_releases_type_0 = cast(list[str], data)
+
+                return approved_releases_type_0
+            except:  # noqa: E722
+                pass
+            return cast(Union[None, list[str]], data)
+
+        approved_releases = _parse_approved_releases(d.pop("approvedReleases"))
 
         ops_orgs_response_200_orgs_item = cls(
             org=org,

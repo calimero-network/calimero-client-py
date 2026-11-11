@@ -9,9 +9,7 @@ from ..types import UNSET, Unset
 from typing import cast
 
 if TYPE_CHECKING:
-    from ..models.org_outbound_approvals_additional_property import (
-        OrgOutboundApprovalsAdditionalProperty,
-    )
+    from ..models.outbound_approval import OutboundApproval
 
 
 T = TypeVar("T", bound="OrgOutboundApprovals")
@@ -21,14 +19,12 @@ T = TypeVar("T", bound="OrgOutboundApprovals")
 class OrgOutboundApprovals:
     """ """
 
-    additional_properties: dict[str, "OrgOutboundApprovalsAdditionalProperty"] = (
-        _attrs_field(init=False, factory=dict)
+    additional_properties: dict[str, "OutboundApproval"] = _attrs_field(
+        init=False, factory=dict
     )
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.org_outbound_approvals_additional_property import (
-            OrgOutboundApprovalsAdditionalProperty,
-        )
+        from ..models.outbound_approval import OutboundApproval
 
         field_dict: dict[str, Any] = {}
         for prop_name, prop in self.additional_properties.items():
@@ -38,18 +34,14 @@ class OrgOutboundApprovals:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.org_outbound_approvals_additional_property import (
-            OrgOutboundApprovalsAdditionalProperty,
-        )
+        from ..models.outbound_approval import OutboundApproval
 
         d = dict(src_dict)
         org_outbound_approvals = cls()
 
         additional_properties = {}
         for prop_name, prop_dict in d.items():
-            additional_property = OrgOutboundApprovalsAdditionalProperty.from_dict(
-                prop_dict
-            )
+            additional_property = OutboundApproval.from_dict(prop_dict)
 
             additional_properties[prop_name] = additional_property
 
@@ -60,12 +52,10 @@ class OrgOutboundApprovals:
     def additional_keys(self) -> list[str]:
         return list(self.additional_properties.keys())
 
-    def __getitem__(self, key: str) -> "OrgOutboundApprovalsAdditionalProperty":
+    def __getitem__(self, key: str) -> "OutboundApproval":
         return self.additional_properties[key]
 
-    def __setitem__(
-        self, key: str, value: "OrgOutboundApprovalsAdditionalProperty"
-    ) -> None:
+    def __setitem__(self, key: str, value: "OutboundApproval") -> None:
         self.additional_properties[key] = value
 
     def __delitem__(self, key: str) -> None:

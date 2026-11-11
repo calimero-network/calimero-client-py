@@ -15,6 +15,12 @@ from typing import Union
 if TYPE_CHECKING:
     from ..models.me_response_200_orgs_item import MeResponse200OrgsItem
     from ..models.me_response_200_passkeys_item import MeResponse200PasskeysItem
+    from ..models.me_response_200_recovery_pending_type_0 import (
+        MeResponse200RecoveryPendingType0,
+    )
+    from ..models.me_response_200_outbound_approvals import (
+        MeResponse200OutboundApprovals,
+    )
 
 
 T = TypeVar("T", bound="MeResponse200")
@@ -30,12 +36,12 @@ class MeResponse200:
         orgs (list['MeResponse200OrgsItem']):
         via (MeResponse200Via):
         passkey_id (Union[None, str]):
-        approved_releases (Any):
-        outbound_approvals (Any):
+        approved_releases (list[str]):
+        outbound_approvals (MeResponse200OutboundApprovals):
         app (Union[None, Unset, str]):
         origin (Union[None, Unset, str]):
-        recovery_code (Union[Unset, Any]):
-        recovery_pending (Union[Unset, Any]):
+        recovery_code (Union[Unset, bool]):
+        recovery_pending (Union['MeResponse200RecoveryPendingType0', None, Unset]):
     """
 
     account_id: str
@@ -44,17 +50,23 @@ class MeResponse200:
     orgs: list["MeResponse200OrgsItem"]
     via: MeResponse200Via
     passkey_id: Union[None, str]
-    approved_releases: Any
-    outbound_approvals: Any
+    approved_releases: list[str]
+    outbound_approvals: "MeResponse200OutboundApprovals"
     app: Union[None, Unset, str] = UNSET
     origin: Union[None, Unset, str] = UNSET
-    recovery_code: Union[Unset, Any] = UNSET
-    recovery_pending: Union[Unset, Any] = UNSET
+    recovery_code: Union[Unset, bool] = UNSET
+    recovery_pending: Union["MeResponse200RecoveryPendingType0", None, Unset] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         from ..models.me_response_200_orgs_item import MeResponse200OrgsItem
         from ..models.me_response_200_passkeys_item import MeResponse200PasskeysItem
+        from ..models.me_response_200_recovery_pending_type_0 import (
+            MeResponse200RecoveryPendingType0,
+        )
+        from ..models.me_response_200_outbound_approvals import (
+            MeResponse200OutboundApprovals,
+        )
 
         account_id = self.account_id
 
@@ -77,7 +89,7 @@ class MeResponse200:
 
         approved_releases = self.approved_releases
 
-        outbound_approvals = self.outbound_approvals
+        outbound_approvals = self.outbound_approvals.to_dict()
 
         app: Union[None, Unset, str]
         if isinstance(self.app, Unset):
@@ -93,7 +105,13 @@ class MeResponse200:
 
         recovery_code = self.recovery_code
 
-        recovery_pending = self.recovery_pending
+        recovery_pending: Union[None, Unset, dict[str, Any]]
+        if isinstance(self.recovery_pending, Unset):
+            recovery_pending = UNSET
+        elif isinstance(self.recovery_pending, MeResponse200RecoveryPendingType0):
+            recovery_pending = self.recovery_pending.to_dict()
+        else:
+            recovery_pending = self.recovery_pending
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -124,6 +142,12 @@ class MeResponse200:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.me_response_200_orgs_item import MeResponse200OrgsItem
         from ..models.me_response_200_passkeys_item import MeResponse200PasskeysItem
+        from ..models.me_response_200_recovery_pending_type_0 import (
+            MeResponse200RecoveryPendingType0,
+        )
+        from ..models.me_response_200_outbound_approvals import (
+            MeResponse200OutboundApprovals,
+        )
 
         d = dict(src_dict)
         account_id = d.pop("accountId")
@@ -153,9 +177,11 @@ class MeResponse200:
 
         passkey_id = _parse_passkey_id(d.pop("passkeyId"))
 
-        approved_releases = d.pop("approvedReleases")
+        approved_releases = cast(list[str], d.pop("approvedReleases"))
 
-        outbound_approvals = d.pop("outboundApprovals")
+        outbound_approvals = MeResponse200OutboundApprovals.from_dict(
+            d.pop("outboundApprovals")
+        )
 
         def _parse_app(data: object) -> Union[None, Unset, str]:
             if data is None:
@@ -177,7 +203,26 @@ class MeResponse200:
 
         recovery_code = d.pop("recoveryCode", UNSET)
 
-        recovery_pending = d.pop("recoveryPending", UNSET)
+        def _parse_recovery_pending(
+            data: object,
+        ) -> Union["MeResponse200RecoveryPendingType0", None, Unset]:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                recovery_pending_type_0 = MeResponse200RecoveryPendingType0.from_dict(
+                    data
+                )
+
+                return recovery_pending_type_0
+            except:  # noqa: E722
+                pass
+            return cast(Union["MeResponse200RecoveryPendingType0", None, Unset], data)
+
+        recovery_pending = _parse_recovery_pending(d.pop("recoveryPending", UNSET))
 
         me_response_200 = cls(
             account_id=account_id,

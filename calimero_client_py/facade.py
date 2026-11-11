@@ -914,7 +914,7 @@ class Apps(Group):
     def move(self, *, app, to_org, bring_members=UNSET, confirm=None):
         """Move an app to another organization (`POST /apps/{app}/move`, `app_move`).
 
-        Its data where it is; its files, runs and quotas go to the target, `org` or app-team access becomes the target's app team of its package. `bringMembers` adds the source's members who reach it, capped at `member`.
+        Its data where it is; its files, runs and quotas go to the target, `org` or app-team access becomes the target's app team of its package. `bringMembers` adds the source's members who reach it, capped at `member`. `from` is the organization it left, `null` for an app of the caller's own; `added` the accounts brought; `revokedInvites` how many invites to its old team were withdrawn.
 
         **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over `details.challenge`.
 
@@ -950,6 +950,8 @@ class Apps(Group):
 
     def presence_get(self, *, app):
         """Who is present (`GET /apps/{app}/presence`, `presence_get`).
+
+        One entry per present device (a session's passkey, or an API key): its account, device and state (hex).
 
         **Who:** whoever the app's access admits (a public app: anyone).
 
@@ -1931,7 +1933,7 @@ class Auth(Group):
     def sessions_list(self):
         """The account's live sessions (`GET /auth/sessions`, `sessions_list`).
 
-        Latest active first, at most 256.
+        Latest active first, at most 256. `openedAt` (Unix seconds) is `null` for a session opened before the node kept it.
 
         **Who:** an account holder (a passkey session not bound to an app's frontend).
 
@@ -2100,7 +2102,7 @@ class Deployments(Group):
     def create(self, *, name, owner, confirm=None):
         """Create a deployment (`POST /deployments`, `deployment_create`).
 
-        A named set of releases an owner (an account or organization) offers for others to instantiate.
+        A named set of releases an owner (an account or organization) offers for others to instantiate. Answers its id, the record as made (no apps yet) and its frontend host (`null` on a node with no apps domain).
 
         **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over `details.challenge`.
 
@@ -2152,6 +2154,8 @@ class Deployments(Group):
 
     def deployer_list(self):
         """The deployers (`GET /deployers`, `deployer_list`).
+
+        The operator, or the cluster's owner: the deployments and deployers governance, the owner (`null` until named), and every grant (`until` RFC 3339 and `untilSecs`, `null` for none; `grantedAt` RFC 3339; `deployer` `null` for a key it cannot read).
 
         **Who:** an account holder (a passkey session not bound to an app's frontend).
 
@@ -2221,6 +2225,8 @@ class Deployments(Group):
 
     def orgs(self, *, id):
         """The organizations a deployment serves (`GET /deployments/{id}/orgs`, `deployment_orgs`).
+
+        For its managers: each organization with instances from it, its name (`null` when unknown), member counts (`activeMembers30d`: active in the last 30 days), its instances and the releases they run, and when its first was created (RFC 3339); instances outside an organization are only counted (`outsideOrgs`). Never who the members are.
 
         **Who:** signed in (a session or an API key).
 
@@ -2854,7 +2860,7 @@ class Ops(Group):
     def pools_get(self):
         """Compute pools (`GET /ops/pools`, `ops_pools_get`).
 
-        The pools and the runs each takes.
+        The pools by name (absent: none set, one legacy pool), and each pool's capacity: how many runs its job nodes take at once.
 
         **Who:** the ops token.
 
@@ -3046,7 +3052,7 @@ class Ops(Group):
     def served(self):
         """Custom domains to serve (`GET /ops/served-origins`, `ops_served`).
 
-        Every served origin a package's manager registered, by the package's label, never its name.
+        Every served origin a package's manager registered, by the package's label, never its name; `addedAt` is RFC 3339.
 
         **Who:** the ops token.
 
@@ -3089,7 +3095,7 @@ class Ops(Group):
             expires_at: body `expiresAt`
             operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
 
-        Returns: OpsSignUpInviteCreateResponse200
+        Returns: SignUpInvite
         """
         return self._run(
             _OPS_SIGN_UP_INVITE_CREATE,
@@ -3625,7 +3631,7 @@ class Orgs(Group):
     def invite_list(self, *, org):
         """The organization's invites (`GET /orgs/{org}/invites`, `invite_list`).
 
-        Their keys and terms, never a token.
+        Their keys and terms, never a token: `expiresAt` Unix seconds; `createdBy` and `createdAt` are `null` on an invite from before they were kept.
 
         **Who:** a passkey session (an API key is refused).
 
@@ -4567,11 +4573,11 @@ class Public(Group):
         return self._run(_HEALTH, (), {}, None)
 
     def publisher_binding(self, *, signer):
-        """A signing key's organization (`GET /publishers/{signer}`, `publisher_binding`).
+        """Whether a signing key is bound (`GET /publishers/{signer}`, `publisher_binding`).
 
-        The organization a package signing key (`did:key`) is bound to, if any.
+        Whether a package signing key (`did:key`) is bound to an organization on this cluster (`bound`, never which), and its binding generation (`0`: never bound).
 
-        **Who:** anyone.
+        **Who:** signed in (a session or an API key).
 
         Args:
             signer: path
@@ -4583,7 +4589,7 @@ class Public(Group):
     def releases_public(self):
         """The cluster's releases (`GET /releases`, `releases_public`).
 
-        The mero-tee releases the cluster's nodes run and the deadlines set on them.
+        The cluster's governance and the deadlines set on mero-tee releases, oldest release first: after `after` (RFC 3339; `afterSecs` Unix seconds) a scope that has not approved that release (or a newer one) starts no new work.
 
         **Who:** anyone.
 

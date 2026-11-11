@@ -8,6 +8,12 @@ from ..types import UNSET, Unset
 
 from typing import cast
 
+if TYPE_CHECKING:
+    from ..models.presence_get_response_200_present_item import (
+        PresenceGetResponse200PresentItem,
+    )
+
+
 T = TypeVar("T", bound="PresenceGetResponse200")
 
 
@@ -15,14 +21,21 @@ T = TypeVar("T", bound="PresenceGetResponse200")
 class PresenceGetResponse200:
     """
     Attributes:
-        present (list[Any]):
+        present (list['PresenceGetResponse200PresentItem']):
     """
 
-    present: list[Any]
+    present: list["PresenceGetResponse200PresentItem"]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        present = self.present
+        from ..models.presence_get_response_200_present_item import (
+            PresenceGetResponse200PresentItem,
+        )
+
+        present = []
+        for present_item_data in self.present:
+            present_item = present_item_data.to_dict()
+            present.append(present_item)
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -36,8 +49,19 @@ class PresenceGetResponse200:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.presence_get_response_200_present_item import (
+            PresenceGetResponse200PresentItem,
+        )
+
         d = dict(src_dict)
-        present = cast(list[Any], d.pop("present"))
+        present = []
+        _present = d.pop("present")
+        for present_item_data in _present:
+            present_item = PresenceGetResponse200PresentItem.from_dict(
+                present_item_data
+            )
+
+            present.append(present_item)
 
         presence_get_response_200 = cls(
             present=present,

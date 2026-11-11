@@ -68,7 +68,8 @@ def sync_detailed(
 ) -> Response[Union[Error, SessionsListResponse200]]:
     """The account's live sessions
 
-     Latest active first, at most 256.
+     Latest active first, at most 256. `openedAt` (Unix seconds) is `null` for a session opened before
+    the node kept it.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend).
 
@@ -95,7 +96,8 @@ def sync(
 ) -> Optional[Union[Error, SessionsListResponse200]]:
     """The account's live sessions
 
-     Latest active first, at most 256.
+     Latest active first, at most 256. `openedAt` (Unix seconds) is `null` for a session opened before
+    the node kept it.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend).
 
@@ -118,7 +120,8 @@ async def asyncio_detailed(
 ) -> Response[Union[Error, SessionsListResponse200]]:
     """The account's live sessions
 
-     Latest active first, at most 256.
+     Latest active first, at most 256. `openedAt` (Unix seconds) is `null` for a session opened before
+    the node kept it.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend).
 
@@ -143,7 +146,8 @@ async def asyncio(
 ) -> Optional[Union[Error, SessionsListResponse200]]:
     """The account's live sessions
 
-     Latest active first, at most 256.
+     Latest active first, at most 256. `openedAt` (Unix seconds) is `null` for a session opened before
+    the node kept it.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend).
 

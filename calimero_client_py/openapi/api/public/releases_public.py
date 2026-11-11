@@ -52,7 +52,9 @@ def sync_detailed(
 ) -> Response[ReleasesPublicResponse200]:
     """The cluster's releases
 
-     The mero-tee releases the cluster's nodes run and the deadlines set on them.
+     The cluster's governance and the deadlines set on mero-tee releases, oldest release first: after
+    `after` (RFC 3339; `afterSecs` Unix seconds) a scope that has not approved that release (or a newer
+    one) starts no new work.
 
     **Who:** anyone.
 
@@ -79,7 +81,9 @@ def sync(
 ) -> Optional[ReleasesPublicResponse200]:
     """The cluster's releases
 
-     The mero-tee releases the cluster's nodes run and the deadlines set on them.
+     The cluster's governance and the deadlines set on mero-tee releases, oldest release first: after
+    `after` (RFC 3339; `afterSecs` Unix seconds) a scope that has not approved that release (or a newer
+    one) starts no new work.
 
     **Who:** anyone.
 
@@ -102,7 +106,9 @@ async def asyncio_detailed(
 ) -> Response[ReleasesPublicResponse200]:
     """The cluster's releases
 
-     The mero-tee releases the cluster's nodes run and the deadlines set on them.
+     The cluster's governance and the deadlines set on mero-tee releases, oldest release first: after
+    `after` (RFC 3339; `afterSecs` Unix seconds) a scope that has not approved that release (or a newer
+    one) starts no new work.
 
     **Who:** anyone.
 
@@ -127,7 +133,9 @@ async def asyncio(
 ) -> Optional[ReleasesPublicResponse200]:
     """The cluster's releases
 
-     The mero-tee releases the cluster's nodes run and the deadlines set on them.
+     The cluster's governance and the deadlines set on mero-tee releases, oldest release first: after
+    `after` (RFC 3339; `afterSecs` Unix seconds) a scope that has not approved that release (or a newer
+    one) starts no new work.
 
     **Who:** anyone.
 

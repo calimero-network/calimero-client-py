@@ -6,26 +6,79 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
+from typing import cast
+
+if TYPE_CHECKING:
+    from ..models.releases_public_response_200_deadlines_item import (
+        ReleasesPublicResponse200DeadlinesItem,
+    )
+    from ..models.governance import Governance
+
+
 T = TypeVar("T", bound="ReleasesPublicResponse200")
 
 
 @_attrs_define
 class ReleasesPublicResponse200:
-    """ """
+    """
+    Attributes:
+        governance (Governance): Who decides what on this cluster: release approvals, app upgrades and outbound
+            approvals (`owner`: each app's owner; `operator`: the operator), and, left out at their defaults, `deployments`
+            (`open`), `deployers` (`operator`) and `signUp` (`open`).
+        deadlines (list['ReleasesPublicResponse200DeadlinesItem']):
+    """
 
+    governance: "Governance"
+    deadlines: list["ReleasesPublicResponse200DeadlinesItem"]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.releases_public_response_200_deadlines_item import (
+            ReleasesPublicResponse200DeadlinesItem,
+        )
+        from ..models.governance import Governance
+
+        governance = self.governance.to_dict()
+
+        deadlines = []
+        for deadlines_item_data in self.deadlines:
+            deadlines_item = deadlines_item_data.to_dict()
+            deadlines.append(deadlines_item)
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
+        field_dict.update(
+            {
+                "governance": governance,
+                "deadlines": deadlines,
+            }
+        )
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.releases_public_response_200_deadlines_item import (
+            ReleasesPublicResponse200DeadlinesItem,
+        )
+        from ..models.governance import Governance
+
         d = dict(src_dict)
-        releases_public_response_200 = cls()
+        governance = Governance.from_dict(d.pop("governance"))
+
+        deadlines = []
+        _deadlines = d.pop("deadlines")
+        for deadlines_item_data in _deadlines:
+            deadlines_item = ReleasesPublicResponse200DeadlinesItem.from_dict(
+                deadlines_item_data
+            )
+
+            deadlines.append(deadlines_item)
+
+        releases_public_response_200 = cls(
+            governance=governance,
+            deadlines=deadlines,
+        )
 
         releases_public_response_200.additional_properties = d
         return releases_public_response_200

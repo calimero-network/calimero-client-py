@@ -9,6 +9,12 @@ from ..types import UNSET, Unset
 from ..models.app_team_list_response_200_mode import AppTeamListResponse200Mode
 from typing import cast
 
+if TYPE_CHECKING:
+    from ..models.app_team_list_response_200_app_teams_item import (
+        AppTeamListResponse200AppTeamsItem,
+    )
+
+
 T = TypeVar("T", bound="AppTeamListResponse200")
 
 
@@ -17,17 +23,24 @@ class AppTeamListResponse200:
     """
     Attributes:
         mode (AppTeamListResponse200Mode):
-        app_teams (list[Any]):
+        app_teams (list['AppTeamListResponse200AppTeamsItem']):
     """
 
     mode: AppTeamListResponse200Mode
-    app_teams: list[Any]
+    app_teams: list["AppTeamListResponse200AppTeamsItem"]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.app_team_list_response_200_app_teams_item import (
+            AppTeamListResponse200AppTeamsItem,
+        )
+
         mode = self.mode.value
 
-        app_teams = self.app_teams
+        app_teams = []
+        for app_teams_item_data in self.app_teams:
+            app_teams_item = app_teams_item_data.to_dict()
+            app_teams.append(app_teams_item)
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -42,10 +55,21 @@ class AppTeamListResponse200:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.app_team_list_response_200_app_teams_item import (
+            AppTeamListResponse200AppTeamsItem,
+        )
+
         d = dict(src_dict)
         mode = AppTeamListResponse200Mode(d.pop("mode"))
 
-        app_teams = cast(list[Any], d.pop("appTeams"))
+        app_teams = []
+        _app_teams = d.pop("appTeams")
+        for app_teams_item_data in _app_teams:
+            app_teams_item = AppTeamListResponse200AppTeamsItem.from_dict(
+                app_teams_item_data
+            )
+
+            app_teams.append(app_teams_item)
 
         app_team_list_response_200 = cls(
             mode=mode,

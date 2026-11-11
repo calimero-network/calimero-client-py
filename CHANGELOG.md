@@ -140,7 +140,7 @@ Migrating a call:
 
 - **feat: a client generated from core's OpenAPI document.** The routes are
   now `calimero_client_py.openapi` (openapi-python-client 0.26.2, from
-  `openapi/openapi.json`, core `docs/openapi` at the commit
+  `openapi/openapi.json`, core `master` at the commit
   `openapi/source.json` records) and `calimero_client_py.facade`, one method
   per operation on `Client` grouped by tag (`client.orgs.invite_create(org=...,
   role="member")`, `client.apps.call(app=..., method=..., args=...)`), keyword

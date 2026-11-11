@@ -19,7 +19,7 @@ class SessionsListResponse200SessionsItem:
         passkey (Union[None, str]):
         app (Union[None, str]):
         origin (Union[None, str]):
-        opened_at (int):
+        opened_at (Union[None, int]):
         last_active_at (int):
         current (bool):
     """
@@ -28,7 +28,7 @@ class SessionsListResponse200SessionsItem:
     passkey: Union[None, str]
     app: Union[None, str]
     origin: Union[None, str]
-    opened_at: int
+    opened_at: Union[None, int]
     last_active_at: int
     current: bool
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -45,6 +45,7 @@ class SessionsListResponse200SessionsItem:
         origin: Union[None, str]
         origin = self.origin
 
+        opened_at: Union[None, int]
         opened_at = self.opened_at
 
         last_active_at = self.last_active_at
@@ -93,7 +94,12 @@ class SessionsListResponse200SessionsItem:
 
         origin = _parse_origin(d.pop("origin"))
 
-        opened_at = d.pop("openedAt")
+        def _parse_opened_at(data: object) -> Union[None, int]:
+            if data is None:
+                return data
+            return cast(Union[None, int], data)
+
+        opened_at = _parse_opened_at(d.pop("openedAt"))
 
         last_active_at = d.pop("lastActiveAt")
 

@@ -86,6 +86,25 @@ def resolve(document: dict, schema: dict) -> dict:
     return schema
 
 
+# How core's document says an object with listed properties takes others
+# too: it leaves out `additionalProperties` (JSON Schema admits them anyway)
+# and says so in the schema's description. Every other body without
+# `additionalProperties` is one whose other fields the node ignores, which
+# the facade does not offer.
+OTHER_PROPERTIES = (
+    "Other properties than those listed may be present: "
+    "the ones listed are those clients rely on."
+)
+
+
+def open_body(schema) -> bool:
+    """Whether a body takes fields the document does not name."""
+    rest = schema.get("additionalProperties")
+    if rest is None:
+        return OTHER_PROPERTIES in schema.get("description", "")
+    return rest is not False
+
+
 def enum_of(annotation):
     """The Enum class an annotation names (directly or in a Union), if any."""
     if isinstance(annotation, type) and issubclass(annotation, Enum):
@@ -263,7 +282,7 @@ def generate(document: dict) -> str:
                         ps = resolve(document, ps) if "$ref" in ps else ps
                         add(name, prop in required, f"body `{prop}`")
                         body_exprs.append(f"{prop!r}: {name}")
-                    if schema.get("additionalProperties") not in (None, False):
+                    if open_body(schema):
                         # Fields the document does not name (`ops_quotas_set`:
                         # each limit by its key), as given.
                         body_exprs.append("**more")

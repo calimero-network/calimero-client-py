@@ -63,7 +63,8 @@ def sync_detailed(
 ) -> Response[Union[Error, OpsPoolsGetResponse200]]:
     """Compute pools
 
-     The pools and the runs each takes.
+     The pools by name (absent: none set, one legacy pool), and each pool's capacity: how many runs its
+    job nodes take at once.
 
     **Who:** the ops token.
 
@@ -90,7 +91,8 @@ def sync(
 ) -> Optional[Union[Error, OpsPoolsGetResponse200]]:
     """Compute pools
 
-     The pools and the runs each takes.
+     The pools by name (absent: none set, one legacy pool), and each pool's capacity: how many runs its
+    job nodes take at once.
 
     **Who:** the ops token.
 
@@ -113,7 +115,8 @@ async def asyncio_detailed(
 ) -> Response[Union[Error, OpsPoolsGetResponse200]]:
     """Compute pools
 
-     The pools and the runs each takes.
+     The pools by name (absent: none set, one legacy pool), and each pool's capacity: how many runs its
+    job nodes take at once.
 
     **Who:** the ops token.
 
@@ -138,7 +141,8 @@ async def asyncio(
 ) -> Optional[Union[Error, OpsPoolsGetResponse200]]:
     """Compute pools
 
-     The pools and the runs each takes.
+     The pools by name (absent: none set, one legacy pool), and each pool's capacity: how many runs its
+    job nodes take at once.
 
     **Who:** the ops token.
 

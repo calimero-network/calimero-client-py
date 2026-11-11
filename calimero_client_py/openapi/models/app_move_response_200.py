@@ -25,24 +25,24 @@ class AppMoveResponse200:
     """
     Attributes:
         app_id (str):
-        from_ (str):
+        from_ (Union[None, str]):
         org (str):
         access (Union['AccessType0', 'AccessType1', 'AccessType2', 'AccessType3', 'AccessType4']): Who may reach an app
             at all.
         created (bool):
-        added (Any):
-        revoked_invites (Any):
+        added (list[str]):
+        revoked_invites (int):
     """
 
     app_id: str
-    from_: str
+    from_: Union[None, str]
     org: str
     access: Union[
         "AccessType0", "AccessType1", "AccessType2", "AccessType3", "AccessType4"
     ]
     created: bool
-    added: Any
-    revoked_invites: Any
+    added: list[str]
+    revoked_invites: int
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -54,6 +54,7 @@ class AppMoveResponse200:
 
         app_id = self.app_id
 
+        from_: Union[None, str]
         from_ = self.from_
 
         org = self.org
@@ -103,7 +104,12 @@ class AppMoveResponse200:
         d = dict(src_dict)
         app_id = d.pop("appId")
 
-        from_ = d.pop("from")
+        def _parse_from_(data: object) -> Union[None, str]:
+            if data is None:
+                return data
+            return cast(Union[None, str], data)
+
+        from_ = _parse_from_(d.pop("from"))
 
         org = d.pop("org")
 
@@ -154,7 +160,7 @@ class AppMoveResponse200:
 
         created = d.pop("created")
 
-        added = d.pop("added")
+        added = cast(list[str], d.pop("added"))
 
         revoked_invites = d.pop("revokedInvites")
 

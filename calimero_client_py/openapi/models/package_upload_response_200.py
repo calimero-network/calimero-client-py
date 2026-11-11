@@ -6,26 +6,45 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
+from typing import cast
+
+if TYPE_CHECKING:
+    from ..models.package_upload_response_200_services import (
+        PackageUploadResponse200Services,
+    )
+
+
 T = TypeVar("T", bound="PackageUploadResponse200")
 
 
 @_attrs_define
 class PackageUploadResponse200:
-    """Other properties than those listed may be present: the ones listed are those clients rely on.
-
+    """
     Attributes:
         package (str):
         version (str):
+        signer_id (str):
+        services (PackageUploadResponse200Services):
     """
 
     package: str
     version: str
+    signer_id: str
+    services: "PackageUploadResponse200Services"
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.package_upload_response_200_services import (
+            PackageUploadResponse200Services,
+        )
+
         package = self.package
 
         version = self.version
+
+        signer_id = self.signer_id
+
+        services = self.services.to_dict()
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -33,6 +52,8 @@ class PackageUploadResponse200:
             {
                 "package": package,
                 "version": version,
+                "signerId": signer_id,
+                "services": services,
             }
         )
 
@@ -40,14 +61,24 @@ class PackageUploadResponse200:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.package_upload_response_200_services import (
+            PackageUploadResponse200Services,
+        )
+
         d = dict(src_dict)
         package = d.pop("package")
 
         version = d.pop("version")
 
+        signer_id = d.pop("signerId")
+
+        services = PackageUploadResponse200Services.from_dict(d.pop("services"))
+
         package_upload_response_200 = cls(
             package=package,
             version=version,
+            signer_id=signer_id,
+            services=services,
         )
 
         package_upload_response_200.additional_properties = d

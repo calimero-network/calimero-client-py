@@ -90,6 +90,8 @@ def sync_detailed(
     """Create a deployment
 
      A named set of releases an owner (an account or organization) offers for others to instantiate.
+    Answers its id, the record as made (no apps yet) and its frontend host (`null` on a node with no
+    apps domain).
 
     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
     `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
@@ -125,6 +127,8 @@ def sync(
     """Create a deployment
 
      A named set of releases an owner (an account or organization) offers for others to instantiate.
+    Answers its id, the record as made (no apps yet) and its frontend host (`null` on a node with no
+    apps domain).
 
     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
     `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
@@ -155,6 +159,8 @@ async def asyncio_detailed(
     """Create a deployment
 
      A named set of releases an owner (an account or organization) offers for others to instantiate.
+    Answers its id, the record as made (no apps yet) and its frontend host (`null` on a node with no
+    apps domain).
 
     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
     `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
@@ -188,6 +194,8 @@ async def asyncio(
     """Create a deployment
 
      A named set of releases an owner (an account or organization) offers for others to instantiate.
+    Answers its id, the record as made (no apps yet) and its frontend host (`null` on a node with no
+    apps domain).
 
     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
     `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
