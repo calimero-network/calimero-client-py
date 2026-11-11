@@ -6,10 +6,10 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
+from ..models.outbound_selection_type_0 import OutboundSelectionType0
 from ..types import UNSET, Unset
 from typing import cast
 from typing import cast, Union
-from typing import Literal, cast
 from typing import Union
 
 if TYPE_CHECKING:
@@ -24,15 +24,15 @@ class OrgOutboundApprovalBody:
     """
     Attributes:
         package (str):
-        prefixes (Union[Literal['manifest'], Unset, list[str]]): `manifest` (every prefix the release declares) or these
-            prefixes.
+        prefixes (Union[OutboundSelectionType0, Unset, list[str]]): `manifest` (every prefix the release declares) or
+            these prefixes.
         replace (Union[Unset, bool]):
         confirm (Union[Unset, Confirm]): A passkey assertion over the challenge a `412 CONFIRM_REQUIRED` named: the same
             request sent again with it approves exactly that request.
     """
 
     package: str
-    prefixes: Union[Literal["manifest"], Unset, list[str]] = UNSET
+    prefixes: Union[OutboundSelectionType0, Unset, list[str]] = UNSET
     replace: Union[Unset, bool] = UNSET
     confirm: Union[Unset, "Confirm"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -42,12 +42,11 @@ class OrgOutboundApprovalBody:
 
         package = self.package
 
-        prefixes: Union[Literal["manifest"], Unset, list[str]]
+        prefixes: Union[Unset, list[str], str]
         if isinstance(self.prefixes, Unset):
             prefixes = UNSET
-        elif isinstance(self.prefixes, list):
-            prefixes = self.prefixes
-
+        elif isinstance(self.prefixes, OutboundSelectionType0):
+            prefixes = self.prefixes.value
         else:
             prefixes = self.prefixes
 
@@ -82,17 +81,19 @@ class OrgOutboundApprovalBody:
 
         def _parse_prefixes(
             data: object,
-        ) -> Union[Literal["manifest"], Unset, list[str]]:
+        ) -> Union[OutboundSelectionType0, Unset, list[str]]:
             if isinstance(data, Unset):
                 return data
-            componentsschemas_outbound_selection_type_0 = cast(
-                Literal["manifest"], data
-            )
-            if componentsschemas_outbound_selection_type_0 != "manifest":
-                raise ValueError(
-                    f"/components/schemas/OutboundSelection_type_0 must match const 'manifest', got '{componentsschemas_outbound_selection_type_0}'"
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                componentsschemas_outbound_selection_type_0 = OutboundSelectionType0(
+                    data
                 )
-            return componentsschemas_outbound_selection_type_0
+
+                return componentsschemas_outbound_selection_type_0
+            except:  # noqa: E722
+                pass
             if not isinstance(data, list):
                 raise TypeError()
             componentsschemas_outbound_selection_type_1 = cast(list[str], data)

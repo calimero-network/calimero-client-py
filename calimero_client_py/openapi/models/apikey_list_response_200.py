@@ -8,6 +8,10 @@ from ..types import UNSET, Unset
 
 from typing import cast
 
+if TYPE_CHECKING:
+    from ..models.api_key import ApiKey
+
+
 T = TypeVar("T", bound="ApikeyListResponse200")
 
 
@@ -15,14 +19,19 @@ T = TypeVar("T", bound="ApikeyListResponse200")
 class ApikeyListResponse200:
     """
     Attributes:
-        keys (list[Any]):
+        keys (list['ApiKey']):
     """
 
-    keys: list[Any]
+    keys: list["ApiKey"]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        keys = self.keys
+        from ..models.api_key import ApiKey
+
+        keys = []
+        for keys_item_data in self.keys:
+            keys_item = keys_item_data.to_dict()
+            keys.append(keys_item)
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -36,8 +45,15 @@ class ApikeyListResponse200:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.api_key import ApiKey
+
         d = dict(src_dict)
-        keys = cast(list[Any], d.pop("keys"))
+        keys = []
+        _keys = d.pop("keys")
+        for keys_item_data in _keys:
+            keys_item = ApiKey.from_dict(keys_item_data)
+
+            keys.append(keys_item)
 
         apikey_list_response_200 = cls(
             keys=keys,

@@ -99,7 +99,8 @@ def sync_detailed(
     `nonce`.
 
     Args:
-        body (OpsQuotasSetBody):
+        body (OpsQuotasSetBody): Other properties than those listed may be present: the ones
+            listed are those clients rely on.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -137,7 +138,8 @@ def sync(
     `nonce`.
 
     Args:
-        body (OpsQuotasSetBody):
+        body (OpsQuotasSetBody): Other properties than those listed may be present: the ones
+            listed are those clients rely on.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -170,7 +172,8 @@ async def asyncio_detailed(
     `nonce`.
 
     Args:
-        body (OpsQuotasSetBody):
+        body (OpsQuotasSetBody): Other properties than those listed may be present: the ones
+            listed are those clients rely on.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -206,7 +209,8 @@ async def asyncio(
     `nonce`.
 
     Args:
-        body (OpsQuotasSetBody):
+        body (OpsQuotasSetBody): Other properties than those listed may be present: the ones
+            listed are those clients rely on.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

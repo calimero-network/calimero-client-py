@@ -131,7 +131,9 @@ def sync_detailed(
     `/views`, anything else as `/intents`, with that route's gate, step-up and limits. Retry-safe as a
     view always, as a call with `idempotencyKey`.
 
-    **Who:** whoever the app's access admits (a public app: anyone).
+    **Who:** whoever the app's access admits (a public app: anyone). **Step-up:** when the method is a
+    `confirm` method of the app's ABI, answers `412 CONFIRM_REQUIRED` first; send the same request again
+    with `confirm`, a passkey assertion over `details.challenge`.
 
     Args:
         app (str):
@@ -173,7 +175,9 @@ def sync(
     `/views`, anything else as `/intents`, with that route's gate, step-up and limits. Retry-safe as a
     view always, as a call with `idempotencyKey`.
 
-    **Who:** whoever the app's access admits (a public app: anyone).
+    **Who:** whoever the app's access admits (a public app: anyone). **Step-up:** when the method is a
+    `confirm` method of the app's ABI, answers `412 CONFIRM_REQUIRED` first; send the same request again
+    with `confirm`, a passkey assertion over `details.challenge`.
 
     Args:
         app (str):
@@ -210,7 +214,9 @@ async def asyncio_detailed(
     `/views`, anything else as `/intents`, with that route's gate, step-up and limits. Retry-safe as a
     view always, as a call with `idempotencyKey`.
 
-    **Who:** whoever the app's access admits (a public app: anyone).
+    **Who:** whoever the app's access admits (a public app: anyone). **Step-up:** when the method is a
+    `confirm` method of the app's ABI, answers `412 CONFIRM_REQUIRED` first; send the same request again
+    with `confirm`, a passkey assertion over `details.challenge`.
 
     Args:
         app (str):
@@ -250,7 +256,9 @@ async def asyncio(
     `/views`, anything else as `/intents`, with that route's gate, step-up and limits. Retry-safe as a
     view always, as a call with `idempotencyKey`.
 
-    **Who:** whoever the app's access admits (a public app: anyone).
+    **Who:** whoever the app's access admits (a public app: anyone). **Step-up:** when the method is a
+    `confirm` method of the app's ABI, answers `412 CONFIRM_REQUIRED` first; send the same request again
+    with `confirm`, a passkey assertion over `details.challenge`.
 
     Args:
         app (str):

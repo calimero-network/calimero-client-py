@@ -7,8 +7,8 @@ from ...client import AuthenticatedClient, Client
 from ...types import Response, UNSET
 from ... import errors
 
+from ...models.confirm_only import ConfirmOnly
 from ...models.error import Error
-from ...models.passkey_remove_body import PasskeyRemoveBody
 from ...models.passkey_remove_response_200 import PasskeyRemoveResponse200
 from typing import cast
 
@@ -16,7 +16,7 @@ from typing import cast
 def _get_kwargs(
     cred: str,
     *,
-    body: PasskeyRemoveBody,
+    body: ConfirmOnly,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -89,7 +89,7 @@ def sync_detailed(
     cred: str,
     *,
     client: AuthenticatedClient,
-    body: PasskeyRemoveBody,
+    body: ConfirmOnly,
 ) -> Response[Union[Error, PasskeyRemoveResponse200]]:
     """Remove a passkey
 
@@ -101,7 +101,8 @@ def sync_detailed(
 
     Args:
         cred (str):
-        body (PasskeyRemoveBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -127,7 +128,7 @@ def sync(
     cred: str,
     *,
     client: AuthenticatedClient,
-    body: PasskeyRemoveBody,
+    body: ConfirmOnly,
 ) -> Optional[Union[Error, PasskeyRemoveResponse200]]:
     """Remove a passkey
 
@@ -139,7 +140,8 @@ def sync(
 
     Args:
         cred (str):
-        body (PasskeyRemoveBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -160,7 +162,7 @@ async def asyncio_detailed(
     cred: str,
     *,
     client: AuthenticatedClient,
-    body: PasskeyRemoveBody,
+    body: ConfirmOnly,
 ) -> Response[Union[Error, PasskeyRemoveResponse200]]:
     """Remove a passkey
 
@@ -172,7 +174,8 @@ async def asyncio_detailed(
 
     Args:
         cred (str):
-        body (PasskeyRemoveBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -196,7 +199,7 @@ async def asyncio(
     cred: str,
     *,
     client: AuthenticatedClient,
-    body: PasskeyRemoveBody,
+    body: ConfirmOnly,
 ) -> Optional[Union[Error, PasskeyRemoveResponse200]]:
     """Remove a passkey
 
@@ -208,7 +211,8 @@ async def asyncio(
 
     Args:
         cred (str):
-        body (PasskeyRemoveBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

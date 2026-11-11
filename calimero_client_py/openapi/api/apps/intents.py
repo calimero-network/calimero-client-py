@@ -43,6 +43,11 @@ def _parse_response(
 
         return response_200
 
+    if response.status_code == 400:
+        response_400 = Error.from_dict(response.json())
+
+        return response_400
+
     if response.status_code == 401:
         response_401 = Error.from_dict(response.json())
 
@@ -122,7 +127,9 @@ def sync_detailed(
     receipt. A `confirm` method answers `412` first. An app error is `422 APP_ERROR` with `details {
     index, code, fields }`; a trap `422 TRAP`.
 
-    **Who:** whoever the app's access admits (a public app: anyone).
+    **Who:** whoever the app's access admits (a public app: anyone). **Step-up:** when the method is a
+    `confirm` method of the app's ABI, answers `412 CONFIRM_REQUIRED` first; send the same request again
+    with `confirm`, a passkey assertion over `details.challenge`.
 
     Args:
         app (str):
@@ -160,7 +167,9 @@ def sync(
     receipt. A `confirm` method answers `412` first. An app error is `422 APP_ERROR` with `details {
     index, code, fields }`; a trap `422 TRAP`.
 
-    **Who:** whoever the app's access admits (a public app: anyone).
+    **Who:** whoever the app's access admits (a public app: anyone). **Step-up:** when the method is a
+    `confirm` method of the app's ABI, answers `412 CONFIRM_REQUIRED` first; send the same request again
+    with `confirm`, a passkey assertion over `details.challenge`.
 
     Args:
         app (str):
@@ -193,7 +202,9 @@ async def asyncio_detailed(
     receipt. A `confirm` method answers `412` first. An app error is `422 APP_ERROR` with `details {
     index, code, fields }`; a trap `422 TRAP`.
 
-    **Who:** whoever the app's access admits (a public app: anyone).
+    **Who:** whoever the app's access admits (a public app: anyone). **Step-up:** when the method is a
+    `confirm` method of the app's ABI, answers `412 CONFIRM_REQUIRED` first; send the same request again
+    with `confirm`, a passkey assertion over `details.challenge`.
 
     Args:
         app (str):
@@ -229,7 +240,9 @@ async def asyncio(
     receipt. A `confirm` method answers `412` first. An app error is `422 APP_ERROR` with `details {
     index, code, fields }`; a trap `422 TRAP`.
 
-    **Who:** whoever the app's access admits (a public app: anyone).
+    **Who:** whoever the app's access admits (a public app: anyone). **Step-up:** when the method is a
+    `confirm` method of the app's ABI, answers `412 CONFIRM_REQUIRED` first; send the same request again
+    with `confirm`, a passkey assertion over `details.challenge`.
 
     Args:
         app (str):

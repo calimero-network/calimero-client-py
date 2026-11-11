@@ -7,8 +7,10 @@ from attrs import field as _attrs_field
 from ..types import UNSET, Unset
 
 from ..models.me_response_200_via import MeResponse200Via
+from ..types import UNSET, Unset
 from typing import cast
 from typing import cast, Union
+from typing import Union
 
 if TYPE_CHECKING:
     from ..models.me_response_200_orgs_item import MeResponse200OrgsItem
@@ -28,12 +30,12 @@ class MeResponse200:
         orgs (list['MeResponse200OrgsItem']):
         via (MeResponse200Via):
         passkey_id (Union[None, str]):
-        app (Union[None, str]):
-        origin (Union[None, str]):
         approved_releases (Any):
         outbound_approvals (Any):
-        recovery_code (Any):
-        recovery_pending (Any):
+        app (Union[None, Unset, str]):
+        origin (Union[None, Unset, str]):
+        recovery_code (Union[Unset, Any]):
+        recovery_pending (Union[Unset, Any]):
     """
 
     account_id: str
@@ -42,12 +44,12 @@ class MeResponse200:
     orgs: list["MeResponse200OrgsItem"]
     via: MeResponse200Via
     passkey_id: Union[None, str]
-    app: Union[None, str]
-    origin: Union[None, str]
     approved_releases: Any
     outbound_approvals: Any
-    recovery_code: Any
-    recovery_pending: Any
+    app: Union[None, Unset, str] = UNSET
+    origin: Union[None, Unset, str] = UNSET
+    recovery_code: Union[Unset, Any] = UNSET
+    recovery_pending: Union[Unset, Any] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -73,15 +75,21 @@ class MeResponse200:
         passkey_id: Union[None, str]
         passkey_id = self.passkey_id
 
-        app: Union[None, str]
-        app = self.app
-
-        origin: Union[None, str]
-        origin = self.origin
-
         approved_releases = self.approved_releases
 
         outbound_approvals = self.outbound_approvals
+
+        app: Union[None, Unset, str]
+        if isinstance(self.app, Unset):
+            app = UNSET
+        else:
+            app = self.app
+
+        origin: Union[None, Unset, str]
+        if isinstance(self.origin, Unset):
+            origin = UNSET
+        else:
+            origin = self.origin
 
         recovery_code = self.recovery_code
 
@@ -97,14 +105,18 @@ class MeResponse200:
                 "orgs": orgs,
                 "via": via,
                 "passkeyId": passkey_id,
-                "app": app,
-                "origin": origin,
                 "approvedReleases": approved_releases,
                 "outboundApprovals": outbound_approvals,
-                "recoveryCode": recovery_code,
-                "recoveryPending": recovery_pending,
             }
         )
+        if app is not UNSET:
+            field_dict["app"] = app
+        if origin is not UNSET:
+            field_dict["origin"] = origin
+        if recovery_code is not UNSET:
+            field_dict["recoveryCode"] = recovery_code
+        if recovery_pending is not UNSET:
+            field_dict["recoveryPending"] = recovery_pending
 
         return field_dict
 
@@ -141,27 +153,31 @@ class MeResponse200:
 
         passkey_id = _parse_passkey_id(d.pop("passkeyId"))
 
-        def _parse_app(data: object) -> Union[None, str]:
-            if data is None:
-                return data
-            return cast(Union[None, str], data)
-
-        app = _parse_app(d.pop("app"))
-
-        def _parse_origin(data: object) -> Union[None, str]:
-            if data is None:
-                return data
-            return cast(Union[None, str], data)
-
-        origin = _parse_origin(d.pop("origin"))
-
         approved_releases = d.pop("approvedReleases")
 
         outbound_approvals = d.pop("outboundApprovals")
 
-        recovery_code = d.pop("recoveryCode")
+        def _parse_app(data: object) -> Union[None, Unset, str]:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(Union[None, Unset, str], data)
 
-        recovery_pending = d.pop("recoveryPending")
+        app = _parse_app(d.pop("app", UNSET))
+
+        def _parse_origin(data: object) -> Union[None, Unset, str]:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(Union[None, Unset, str], data)
+
+        origin = _parse_origin(d.pop("origin", UNSET))
+
+        recovery_code = d.pop("recoveryCode", UNSET)
+
+        recovery_pending = d.pop("recoveryPending", UNSET)
 
         me_response_200 = cls(
             account_id=account_id,
@@ -170,10 +186,10 @@ class MeResponse200:
             orgs=orgs,
             via=via,
             passkey_id=passkey_id,
-            app=app,
-            origin=origin,
             approved_releases=approved_releases,
             outbound_approvals=outbound_approvals,
+            app=app,
+            origin=origin,
             recovery_code=recovery_code,
             recovery_pending=recovery_pending,
         )

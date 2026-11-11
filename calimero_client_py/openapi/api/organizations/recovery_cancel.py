@@ -7,8 +7,8 @@ from ...client import AuthenticatedClient, Client
 from ...types import Response, UNSET
 from ... import errors
 
+from ...models.confirm_only import ConfirmOnly
 from ...models.error import Error
-from ...models.recovery_cancel_body import RecoveryCancelBody
 from ...models.recovery_cancel_response_200 import RecoveryCancelResponse200
 from typing import cast
 
@@ -16,7 +16,7 @@ from typing import cast
 def _get_kwargs(
     org: str,
     *,
-    body: RecoveryCancelBody,
+    body: ConfirmOnly,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -94,7 +94,7 @@ def sync_detailed(
     org: str,
     *,
     client: AuthenticatedClient,
-    body: RecoveryCancelBody,
+    body: ConfirmOnly,
 ) -> Response[Union[Error, RecoveryCancelResponse200]]:
     """Cancel an organization recovery
 
@@ -106,7 +106,8 @@ def sync_detailed(
 
     Args:
         org (str):
-        body (RecoveryCancelBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -132,7 +133,7 @@ def sync(
     org: str,
     *,
     client: AuthenticatedClient,
-    body: RecoveryCancelBody,
+    body: ConfirmOnly,
 ) -> Optional[Union[Error, RecoveryCancelResponse200]]:
     """Cancel an organization recovery
 
@@ -144,7 +145,8 @@ def sync(
 
     Args:
         org (str):
-        body (RecoveryCancelBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -165,7 +167,7 @@ async def asyncio_detailed(
     org: str,
     *,
     client: AuthenticatedClient,
-    body: RecoveryCancelBody,
+    body: ConfirmOnly,
 ) -> Response[Union[Error, RecoveryCancelResponse200]]:
     """Cancel an organization recovery
 
@@ -177,7 +179,8 @@ async def asyncio_detailed(
 
     Args:
         org (str):
-        body (RecoveryCancelBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -201,7 +204,7 @@ async def asyncio(
     org: str,
     *,
     client: AuthenticatedClient,
-    body: RecoveryCancelBody,
+    body: ConfirmOnly,
 ) -> Optional[Union[Error, RecoveryCancelResponse200]]:
     """Cancel an organization recovery
 
@@ -213,7 +216,8 @@ async def asyncio(
 
     Args:
         org (str):
-        body (RecoveryCancelBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

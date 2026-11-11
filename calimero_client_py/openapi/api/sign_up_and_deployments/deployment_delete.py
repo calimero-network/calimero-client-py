@@ -7,7 +7,7 @@ from ...client import AuthenticatedClient, Client
 from ...types import Response, UNSET
 from ... import errors
 
-from ...models.deployment_delete_body import DeploymentDeleteBody
+from ...models.confirm_only import ConfirmOnly
 from ...models.deployment_delete_response_200 import DeploymentDeleteResponse200
 from ...models.error import Error
 from typing import cast
@@ -16,7 +16,7 @@ from typing import cast
 def _get_kwargs(
     id: str,
     *,
-    body: DeploymentDeleteBody,
+    body: ConfirmOnly,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -89,7 +89,7 @@ def sync_detailed(
     id: str,
     *,
     client: AuthenticatedClient,
-    body: DeploymentDeleteBody,
+    body: ConfirmOnly,
 ) -> Response[Union[DeploymentDeleteResponse200, Error]]:
     """Delete a deployment
 
@@ -99,7 +99,8 @@ def sync_detailed(
 
     Args:
         id (str):
-        body (DeploymentDeleteBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -125,7 +126,7 @@ def sync(
     id: str,
     *,
     client: AuthenticatedClient,
-    body: DeploymentDeleteBody,
+    body: ConfirmOnly,
 ) -> Optional[Union[DeploymentDeleteResponse200, Error]]:
     """Delete a deployment
 
@@ -135,7 +136,8 @@ def sync(
 
     Args:
         id (str):
-        body (DeploymentDeleteBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -156,7 +158,7 @@ async def asyncio_detailed(
     id: str,
     *,
     client: AuthenticatedClient,
-    body: DeploymentDeleteBody,
+    body: ConfirmOnly,
 ) -> Response[Union[DeploymentDeleteResponse200, Error]]:
     """Delete a deployment
 
@@ -166,7 +168,8 @@ async def asyncio_detailed(
 
     Args:
         id (str):
-        body (DeploymentDeleteBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -190,7 +193,7 @@ async def asyncio(
     id: str,
     *,
     client: AuthenticatedClient,
-    body: DeploymentDeleteBody,
+    body: ConfirmOnly,
 ) -> Optional[Union[DeploymentDeleteResponse200, Error]]:
     """Delete a deployment
 
@@ -200,7 +203,8 @@ async def asyncio(
 
     Args:
         id (str):
-        body (DeploymentDeleteBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

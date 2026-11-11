@@ -6,8 +6,8 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
+from ..models.access_type_3_kind import AccessType3Kind
 from typing import cast
-from typing import Literal, cast
 
 T = TypeVar("T", bound="AccessType3")
 
@@ -16,16 +16,16 @@ T = TypeVar("T", bound="AccessType3")
 class AccessType3:
     """
     Attributes:
-        kind (Literal['accounts']):
+        kind (AccessType3Kind):
         accounts (list[str]):
     """
 
-    kind: Literal["accounts"]
+    kind: AccessType3Kind
     accounts: list[str]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        kind = self.kind
+        kind = self.kind.value
 
         accounts = self.accounts
 
@@ -43,9 +43,7 @@ class AccessType3:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        kind = cast(Literal["accounts"], d.pop("kind"))
-        if kind != "accounts":
-            raise ValueError(f"kind must match const 'accounts', got '{kind}'")
+        kind = AccessType3Kind(d.pop("kind"))
 
         accounts = cast(list[str], d.pop("accounts"))
 

@@ -8,17 +8,17 @@ from ...types import Response, UNSET
 from ... import errors
 
 from ...models.error import Error
-from ...models.ops_deployer_revoke_post_body import OpsDeployerRevokePostBody
 from ...models.ops_deployer_revoke_post_response_200 import (
     OpsDeployerRevokePostResponse200,
 )
+from ...models.proof_only import ProofOnly
 from typing import cast
 
 
 def _get_kwargs(
     key: str,
     *,
-    body: OpsDeployerRevokePostBody,
+    body: ProofOnly,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -81,7 +81,7 @@ def sync_detailed(
     key: str,
     *,
     client: AuthenticatedClient,
-    body: OpsDeployerRevokePostBody,
+    body: ProofOnly,
 ) -> Response[Union[Error, OpsDeployerRevokePostResponse200]]:
     """Revoke a deployer (POST)
 
@@ -93,7 +93,8 @@ def sync_detailed(
 
     Args:
         key (str):
-        body (OpsDeployerRevokePostBody):
+        body (ProofOnly): What an operator decision that names nothing in its body may carry: none
+            at first, the operator's proof after the `428`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -119,7 +120,7 @@ def sync(
     key: str,
     *,
     client: AuthenticatedClient,
-    body: OpsDeployerRevokePostBody,
+    body: ProofOnly,
 ) -> Optional[Union[Error, OpsDeployerRevokePostResponse200]]:
     """Revoke a deployer (POST)
 
@@ -131,7 +132,8 @@ def sync(
 
     Args:
         key (str):
-        body (OpsDeployerRevokePostBody):
+        body (ProofOnly): What an operator decision that names nothing in its body may carry: none
+            at first, the operator's proof after the `428`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -152,7 +154,7 @@ async def asyncio_detailed(
     key: str,
     *,
     client: AuthenticatedClient,
-    body: OpsDeployerRevokePostBody,
+    body: ProofOnly,
 ) -> Response[Union[Error, OpsDeployerRevokePostResponse200]]:
     """Revoke a deployer (POST)
 
@@ -164,7 +166,8 @@ async def asyncio_detailed(
 
     Args:
         key (str):
-        body (OpsDeployerRevokePostBody):
+        body (ProofOnly): What an operator decision that names nothing in its body may carry: none
+            at first, the operator's proof after the `428`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -188,7 +191,7 @@ async def asyncio(
     key: str,
     *,
     client: AuthenticatedClient,
-    body: OpsDeployerRevokePostBody,
+    body: ProofOnly,
 ) -> Optional[Union[Error, OpsDeployerRevokePostResponse200]]:
     """Revoke a deployer (POST)
 
@@ -200,7 +203,8 @@ async def asyncio(
 
     Args:
         key (str):
-        body (OpsDeployerRevokePostBody):
+        body (ProofOnly): What an operator decision that names nothing in its body may carry: none
+            at first, the operator's proof after the `428`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

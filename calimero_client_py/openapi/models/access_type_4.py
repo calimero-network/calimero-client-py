@@ -6,7 +6,7 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
-from typing import Literal, cast
+from ..models.access_type_4_kind import AccessType4Kind
 
 T = TypeVar("T", bound="AccessType4")
 
@@ -15,16 +15,16 @@ T = TypeVar("T", bound="AccessType4")
 class AccessType4:
     """
     Attributes:
-        kind (Literal['team']):
+        kind (AccessType4Kind):
         team (str):
     """
 
-    kind: Literal["team"]
+    kind: AccessType4Kind
     team: str
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        kind = self.kind
+        kind = self.kind.value
 
         team = self.team
 
@@ -42,9 +42,7 @@ class AccessType4:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        kind = cast(Literal["team"], d.pop("kind"))
-        if kind != "team":
-            raise ValueError(f"kind must match const 'team', got '{kind}'")
+        kind = AccessType4Kind(d.pop("kind"))
 
         team = d.pop("team")
 

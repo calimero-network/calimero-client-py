@@ -8,16 +8,16 @@ from ...types import Response, UNSET
 from ... import errors
 
 from ...models.error import Error
-from ...models.ops_deployments_granted_body import OpsDeploymentsGrantedBody
 from ...models.ops_deployments_granted_response_200 import (
     OpsDeploymentsGrantedResponse200,
 )
+from ...models.proof_only import ProofOnly
 from typing import cast
 
 
 def _get_kwargs(
     *,
-    body: OpsDeploymentsGrantedBody,
+    body: ProofOnly,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -82,7 +82,7 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient,
-    body: OpsDeploymentsGrantedBody,
+    body: ProofOnly,
 ) -> Response[Union[Error, OpsDeploymentsGrantedResponse200]]:
     """Require deployer grants
 
@@ -93,7 +93,8 @@ def sync_detailed(
     `nonce`.
 
     Args:
-        body (OpsDeploymentsGrantedBody):
+        body (ProofOnly): What an operator decision that names nothing in its body may carry: none
+            at first, the operator's proof after the `428`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -117,7 +118,7 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient,
-    body: OpsDeploymentsGrantedBody,
+    body: ProofOnly,
 ) -> Optional[Union[Error, OpsDeploymentsGrantedResponse200]]:
     """Require deployer grants
 
@@ -128,7 +129,8 @@ def sync(
     `nonce`.
 
     Args:
-        body (OpsDeploymentsGrantedBody):
+        body (ProofOnly): What an operator decision that names nothing in its body may carry: none
+            at first, the operator's proof after the `428`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -147,7 +149,7 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient,
-    body: OpsDeploymentsGrantedBody,
+    body: ProofOnly,
 ) -> Response[Union[Error, OpsDeploymentsGrantedResponse200]]:
     """Require deployer grants
 
@@ -158,7 +160,8 @@ async def asyncio_detailed(
     `nonce`.
 
     Args:
-        body (OpsDeploymentsGrantedBody):
+        body (ProofOnly): What an operator decision that names nothing in its body may carry: none
+            at first, the operator's proof after the `428`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -180,7 +183,7 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient,
-    body: OpsDeploymentsGrantedBody,
+    body: ProofOnly,
 ) -> Optional[Union[Error, OpsDeploymentsGrantedResponse200]]:
     """Require deployer grants
 
@@ -191,7 +194,8 @@ async def asyncio(
     `nonce`.
 
     Args:
-        body (OpsDeploymentsGrantedBody):
+        body (ProofOnly): What an operator decision that names nothing in its body may carry: none
+            at first, the operator's proof after the `428`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

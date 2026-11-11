@@ -63,7 +63,9 @@ def sync_detailed(
 ) -> Response[Union[DeploymentListResponse200, Error]]:
     """Deployments
 
-     **Who:** signed in (a session or an API key).
+     The deployments the caller manages.
+
+    **Who:** signed in (a session or an API key).
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -88,7 +90,9 @@ def sync(
 ) -> Optional[Union[DeploymentListResponse200, Error]]:
     """Deployments
 
-     **Who:** signed in (a session or an API key).
+     The deployments the caller manages.
+
+    **Who:** signed in (a session or an API key).
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -109,7 +113,9 @@ async def asyncio_detailed(
 ) -> Response[Union[DeploymentListResponse200, Error]]:
     """Deployments
 
-     **Who:** signed in (a session or an API key).
+     The deployments the caller manages.
+
+    **Who:** signed in (a session or an API key).
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -132,7 +138,9 @@ async def asyncio(
 ) -> Optional[Union[DeploymentListResponse200, Error]]:
     """Deployments
 
-     **Who:** signed in (a session or an API key).
+     The deployments the caller manages.
+
+    **Who:** signed in (a session or an API key).
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

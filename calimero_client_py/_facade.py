@@ -10,6 +10,7 @@ of the success (or, for the deprecated methods, the JSON as it came).
 
 import io
 import json
+import typing
 from urllib.parse import quote
 from enum import Enum
 from typing import Any, Dict, Optional, Tuple
@@ -56,6 +57,29 @@ class Operation:
         if isinstance(value, Unset) or value is None or isinstance(value, cls):
             return value
         return cls(value)
+
+
+def _enum_of(annotation: Any) -> Any:
+    """The Enum class an annotation names (directly or in a Union), if any."""
+    if isinstance(annotation, type) and issubclass(annotation, Enum):
+        return annotation
+    for arg in typing.get_args(annotation):
+        found = _enum_of(arg)
+        if found is not None:
+            return found
+    return None
+
+
+def _query_enums(module: Any, query: Dict[str, Any]) -> Dict[str, Any]:
+    """The query with each value a generated call takes as an enum given as
+    one (the deprecated methods pass the plain value)."""
+    hints = typing.get_type_hints(module._get_kwargs)
+    out = dict(query)
+    for name, value in query.items():
+        cls = _enum_of(hints.get(name))
+        if cls is not None:
+            out[name] = Operation.enum(cls, value)
+    return out
 
 
 def _plain(value: Any) -> Any:
@@ -112,6 +136,7 @@ class Group:
         body: Any,
         confirm: Any = None,
         operator_proof: Any = None,
+        content_type: Optional[str] = None,
     ) -> Any:
         client = self._client
         passkey = None
@@ -145,6 +170,8 @@ class Group:
             options.update(repeatable=True, retry_unavailable=True)
 
         kwargs = {k: v for k, v in query.items() if not isinstance(v, Unset)}
+        if self._as_json:
+            kwargs = _query_enums(op.module, kwargs)
         if op.body == "bytes":
             kwargs["body"] = File(payload=io.BytesIO(bytes(body)))
         elif op.body == "text":
@@ -180,6 +207,9 @@ class Group:
         # reach another route.
         segments = tuple(quote(str(p), safe="") for p in path)
         request = op.module._get_kwargs(*segments, **kwargs)
+        if content_type is not None:
+            # A body of any media type: the generated call names `*/*`.
+            request["headers"]["Content-Type"] = content_type
         response = api.get_httpx_client().request(**request)
         status = int(response.status_code)
         if status >= 400:

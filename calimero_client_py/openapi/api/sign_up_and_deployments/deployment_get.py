@@ -73,7 +73,10 @@ def sync_detailed(
 ) -> Response[Union[DeploymentGetResponse200, Error]]:
     """One deployment
 
-     **Who:** signed in (a session or an API key).
+     As anyone may read it: its name, its owner's kind and name (`null` when unknown), and the releases
+    it offers; never its managers or customers.
+
+    **Who:** signed in (a session or an API key).
 
     Args:
         id (str):
@@ -104,7 +107,10 @@ def sync(
 ) -> Optional[Union[DeploymentGetResponse200, Error]]:
     """One deployment
 
-     **Who:** signed in (a session or an API key).
+     As anyone may read it: its name, its owner's kind and name (`null` when unknown), and the releases
+    it offers; never its managers or customers.
+
+    **Who:** signed in (a session or an API key).
 
     Args:
         id (str):
@@ -130,7 +136,10 @@ async def asyncio_detailed(
 ) -> Response[Union[DeploymentGetResponse200, Error]]:
     """One deployment
 
-     **Who:** signed in (a session or an API key).
+     As anyone may read it: its name, its owner's kind and name (`null` when unknown), and the releases
+    it offers; never its managers or customers.
+
+    **Who:** signed in (a session or an API key).
 
     Args:
         id (str):
@@ -159,7 +168,10 @@ async def asyncio(
 ) -> Optional[Union[DeploymentGetResponse200, Error]]:
     """One deployment
 
-     **Who:** signed in (a session or an API key).
+     As anyone may read it: its name, its owner's kind and name (`null` when unknown), and the releases
+    it offers; never its managers or customers.
+
+    **Who:** signed in (a session or an API key).
 
     Args:
         id (str):

@@ -6,9 +6,12 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
+from ..models.consent_page_create_body_type_0_kind import ConsentPageCreateBodyType0Kind
+from ..models.consent_page_create_body_type_0_scope_type_0 import (
+    ConsentPageCreateBodyType0ScopeType0,
+)
 from typing import cast
 from typing import cast, Union
-from typing import Literal, cast
 
 if TYPE_CHECKING:
     from ..models.consent_page_create_body_type_0_scope_type_1 import (
@@ -26,14 +29,16 @@ T = TypeVar("T", bound="ConsentPageCreateBodyType0")
 class ConsentPageCreateBodyType0:
     """
     Attributes:
-        kind (Literal['release']):
-        scope (Union['ConsentPageCreateBodyType0ScopeType1', Literal['account']]):
+        kind (ConsentPageCreateBodyType0Kind):
+        scope (Union['ConsentPageCreateBodyType0ScopeType1', ConsentPageCreateBodyType0ScopeType0]):
         subject (ConsentPageCreateBodyType0Subject):
         return_to (str):
     """
 
-    kind: Literal["release"]
-    scope: Union["ConsentPageCreateBodyType0ScopeType1", Literal["account"]]
+    kind: ConsentPageCreateBodyType0Kind
+    scope: Union[
+        "ConsentPageCreateBodyType0ScopeType1", ConsentPageCreateBodyType0ScopeType0
+    ]
     subject: "ConsentPageCreateBodyType0Subject"
     return_to: str
 
@@ -45,13 +50,13 @@ class ConsentPageCreateBodyType0:
             ConsentPageCreateBodyType0Subject,
         )
 
-        kind = self.kind
+        kind = self.kind.value
 
-        scope: Union[Literal["account"], dict[str, Any]]
-        if isinstance(self.scope, ConsentPageCreateBodyType0ScopeType1):
-            scope = self.scope.to_dict()
+        scope: Union[dict[str, Any], str]
+        if isinstance(self.scope, ConsentPageCreateBodyType0ScopeType0):
+            scope = self.scope.value
         else:
-            scope = self.scope
+            scope = self.scope.to_dict()
 
         subject = self.subject.to_dict()
 
@@ -80,19 +85,21 @@ class ConsentPageCreateBodyType0:
         )
 
         d = dict(src_dict)
-        kind = cast(Literal["release"], d.pop("kind"))
-        if kind != "release":
-            raise ValueError(f"kind must match const 'release', got '{kind}'")
+        kind = ConsentPageCreateBodyType0Kind(d.pop("kind"))
 
         def _parse_scope(
             data: object,
-        ) -> Union["ConsentPageCreateBodyType0ScopeType1", Literal["account"]]:
-            scope_type_0 = cast(Literal["account"], data)
-            if scope_type_0 != "account":
-                raise ValueError(
-                    f"scope_type_0 must match const 'account', got '{scope_type_0}'"
-                )
-            return scope_type_0
+        ) -> Union[
+            "ConsentPageCreateBodyType0ScopeType1", ConsentPageCreateBodyType0ScopeType0
+        ]:
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                scope_type_0 = ConsentPageCreateBodyType0ScopeType0(data)
+
+                return scope_type_0
+            except:  # noqa: E722
+                pass
             if not isinstance(data, dict):
                 raise TypeError()
             scope_type_1 = ConsentPageCreateBodyType0ScopeType1.from_dict(data)

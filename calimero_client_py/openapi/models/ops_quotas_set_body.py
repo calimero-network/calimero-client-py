@@ -19,7 +19,8 @@ T = TypeVar("T", bound="OpsQuotasSetBody")
 
 @_attrs_define
 class OpsQuotasSetBody:
-    """
+    """Other properties than those listed may be present: the ones listed are those clients rely on.
+
     Attributes:
         org (Union[Unset, str]):
         operator_proof (Union[Unset, OperatorProof]): The operator key's Ed25519 signature (hex) over the statement a

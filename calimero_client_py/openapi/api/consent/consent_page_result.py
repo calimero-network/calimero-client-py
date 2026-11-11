@@ -83,7 +83,9 @@ def sync_detailed(
 ) -> Response[Union[ConsentPageResultResponse200, Error]]:
     """What became of a consent request
 
-     **Who:** a passkey session (an API key is refused).
+     `decidedAt` (Unix seconds) is `null` while it is pending.
+
+    **Who:** a passkey session (an API key is refused).
 
     Args:
         request (str):
@@ -114,7 +116,9 @@ def sync(
 ) -> Optional[Union[ConsentPageResultResponse200, Error]]:
     """What became of a consent request
 
-     **Who:** a passkey session (an API key is refused).
+     `decidedAt` (Unix seconds) is `null` while it is pending.
+
+    **Who:** a passkey session (an API key is refused).
 
     Args:
         request (str):
@@ -140,7 +144,9 @@ async def asyncio_detailed(
 ) -> Response[Union[ConsentPageResultResponse200, Error]]:
     """What became of a consent request
 
-     **Who:** a passkey session (an API key is refused).
+     `decidedAt` (Unix seconds) is `null` while it is pending.
+
+    **Who:** a passkey session (an API key is refused).
 
     Args:
         request (str):
@@ -169,7 +175,9 @@ async def asyncio(
 ) -> Optional[Union[ConsentPageResultResponse200, Error]]:
     """What became of a consent request
 
-     **Who:** a passkey session (an API key is refused).
+     `decidedAt` (Unix seconds) is `null` while it is pending.
+
+    **Who:** a passkey session (an API key is refused).
 
     Args:
         request (str):

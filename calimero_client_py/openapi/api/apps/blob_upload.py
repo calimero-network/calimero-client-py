@@ -40,7 +40,7 @@ def _get_kwargs(
 
     _kwargs["content"] = body.payload
 
-    headers["Content-Type"] = "application/octet-stream"
+    headers["Content-Type"] = "*/*"
 
     _kwargs["headers"] = headers
     return _kwargs
@@ -105,7 +105,9 @@ def sync_detailed(
 ) -> Response[Union[BlobUploadResponse200, Error]]:
     """Upload a blob
 
-     A plain blob (`sealed=true` is refused: sealed files go through `/files`).
+     A plain blob, stored with the request's `Content-Type` (default `application/octet-stream`), which a
+    component app's download answers with. Any `sealed` parameter, `true` or `false`, is refused `400
+    USE_FILES_API`: sealed files go through `/files`.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 
@@ -144,7 +146,9 @@ def sync(
 ) -> Optional[Union[BlobUploadResponse200, Error]]:
     """Upload a blob
 
-     A plain blob (`sealed=true` is refused: sealed files go through `/files`).
+     A plain blob, stored with the request's `Content-Type` (default `application/octet-stream`), which a
+    component app's download answers with. Any `sealed` parameter, `true` or `false`, is refused `400
+    USE_FILES_API`: sealed files go through `/files`.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 
@@ -178,7 +182,9 @@ async def asyncio_detailed(
 ) -> Response[Union[BlobUploadResponse200, Error]]:
     """Upload a blob
 
-     A plain blob (`sealed=true` is refused: sealed files go through `/files`).
+     A plain blob, stored with the request's `Content-Type` (default `application/octet-stream`), which a
+    component app's download answers with. Any `sealed` parameter, `true` or `false`, is refused `400
+    USE_FILES_API`: sealed files go through `/files`.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 
@@ -215,7 +221,9 @@ async def asyncio(
 ) -> Optional[Union[BlobUploadResponse200, Error]]:
     """Upload a blob
 
-     A plain blob (`sealed=true` is refused: sealed files go through `/files`).
+     A plain blob, stored with the request's `Content-Type` (default `application/octet-stream`), which a
+    component app's download answers with. Any `sealed` parameter, `true` or `false`, is refused `400
+    USE_FILES_API`: sealed files go through `/files`.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 

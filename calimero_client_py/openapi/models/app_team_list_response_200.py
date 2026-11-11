@@ -6,6 +6,7 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
+from ..models.app_team_list_response_200_mode import AppTeamListResponse200Mode
 from typing import cast
 
 T = TypeVar("T", bound="AppTeamListResponse200")
@@ -15,16 +16,16 @@ T = TypeVar("T", bound="AppTeamListResponse200")
 class AppTeamListResponse200:
     """
     Attributes:
-        mode (Any):
+        mode (AppTeamListResponse200Mode):
         app_teams (list[Any]):
     """
 
-    mode: Any
+    mode: AppTeamListResponse200Mode
     app_teams: list[Any]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        mode = self.mode
+        mode = self.mode.value
 
         app_teams = self.app_teams
 
@@ -42,7 +43,7 @@ class AppTeamListResponse200:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        mode = d.pop("mode")
+        mode = AppTeamListResponse200Mode(d.pop("mode"))
 
         app_teams = cast(list[Any], d.pop("appTeams"))
 

@@ -7,15 +7,15 @@ from ...client import AuthenticatedClient, Client
 from ...types import Response, UNSET
 from ... import errors
 
+from ...models.confirm_only import ConfirmOnly
 from ...models.error import Error
-from ...models.recovery_create_body import RecoveryCreateBody
 from ...models.recovery_create_response_200 import RecoveryCreateResponse200
 from typing import cast
 
 
 def _get_kwargs(
     *,
-    body: RecoveryCreateBody,
+    body: ConfirmOnly,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -85,7 +85,7 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient,
-    body: RecoveryCreateBody,
+    body: ConfirmOnly,
 ) -> Response[Union[Error, RecoveryCreateResponse200]]:
     """Make a recovery code
 
@@ -96,7 +96,8 @@ def sync_detailed(
     `details.challenge`.
 
     Args:
-        body (RecoveryCreateBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -120,7 +121,7 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient,
-    body: RecoveryCreateBody,
+    body: ConfirmOnly,
 ) -> Optional[Union[Error, RecoveryCreateResponse200]]:
     """Make a recovery code
 
@@ -131,7 +132,8 @@ def sync(
     `details.challenge`.
 
     Args:
-        body (RecoveryCreateBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -150,7 +152,7 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient,
-    body: RecoveryCreateBody,
+    body: ConfirmOnly,
 ) -> Response[Union[Error, RecoveryCreateResponse200]]:
     """Make a recovery code
 
@@ -161,7 +163,8 @@ async def asyncio_detailed(
     `details.challenge`.
 
     Args:
-        body (RecoveryCreateBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -183,7 +186,7 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient,
-    body: RecoveryCreateBody,
+    body: ConfirmOnly,
 ) -> Optional[Union[Error, RecoveryCreateResponse200]]:
     """Make a recovery code
 
@@ -194,7 +197,8 @@ async def asyncio(
     `details.challenge`.
 
     Args:
-        body (RecoveryCreateBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

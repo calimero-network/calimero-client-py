@@ -7,8 +7,8 @@ from ...client import AuthenticatedClient, Client
 from ...types import Response, UNSET
 from ... import errors
 
+from ...models.confirm_only import ConfirmOnly
 from ...models.error import Error
-from ...models.team_remove_member_body import TeamRemoveMemberBody
 from ...models.team_remove_member_response_200 import TeamRemoveMemberResponse200
 from typing import cast
 
@@ -18,7 +18,7 @@ def _get_kwargs(
     team: str,
     account: str,
     *,
-    body: TeamRemoveMemberBody,
+    body: ConfirmOnly,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -95,7 +95,7 @@ def sync_detailed(
     account: str,
     *,
     client: AuthenticatedClient,
-    body: TeamRemoveMemberBody,
+    body: ConfirmOnly,
 ) -> Response[Union[Error, TeamRemoveMemberResponse200]]:
     """Remove a team member, or leave
 
@@ -106,7 +106,8 @@ def sync_detailed(
         org (str):
         team (str):
         account (str):
-        body (TeamRemoveMemberBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -136,7 +137,7 @@ def sync(
     account: str,
     *,
     client: AuthenticatedClient,
-    body: TeamRemoveMemberBody,
+    body: ConfirmOnly,
 ) -> Optional[Union[Error, TeamRemoveMemberResponse200]]:
     """Remove a team member, or leave
 
@@ -147,7 +148,8 @@ def sync(
         org (str):
         team (str):
         account (str):
-        body (TeamRemoveMemberBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -172,7 +174,7 @@ async def asyncio_detailed(
     account: str,
     *,
     client: AuthenticatedClient,
-    body: TeamRemoveMemberBody,
+    body: ConfirmOnly,
 ) -> Response[Union[Error, TeamRemoveMemberResponse200]]:
     """Remove a team member, or leave
 
@@ -183,7 +185,8 @@ async def asyncio_detailed(
         org (str):
         team (str):
         account (str):
-        body (TeamRemoveMemberBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -211,7 +214,7 @@ async def asyncio(
     account: str,
     *,
     client: AuthenticatedClient,
-    body: TeamRemoveMemberBody,
+    body: ConfirmOnly,
 ) -> Optional[Union[Error, TeamRemoveMemberResponse200]]:
     """Remove a team member, or leave
 
@@ -222,7 +225,8 @@ async def asyncio(
         org (str):
         team (str):
         account (str):
-        body (TeamRemoveMemberBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

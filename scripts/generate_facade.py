@@ -213,6 +213,7 @@ def generate(document: dict) -> str:
             body_kind = "none"
             model = None
             more = False
+            any_type = False
             if body_param is not None:
                 ann = body_param.annotation
                 ann_name = getattr(ann, "__name__", str(ann))
@@ -220,6 +221,14 @@ def generate(document: dict) -> str:
                     body_kind = "bytes"
                     add("body", True, "the raw bytes")
                     body_exprs = None
+                    # A body of any media type (`*/*`, a blob) is sent under
+                    # the caller's, by default `application/octet-stream`.
+                    any_type = any("*" in t for t in op["requestBody"]["content"])
+                    if any_type:
+                        args.append('content_type="application/octet-stream"')
+                        argdocs.append(
+                            "            content_type: the body's media type"
+                        )
                 elif typing.get_origin(ann) is typing.Union:
                     # One of several shapes (`oneOf`): the body is given whole.
                     body_kind = "oneof"
@@ -260,13 +269,13 @@ def generate(document: dict) -> str:
                         body_exprs.append("**more")
                         more = True
             responses = op["responses"]
-            # `x-calimero-step-up` marks the routes that always ask; a call asks
-            # only for a `confirm` method, and says so by its `412` alone.
-            confirm = bool(
-                op.get("x-calimero-step-up")
-            ) or "CONFIRM_REQUIRED" in json.dumps(responses.get("412", {}))
+            # `x-calimero-step-up` marks the routes that can ask for a passkey
+            # (`x-calimero-step-up-when` says when one asks only sometimes).
+            confirm = bool(op.get("x-calimero-step-up"))
             operator = bool(op.get("x-calimero-operator"))
-            leader = "NOT_LEADER" in json.dumps(responses.get("421", {}))
+            leader = "NOT_LEADER" in responses.get("421", {}).get(
+                "x-calimero-codes", []
+            )
             retry_safe = bool(op.get("x-calimero-retry-safe"))
             retry_requires = op.get("x-calimero-retry-requires")
             if confirm:
@@ -331,6 +340,8 @@ def generate(document: dict) -> str:
                 extra += ", confirm=confirm"
             if operator:
                 extra += ", operator_proof=operator_proof"
+            if any_type:
+                extra += ", content_type=content_type"
             lines.append(
                 f"        return self._run({spec_name}, {path_t}, {query_t}, {body_t}{extra})"
             )

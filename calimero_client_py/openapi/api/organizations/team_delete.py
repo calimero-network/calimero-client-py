@@ -7,8 +7,8 @@ from ...client import AuthenticatedClient, Client
 from ...types import Response, UNSET
 from ... import errors
 
+from ...models.confirm_only import ConfirmOnly
 from ...models.error import Error
-from ...models.team_delete_body import TeamDeleteBody
 from ...models.team_delete_response_200 import TeamDeleteResponse200
 from typing import cast
 
@@ -17,7 +17,7 @@ def _get_kwargs(
     org: str,
     team: str,
     *,
-    body: TeamDeleteBody,
+    body: ConfirmOnly,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -97,7 +97,7 @@ def sync_detailed(
     team: str,
     *,
     client: AuthenticatedClient,
-    body: TeamDeleteBody,
+    body: ConfirmOnly,
 ) -> Response[Union[Error, TeamDeleteResponse200]]:
     """Delete a team
 
@@ -109,7 +109,8 @@ def sync_detailed(
     Args:
         org (str):
         team (str):
-        body (TeamDeleteBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -137,7 +138,7 @@ def sync(
     team: str,
     *,
     client: AuthenticatedClient,
-    body: TeamDeleteBody,
+    body: ConfirmOnly,
 ) -> Optional[Union[Error, TeamDeleteResponse200]]:
     """Delete a team
 
@@ -149,7 +150,8 @@ def sync(
     Args:
         org (str):
         team (str):
-        body (TeamDeleteBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -172,7 +174,7 @@ async def asyncio_detailed(
     team: str,
     *,
     client: AuthenticatedClient,
-    body: TeamDeleteBody,
+    body: ConfirmOnly,
 ) -> Response[Union[Error, TeamDeleteResponse200]]:
     """Delete a team
 
@@ -184,7 +186,8 @@ async def asyncio_detailed(
     Args:
         org (str):
         team (str):
-        body (TeamDeleteBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -210,7 +213,7 @@ async def asyncio(
     team: str,
     *,
     client: AuthenticatedClient,
-    body: TeamDeleteBody,
+    body: ConfirmOnly,
 ) -> Optional[Union[Error, TeamDeleteResponse200]]:
     """Delete a team
 
@@ -222,7 +225,8 @@ async def asyncio(
     Args:
         org (str):
         team (str):
-        body (TeamDeleteBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

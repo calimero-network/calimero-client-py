@@ -78,7 +78,9 @@ def sync_detailed(
 ) -> Response[Union[AppXcallsResponse200, Error]]:
     """An app's cross-app calls
 
-     The owner or an organization admin: calls waiting for delivery and dead letters.
+     The owner or an organization admin: how many calls wait in its outbox for delivery (`pending`, a
+    count), and its dead letters, oldest first (`atMs`: the entry time it was dead-lettered at, Unix
+    milliseconds).
 
     **Who:** signed in (a session or an API key).
 
@@ -111,7 +113,9 @@ def sync(
 ) -> Optional[Union[AppXcallsResponse200, Error]]:
     """An app's cross-app calls
 
-     The owner or an organization admin: calls waiting for delivery and dead letters.
+     The owner or an organization admin: how many calls wait in its outbox for delivery (`pending`, a
+    count), and its dead letters, oldest first (`atMs`: the entry time it was dead-lettered at, Unix
+    milliseconds).
 
     **Who:** signed in (a session or an API key).
 
@@ -139,7 +143,9 @@ async def asyncio_detailed(
 ) -> Response[Union[AppXcallsResponse200, Error]]:
     """An app's cross-app calls
 
-     The owner or an organization admin: calls waiting for delivery and dead letters.
+     The owner or an organization admin: how many calls wait in its outbox for delivery (`pending`, a
+    count), and its dead letters, oldest first (`atMs`: the entry time it was dead-lettered at, Unix
+    milliseconds).
 
     **Who:** signed in (a session or an API key).
 
@@ -170,7 +176,9 @@ async def asyncio(
 ) -> Optional[Union[AppXcallsResponse200, Error]]:
     """An app's cross-app calls
 
-     The owner or an organization admin: calls waiting for delivery and dead letters.
+     The owner or an organization admin: how many calls wait in its outbox for delivery (`pending`, a
+    count), and its dead letters, oldest first (`atMs`: the entry time it was dead-lettered at, Unix
+    milliseconds).
 
     **Who:** signed in (a session or an API key).
 

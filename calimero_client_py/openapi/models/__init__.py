@@ -1,17 +1,21 @@
 """Contains all the data models used in inputs/outputs"""
 
 from .access_type_0 import AccessType0
+from .access_type_0_kind import AccessType0Kind
 from .access_type_1 import AccessType1
+from .access_type_1_kind import AccessType1Kind
 from .access_type_2 import AccessType2
+from .access_type_2_kind import AccessType2Kind
 from .access_type_3 import AccessType3
+from .access_type_3_kind import AccessType3Kind
 from .access_type_4 import AccessType4
+from .access_type_4_kind import AccessType4Kind
 from .account_apps_response_200 import AccountAppsResponse200
 from .account_outbound_approval_body import AccountOutboundApprovalBody
 from .account_proof_prove_body import AccountProofProveBody
 from .account_proof_prove_response_200 import AccountProofProveResponse200
 from .account_recovery_begin_body import AccountRecoveryBeginBody
 from .account_recovery_begin_response_200 import AccountRecoveryBeginResponse200
-from .account_recovery_cancel_body import AccountRecoveryCancelBody
 from .account_recovery_cancel_response_200 import AccountRecoveryCancelResponse200
 from .account_recovery_finish_body import AccountRecoveryFinishBody
 from .account_recovery_start_body import AccountRecoveryStartBody
@@ -30,11 +34,12 @@ from .alias_list_response_200 import AliasListResponse200
 from .alias_list_response_200_aliases import AliasListResponse200Aliases
 from .alias_set_body import AliasSetBody
 from .alias_set_response_200 import AliasSetResponse200
+from .api_key import ApiKey
+from .api_key_upgrades import ApiKeyUpgrades
 from .apikey_create_body import ApikeyCreateBody
 from .apikey_create_body_upgrades import ApikeyCreateBodyUpgrades
 from .apikey_create_response_200 import ApikeyCreateResponse200
 from .apikey_list_response_200 import ApikeyListResponse200
-from .apikey_revoke_body import ApikeyRevokeBody
 from .apikey_revoke_response_200 import ApikeyRevokeResponse200
 from .app import App
 from .app_abi_response_200 import AppAbiResponse200
@@ -45,6 +50,8 @@ from .app_attestation_response_200 import AppAttestationResponse200
 from .app_create_body import AppCreateBody
 from .app_create_response_200 import AppCreateResponse200
 from .app_delete_response_200 import AppDeleteResponse200
+from .app_entry import AppEntry
+from .app_executor import AppExecutor
 from .app_list_response_200 import AppListResponse200
 from .app_metadata_body import AppMetadataBody
 from .app_metadata_response_200 import AppMetadataResponse200
@@ -55,10 +62,13 @@ from .app_method_response_200_events_item import AppMethodResponse200EventsItem
 from .app_move_body import AppMoveBody
 from .app_move_response_200 import AppMoveResponse200
 from .app_openapi_response_200 import AppOpenapiResponse200
+from .app_restore import AppRestore
+from .app_restore_source import AppRestoreSource
 from .app_run_response_200 import AppRunResponse200
 from .app_runs_response_200 import AppRunsResponse200
 from .app_storage_response_200 import AppStorageResponse200
 from .app_team_list_response_200 import AppTeamListResponse200
+from .app_team_list_response_200_mode import AppTeamListResponse200Mode
 from .app_teams_scope_body import AppTeamsScopeBody
 from .app_teams_scope_body_apps_item import AppTeamsScopeBodyAppsItem
 from .app_teams_scope_response_200 import AppTeamsScopeResponse200
@@ -80,38 +90,53 @@ from .blob_revoke_response_200 import BlobRevokeResponse200
 from .blob_upload_response_200 import BlobUploadResponse200
 from .bundle_put_response_200 import BundlePutResponse200
 from .confirm import Confirm
+from .confirm_only import ConfirmOnly
 from .confirm_required import ConfirmRequired
 from .consent_page_create_body_type_0 import ConsentPageCreateBodyType0
+from .consent_page_create_body_type_0_kind import ConsentPageCreateBodyType0Kind
+from .consent_page_create_body_type_0_scope_type_0 import (
+    ConsentPageCreateBodyType0ScopeType0,
+)
 from .consent_page_create_body_type_0_scope_type_1 import (
     ConsentPageCreateBodyType0ScopeType1,
 )
 from .consent_page_create_body_type_0_subject import ConsentPageCreateBodyType0Subject
 from .consent_page_create_body_type_1 import ConsentPageCreateBodyType1
+from .consent_page_create_body_type_1_kind import ConsentPageCreateBodyType1Kind
 from .consent_page_create_body_type_1_subject import ConsentPageCreateBodyType1Subject
 from .consent_page_create_body_type_2 import ConsentPageCreateBodyType2
+from .consent_page_create_body_type_2_kind import ConsentPageCreateBodyType2Kind
+from .consent_page_create_body_type_2_scope_type_0 import (
+    ConsentPageCreateBodyType2ScopeType0,
+)
 from .consent_page_create_body_type_2_scope_type_1 import (
     ConsentPageCreateBodyType2ScopeType1,
 )
 from .consent_page_create_body_type_2_subject import ConsentPageCreateBodyType2Subject
 from .consent_page_create_response_200 import ConsentPageCreateResponse200
 from .consent_page_result_response_200 import ConsentPageResultResponse200
+from .consent_page_result_response_200_kind import ConsentPageResultResponse200Kind
+from .consent_page_result_response_200_status import ConsentPageResultResponse200Status
+from .dead_letter import DeadLetter
 from .deployer_grant_body import DeployerGrantBody
 from .deployer_grant_response_200 import DeployerGrantResponse200
 from .deployer_list_response_200 import DeployerListResponse200
-from .deployer_revoke_body import DeployerRevokeBody
 from .deployer_revoke_response_200 import DeployerRevokeResponse200
 from .deployer_type_0 import DeployerType0
 from .deployer_type_1 import DeployerType1
+from .deployment import Deployment
+from .deployment_apps_item import DeploymentAppsItem
 from .deployment_create_body import DeploymentCreateBody
 from .deployment_create_response_200 import DeploymentCreateResponse200
-from .deployment_delete_body import DeploymentDeleteBody
 from .deployment_delete_response_200 import DeploymentDeleteResponse200
 from .deployment_get_response_200 import DeploymentGetResponse200
+from .deployment_get_response_200_apps_item import DeploymentGetResponse200AppsItem
+from .deployment_get_response_200_owner import DeploymentGetResponse200Owner
+from .deployment_get_response_200_owner_kind import DeploymentGetResponse200OwnerKind
 from .deployment_list_response_200 import DeploymentListResponse200
 from .deployment_offer_body import DeploymentOfferBody
 from .deployment_offer_response_200 import DeploymentOfferResponse200
 from .deployment_orgs_response_200 import DeploymentOrgsResponse200
-from .deployment_withdraw_body import DeploymentWithdrawBody
 from .error import Error
 from .file_info_response_200 import FileInfoResponse200
 from .files_list_response_200 import FilesListResponse200
@@ -125,7 +150,6 @@ from .invite_create_body import InviteCreateBody
 from .invite_create_response_200 import InviteCreateResponse200
 from .invite_list_response_200 import InviteListResponse200
 from .invite_redeem_response_200 import InviteRedeemResponse200
-from .invite_revoke_body import InviteRevokeBody
 from .invite_revoke_response_200 import InviteRevokeResponse200
 from .login_begin_body import LoginBeginBody
 from .login_begin_response_200 import LoginBeginResponse200
@@ -151,11 +175,8 @@ from .ops_cluster_owner_response_200 import OpsClusterOwnerResponse200
 from .ops_cluster_response_200 import OpsClusterResponse200
 from .ops_deployer_grant_body import OpsDeployerGrantBody
 from .ops_deployer_grant_response_200 import OpsDeployerGrantResponse200
-from .ops_deployer_revoke_delete_body import OpsDeployerRevokeDeleteBody
 from .ops_deployer_revoke_delete_response_200 import OpsDeployerRevokeDeleteResponse200
-from .ops_deployer_revoke_post_body import OpsDeployerRevokePostBody
 from .ops_deployer_revoke_post_response_200 import OpsDeployerRevokePostResponse200
-from .ops_deployments_granted_body import OpsDeploymentsGrantedBody
 from .ops_deployments_granted_response_200 import OpsDeploymentsGrantedResponse200
 from .ops_org_upgrade_body import OpsOrgUpgradeBody
 from .ops_orgs_response_200 import OpsOrgsResponse200
@@ -184,8 +205,6 @@ from .ops_register_node_body_role import OpsRegisterNodeBodyRole
 from .ops_register_node_response_200 import OpsRegisterNodeResponse200
 from .ops_release_body import OpsReleaseBody
 from .ops_release_deadline_body import OpsReleaseDeadlineBody
-from .ops_release_deadline_lift_body import OpsReleaseDeadlineLiftBody
-from .ops_remove_node_body import OpsRemoveNodeBody
 from .ops_remove_node_response_200 import OpsRemoveNodeResponse200
 from .ops_restore_body import OpsRestoreBody
 from .ops_restore_response_200 import OpsRestoreResponse200
@@ -193,57 +212,72 @@ from .ops_served_response_200 import OpsServedResponse200
 from .ops_served_response_200_origins_item import OpsServedResponse200OriginsItem
 from .ops_set_replicas_body import OpsSetReplicasBody
 from .ops_set_replicas_response_200 import OpsSetReplicasResponse200
+from .ops_set_replicas_response_200_status import OpsSetReplicasResponse200Status
 from .ops_sign_up_invite_create_body import OpsSignUpInviteCreateBody
 from .ops_sign_up_invite_create_response_200 import OpsSignUpInviteCreateResponse200
 from .ops_sign_up_invite_list_response_200 import OpsSignUpInviteListResponse200
-from .ops_sign_up_invite_revoke_delete_body import OpsSignUpInviteRevokeDeleteBody
-from .ops_sign_up_invite_revoke_post_body import OpsSignUpInviteRevokePostBody
 from .ops_sign_up_set_body import OpsSignUpSetBody
 from .ops_status_response_200 import OpsStatusResponse200
 from .ops_upgrade_body import OpsUpgradeBody
 from .ops_upgrade_response_200 import OpsUpgradeResponse200
+from .org import Org
 from .org_all_apps_body import OrgAllAppsBody
 from .org_all_apps_response_200 import OrgAllAppsResponse200
 from .org_apps_response_200 import OrgAppsResponse200
+from .org_capabilities import OrgCapabilities
 from .org_capabilities_body import OrgCapabilitiesBody
 from .org_capabilities_response_200 import OrgCapabilitiesResponse200
 from .org_create_body import OrgCreateBody
 from .org_create_response_200 import OrgCreateResponse200
-from .org_delete_body import OrgDeleteBody
-from .org_get_response_200 import OrgGetResponse200
+from .org_member_metadata import OrgMemberMetadata
+from .org_members import OrgMembers
+from .org_members_detail import OrgMembersDetail
 from .org_members_response_200 import OrgMembersResponse200
 from .org_members_response_200_members_item import OrgMembersResponse200MembersItem
 from .org_metadata_body import OrgMetadataBody
 from .org_metadata_response_200 import OrgMetadataResponse200
+from .org_mode import OrgMode
+from .org_new_work_stopped_type_0 import OrgNewWorkStoppedType0
 from .org_outbound_approval_body import OrgOutboundApprovalBody
+from .org_outbound_approvals import OrgOutboundApprovals
+from .org_outbound_approvals_additional_property import (
+    OrgOutboundApprovalsAdditionalProperty,
+)
 from .org_publisher_body import OrgPublisherBody
 from .org_publisher_response_200 import OrgPublisherResponse200
+from .org_recovery import OrgRecovery
+from .org_recovery_pending_type_0 import OrgRecoveryPendingType0
 from .org_release_approval_body import OrgReleaseApprovalBody
-from .org_remove_member_body import OrgRemoveMemberBody
 from .org_remove_member_response_200 import OrgRemoveMemberResponse200
 from .org_rename_body import OrgRenameBody
 from .org_rename_response_200 import OrgRenameResponse200
 from .org_role import OrgRole
 from .org_set_member_body import OrgSetMemberBody
 from .org_set_member_response_200 import OrgSetMemberResponse200
+from .org_teams import OrgTeams
 from .org_upgrade_body import OrgUpgradeBody
 from .org_upgrade_retry_body import OrgUpgradeRetryBody
+from .org_upgrade_runs import OrgUpgradeRuns
 from .org_usage_response_200 import OrgUsageResponse200
 from .origins_add_body import OriginsAddBody
 from .origins_list_response_200 import OriginsListResponse200
 from .origins_remove_body import OriginsRemoveBody
-from .package_get_response_200 import PackageGetResponse200
+from .outbound_selection_type_0 import OutboundSelectionType0
+from .package import Package
 from .package_install_body import PackageInstallBody
 from .package_install_response_200 import PackageInstallResponse200
 from .package_list_response_200 import PackageListResponse200
+from .package_ref import PackageRef
 from .package_upload_response_200 import PackageUploadResponse200
+from .package_versions_item import PackageVersionsItem
+from .package_versions_item_services import PackageVersionsItemServices
+from .package_versions_item_source import PackageVersionsItemSource
 from .page import Page
 from .passkey_add_begin_response_200 import PasskeyAddBeginResponse200
 from .passkey_add_finish_body import PasskeyAddFinishBody
 from .passkey_add_finish_response_200 import PasskeyAddFinishResponse200
 from .passkey_label_body import PasskeyLabelBody
 from .passkey_label_response_200 import PasskeyLabelResponse200
-from .passkey_remove_body import PasskeyRemoveBody
 from .passkey_remove_response_200 import PasskeyRemoveResponse200
 from .presence_get_response_200 import PresenceGetResponse200
 from .presence_publish_body import PresencePublishBody
@@ -252,13 +286,9 @@ from .proof_only import ProofOnly
 from .publisher_binding_response_200 import PublisherBindingResponse200
 from .publisher_upgrade_body import PublisherUpgradeBody
 from .receipt import Receipt
-from .recovery_cancel_body import RecoveryCancelBody
 from .recovery_cancel_response_200 import RecoveryCancelResponse200
-from .recovery_create_body import RecoveryCreateBody
 from .recovery_create_response_200 import RecoveryCreateResponse200
-from .recovery_finish_body import RecoveryFinishBody
 from .recovery_finish_response_200 import RecoveryFinishResponse200
-from .recovery_remove_body import RecoveryRemoveBody
 from .recovery_remove_response_200 import RecoveryRemoveResponse200
 from .recovery_set_body import RecoverySetBody
 from .recovery_set_response_200 import RecoverySetResponse200
@@ -281,22 +311,25 @@ from .sign_up import SignUp
 from .sign_up_invite_create_body import SignUpInviteCreateBody
 from .sign_up_invite_create_response_200 import SignUpInviteCreateResponse200
 from .sign_up_invite_list_response_200 import SignUpInviteListResponse200
-from .sign_up_invite_revoke_body import SignUpInviteRevokeBody
 from .sign_up_public_response_200 import SignUpPublicResponse200
 from .sign_up_set_body import SignUpSetBody
+from .team import Team
+from .team_capabilities import TeamCapabilities
 from .team_create_body import TeamCreateBody
 from .team_create_response_200 import TeamCreateResponse200
-from .team_delete_body import TeamDeleteBody
 from .team_delete_response_200 import TeamDeleteResponse200
-from .team_get_response_200 import TeamGetResponse200
 from .team_join import TeamJoin
-from .team_remove_member_body import TeamRemoveMemberBody
+from .team_members import TeamMembers
 from .team_remove_member_response_200 import TeamRemoveMemberResponse200
 from .team_role import TeamRole
 from .team_set_member_body import TeamSetMemberBody
 from .team_set_member_response_200 import TeamSetMemberResponse200
 from .team_update_body import TeamUpdateBody
 from .team_update_response_200 import TeamUpdateResponse200
+from .team_view import TeamView
+from .team_view_apps_item import TeamViewAppsItem
+from .team_view_members_item import TeamViewMembersItem
+from .upgrade import Upgrade
 from .upgrade_run import UpgradeRun
 from .upgrade_run_failed import UpgradeRunFailed
 from .upload_abort_response_200 import UploadAbortResponse200
@@ -313,17 +346,21 @@ from .written import Written
 
 __all__ = (
     "AccessType0",
+    "AccessType0Kind",
     "AccessType1",
+    "AccessType1Kind",
     "AccessType2",
+    "AccessType2Kind",
     "AccessType3",
+    "AccessType3Kind",
     "AccessType4",
+    "AccessType4Kind",
     "AccountAppsResponse200",
     "AccountOutboundApprovalBody",
     "AccountProofProveBody",
     "AccountProofProveResponse200",
     "AccountRecoveryBeginBody",
     "AccountRecoveryBeginResponse200",
-    "AccountRecoveryCancelBody",
     "AccountRecoveryCancelResponse200",
     "AccountRecoveryFinishBody",
     "AccountRecoveryStartBody",
@@ -338,12 +375,13 @@ __all__ = (
     "AliasListResponse200Aliases",
     "AliasSetBody",
     "AliasSetResponse200",
+    "ApiKey",
     "ApikeyCreateBody",
     "ApikeyCreateBodyUpgrades",
     "ApikeyCreateResponse200",
     "ApikeyListResponse200",
-    "ApikeyRevokeBody",
     "ApikeyRevokeResponse200",
+    "ApiKeyUpgrades",
     "App",
     "AppAbiResponse200",
     "AppAccessBody",
@@ -353,6 +391,8 @@ __all__ = (
     "AppCreateBody",
     "AppCreateResponse200",
     "AppDeleteResponse200",
+    "AppEntry",
+    "AppExecutor",
     "Applied",
     "AppListResponse200",
     "AppMetadataBody",
@@ -364,10 +404,13 @@ __all__ = (
     "AppMoveBody",
     "AppMoveResponse200",
     "AppOpenapiResponse200",
+    "AppRestore",
+    "AppRestoreSource",
     "AppRunResponse200",
     "AppRunsResponse200",
     "AppStorageResponse200",
     "AppTeamListResponse200",
+    "AppTeamListResponse200Mode",
     "AppTeamsScopeBody",
     "AppTeamsScopeBodyAppsItem",
     "AppTeamsScopeResponse200",
@@ -388,34 +431,45 @@ __all__ = (
     "BlobUploadResponse200",
     "BundlePutResponse200",
     "Confirm",
+    "ConfirmOnly",
     "ConfirmRequired",
     "ConsentPageCreateBodyType0",
+    "ConsentPageCreateBodyType0Kind",
+    "ConsentPageCreateBodyType0ScopeType0",
     "ConsentPageCreateBodyType0ScopeType1",
     "ConsentPageCreateBodyType0Subject",
     "ConsentPageCreateBodyType1",
+    "ConsentPageCreateBodyType1Kind",
     "ConsentPageCreateBodyType1Subject",
     "ConsentPageCreateBodyType2",
+    "ConsentPageCreateBodyType2Kind",
+    "ConsentPageCreateBodyType2ScopeType0",
     "ConsentPageCreateBodyType2ScopeType1",
     "ConsentPageCreateBodyType2Subject",
     "ConsentPageCreateResponse200",
     "ConsentPageResultResponse200",
+    "ConsentPageResultResponse200Kind",
+    "ConsentPageResultResponse200Status",
+    "DeadLetter",
     "DeployerGrantBody",
     "DeployerGrantResponse200",
     "DeployerListResponse200",
-    "DeployerRevokeBody",
     "DeployerRevokeResponse200",
     "DeployerType0",
     "DeployerType1",
+    "Deployment",
+    "DeploymentAppsItem",
     "DeploymentCreateBody",
     "DeploymentCreateResponse200",
-    "DeploymentDeleteBody",
     "DeploymentDeleteResponse200",
     "DeploymentGetResponse200",
+    "DeploymentGetResponse200AppsItem",
+    "DeploymentGetResponse200Owner",
+    "DeploymentGetResponse200OwnerKind",
     "DeploymentListResponse200",
     "DeploymentOfferBody",
     "DeploymentOfferResponse200",
     "DeploymentOrgsResponse200",
-    "DeploymentWithdrawBody",
     "Error",
     "FileInfoResponse200",
     "FilesListResponse200",
@@ -429,7 +483,6 @@ __all__ = (
     "InviteCreateResponse200",
     "InviteListResponse200",
     "InviteRedeemResponse200",
-    "InviteRevokeBody",
     "InviteRevokeResponse200",
     "LoginBeginBody",
     "LoginBeginResponse200",
@@ -455,11 +508,8 @@ __all__ = (
     "OpsClusterResponse200",
     "OpsDeployerGrantBody",
     "OpsDeployerGrantResponse200",
-    "OpsDeployerRevokeDeleteBody",
     "OpsDeployerRevokeDeleteResponse200",
-    "OpsDeployerRevokePostBody",
     "OpsDeployerRevokePostResponse200",
-    "OpsDeploymentsGrantedBody",
     "OpsDeploymentsGrantedResponse200",
     "OpsOrgsResponse200",
     "OpsOrgsResponse200OrgsItem",
@@ -486,8 +536,6 @@ __all__ = (
     "OpsRegisterNodeResponse200",
     "OpsReleaseBody",
     "OpsReleaseDeadlineBody",
-    "OpsReleaseDeadlineLiftBody",
-    "OpsRemoveNodeBody",
     "OpsRemoveNodeResponse200",
     "OpsRestoreBody",
     "OpsRestoreResponse200",
@@ -495,57 +543,70 @@ __all__ = (
     "OpsServedResponse200OriginsItem",
     "OpsSetReplicasBody",
     "OpsSetReplicasResponse200",
+    "OpsSetReplicasResponse200Status",
     "OpsSignUpInviteCreateBody",
     "OpsSignUpInviteCreateResponse200",
     "OpsSignUpInviteListResponse200",
-    "OpsSignUpInviteRevokeDeleteBody",
-    "OpsSignUpInviteRevokePostBody",
     "OpsSignUpSetBody",
     "OpsStatusResponse200",
     "OpsUpgradeBody",
     "OpsUpgradeResponse200",
+    "Org",
     "OrgAllAppsBody",
     "OrgAllAppsResponse200",
     "OrgAppsResponse200",
+    "OrgCapabilities",
     "OrgCapabilitiesBody",
     "OrgCapabilitiesResponse200",
     "OrgCreateBody",
     "OrgCreateResponse200",
-    "OrgDeleteBody",
-    "OrgGetResponse200",
+    "OrgMemberMetadata",
+    "OrgMembers",
+    "OrgMembersDetail",
     "OrgMembersResponse200",
     "OrgMembersResponse200MembersItem",
     "OrgMetadataBody",
     "OrgMetadataResponse200",
+    "OrgMode",
+    "OrgNewWorkStoppedType0",
     "OrgOutboundApprovalBody",
+    "OrgOutboundApprovals",
+    "OrgOutboundApprovalsAdditionalProperty",
     "OrgPublisherBody",
     "OrgPublisherResponse200",
+    "OrgRecovery",
+    "OrgRecoveryPendingType0",
     "OrgReleaseApprovalBody",
-    "OrgRemoveMemberBody",
     "OrgRemoveMemberResponse200",
     "OrgRenameBody",
     "OrgRenameResponse200",
     "OrgRole",
     "OrgSetMemberBody",
     "OrgSetMemberResponse200",
+    "OrgTeams",
     "OrgUpgradeBody",
     "OrgUpgradeRetryBody",
+    "OrgUpgradeRuns",
     "OrgUsageResponse200",
     "OriginsAddBody",
     "OriginsListResponse200",
     "OriginsRemoveBody",
-    "PackageGetResponse200",
+    "OutboundSelectionType0",
+    "Package",
     "PackageInstallBody",
     "PackageInstallResponse200",
     "PackageListResponse200",
+    "PackageRef",
     "PackageUploadResponse200",
+    "PackageVersionsItem",
+    "PackageVersionsItemServices",
+    "PackageVersionsItemSource",
     "Page",
     "PasskeyAddBeginResponse200",
     "PasskeyAddFinishBody",
     "PasskeyAddFinishResponse200",
     "PasskeyLabelBody",
     "PasskeyLabelResponse200",
-    "PasskeyRemoveBody",
     "PasskeyRemoveResponse200",
     "PresenceGetResponse200",
     "PresencePublishBody",
@@ -554,13 +615,9 @@ __all__ = (
     "PublisherBindingResponse200",
     "PublisherUpgradeBody",
     "Receipt",
-    "RecoveryCancelBody",
     "RecoveryCancelResponse200",
-    "RecoveryCreateBody",
     "RecoveryCreateResponse200",
-    "RecoveryFinishBody",
     "RecoveryFinishResponse200",
-    "RecoveryRemoveBody",
     "RecoveryRemoveResponse200",
     "RecoverySetBody",
     "RecoverySetResponse200",
@@ -581,22 +638,25 @@ __all__ = (
     "SignUpInviteCreateBody",
     "SignUpInviteCreateResponse200",
     "SignUpInviteListResponse200",
-    "SignUpInviteRevokeBody",
     "SignUpPublicResponse200",
     "SignUpSetBody",
+    "Team",
+    "TeamCapabilities",
     "TeamCreateBody",
     "TeamCreateResponse200",
-    "TeamDeleteBody",
     "TeamDeleteResponse200",
-    "TeamGetResponse200",
     "TeamJoin",
-    "TeamRemoveMemberBody",
+    "TeamMembers",
     "TeamRemoveMemberResponse200",
     "TeamRole",
     "TeamSetMemberBody",
     "TeamSetMemberResponse200",
     "TeamUpdateBody",
     "TeamUpdateResponse200",
+    "TeamView",
+    "TeamViewAppsItem",
+    "TeamViewMembersItem",
+    "Upgrade",
     "UpgradeRun",
     "UpgradeRunFailed",
     "UploadAbortResponse200",
