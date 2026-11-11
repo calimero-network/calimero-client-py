@@ -169,6 +169,9 @@ jobs:
           private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
+          # Only what the sync needs, not everything the App holds.
+          permission-contents: write
+          permission-pull-requests: write
 
       - name: Identify the app
         if: steps.sync.outputs.changed == 'true' && inputs.dry_run != true
