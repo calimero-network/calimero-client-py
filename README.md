@@ -32,6 +32,51 @@ toolchain on `PATH` ([rustup](https://rustup.rs/)). See the
 [installation guide](https://calimero-network.github.io/calimero-client-py/get-started/installation/)
 for details.
 
+## The generated client
+
+The routes are generated from core's OpenAPI document (`docs/public/openapi.json`
+in core, vendored as [`openapi/openapi.json`](openapi/openapi.json) with the core
+commit in [`openapi/source.json`](openapi/source.json)):
+
+- `calimero_client_py/openapi/` is [openapi-python-client](https://github.com/openapi-generators/openapi-python-client)
+  0.26.2's output: one module per operation, typed models.
+- `calimero_client_py/facade.py` puts one method per operation on `Client`, grouped
+  by tag: `client.auth`, `client.apps`, `client.orgs`, `client.packages`,
+  `client.ops`, `client.deployments`, `client.consent`, `client.public`.
+
+```python
+client.use_passkey(passkey)                    # answers each 412 CONFIRM_REQUIRED
+org = client.orgs.create(name="Acme").org_id
+token = client.orgs.invite_create(org=org, role="member").token
+r = client.apps.call(app=app_id, method="set", args={"key": "a", "value": "1"})
+client.orgs.team_delete(org=org, team=team, confirm=other_passkey)  # per call
+```
+
+Arguments are keyword-only (the path's, the query's and the JSON body's
+fields; a raw-byte body is `body=`), each method returns the generated model of
+the answer and raises `CloudError` on a refusal. A `412 CONFIRM_REQUIRED` is
+answered with the client's passkey (`use_passkey`) and a `428
+OPERATOR_SIGNATURE_REQUIRED` with its operator key (`use_operator_key`);
+`confirm=` and `operator_proof=` override them per call. `client.api()` runs the
+generated modules directly on the same sealed transport.
+
+Hand-written, because a generated client cannot be made of it: the attested
+sealed channel (the native `SealedClient`, which the generated code's httpx
+transport sends through), the step-ups (`calimero_client_py/sealed.py`), the
+passkey ceremonies (`sign_up`, `sign_in`, `add_passkey`, account recovery) and
+the event streams (`events`, `presence_stream`). The methods earlier releases
+had, one per route, keep their names and signatures and answer as before, and
+are deprecated (`DeprecationWarning`) in favour of the facade method their
+docstring names.
+
+Regenerate after a change to core's API:
+
+```bash
+pip install openapi-python-client==0.26.2 black==26.10.1
+python scripts/refresh_openapi.py              # core's master (or --ref <ref>, --core ../core)
+python scripts/generate_openapi_client.py      # CI runs it with --check
+```
+
 ## Quick start
 
 `Client` talks to one node of a Calimero 1.0 cluster (`merod`). Every method

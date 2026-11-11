@@ -117,7 +117,11 @@ jobs:
       if: matrix.smoke
       shell: bash
       run: |
+        # The generated client's dependencies from the index, the wheel from dist/.
+        python -m pip install "httpx>=0.23.0,<0.29.0" "attrs>=22.2.0"
         python -m pip install --no-index --find-links dist calimero-client-py
+        # Away from the checkout, whose package directories would shadow the wheel's.
+        cd "$RUNNER_TEMP"
         python -c "import calimero, calimero_client_py as c; assert c.Client is c.CloudClient; print(calimero.__version__, c.VERSION)"
 
     - name: Upload the wheel

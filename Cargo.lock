@@ -484,6 +484,7 @@ version = "1.0.0-rc.2"
 dependencies = [
  "calimero-client",
  "calimero-identity",
+ "calimero-sealed",
  "ed25519-dalek 3.0.0",
  "eyre",
  "futures-util",

@@ -11,7 +11,6 @@
 //! `tests/test_account_recovery.py`), so a code can be checked before it is
 //! sent.
 
-use super::account::use_answer;
 use super::prelude::*;
 
 /// What a recovery code's key is derived from, before the canonical code
@@ -91,97 +90,6 @@ impl PyCloudClient {
     #[staticmethod]
     fn recovery_code_key(code: &str) -> PyResult<String> {
         recovery_code_key(code).ok_or_else(not_a_code)
-    }
-
-    /// Make (or replace) the signed-in account's recovery code, approved with
-    /// `passkey`, one the account has (the node's `412 CONFIRM_REQUIRED`).
-    /// Returns the code (`XXXX-XXXX-...`), shown once: write it down. A
-    /// session's on the cluster's own origin, never an API key's.
-    fn create_recovery_code(&self, py: Python<'_>, passkey: &PySoftPasskey) -> PyResult<String> {
-        let v = self.confirmed(py, "auth/recovery".into(), serde_json::json!({}), passkey)?;
-        field(&v, "code")
-    }
-
-    /// Remove the account's recovery code, approved with `passkey`.
-    fn remove_recovery_code(&self, py: Python<'_>, passkey: &PySoftPasskey) -> PyResult<()> {
-        self.confirmed_delete(py, "auth/recovery".into(), passkey)
-            .map(drop)
-    }
-
-    /// Start recovering the account `code` names, signed out, with `passkey`,
-    /// a new one made here for the node's options (`/auth/recovery/begin`,
-    /// then `/start`). Nothing is added and no session opens yet: answers the
-    /// pending recovery, `{accountId, credentialId, startedAt, readyAt}`;
-    /// `finish_account_recovery` with the same passkey once `readyAt` has
-    /// passed (72 hours). The code is spent. A wrong or spent code raises
-    /// `LoginRequired` (`401`), an account with a recovery under way
-    /// `CloudError` `409 RECOVERY_PENDING`; a code that cannot be one,
-    /// `ValueError` before anything is sent.
-    fn start_account_recovery(
-        &self,
-        py: Python<'_>,
-        code: &str,
-        passkey: &PySoftPasskey,
-    ) -> PyResult<PyObject> {
-        let code = normalize_recovery_code(code).ok_or_else(not_a_code)?;
-        let pk = Arc::clone(&passkey.inner);
-        let v = self.run_once(py, async |c| {
-            let begin = c
-                .post("auth/recovery/begin", serde_json::json!({ "code": code }))
-                .await?;
-            let registration = pk.lock().await.create(&begin["options"]);
-            c.post(
-                "auth/recovery/start",
-                serde_json::json!({
-                    "challengeId": begin["challengeId"],
-                    "code": code,
-                    "registration": registration,
-                }),
-            )
-            .await
-        })?;
-        to_py(py, &v)
-    }
-
-    /// Cancel the recovery under way for the signed-in account, approved
-    /// with `passkey`, one the account already has. The code stays spent.
-    fn cancel_account_recovery(&self, py: Python<'_>, passkey: &PySoftPasskey) -> PyResult<()> {
-        self.confirmed(
-            py,
-            "auth/recovery/cancel".into(),
-            serde_json::json!({}),
-            passkey,
-        )
-        .map(drop)
-    }
-
-    /// Finish a recovery once its delay passed, signed out, with `passkey`,
-    /// the one `start_account_recovery` registered: the node adds it, ends
-    /// every session the account had, and signs in. Returns the session and
-    /// uses it. `account_id` (the start's `accountId`) lets the node refuse
-    /// early; without it the passkey names the recovery. Before `readyAt`:
-    /// `CloudError` `409 RECOVERY_NOT_READY` (`details.readyAt`).
-    #[pyo3(signature = (passkey, account_id = None))]
-    fn finish_account_recovery(
-        &self,
-        py: Python<'_>,
-        passkey: &PySoftPasskey,
-        account_id: Option<String>,
-    ) -> PyResult<PyObject> {
-        let body = match account_id {
-            Some(a) => serde_json::json!({ "accountId": a }),
-            None => serde_json::json!({}),
-        };
-        let pk = Arc::clone(&passkey.inner);
-        let s = self.run_once(py, async |c| {
-            let mut auth = pk.lock().await;
-            let done = c
-                .post_confirmed("auth/recovery/finish", body.clone(), &mut *auth)
-                .await?;
-            use_answer(&c, done).await
-        })?;
-        self.forget_api_key();
-        to_py(py, &s)
     }
 }
 
