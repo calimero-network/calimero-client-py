@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0rc3
+## 1.0.0-rc.3
 
 - **feat: a client generated from core's OpenAPI document.** The routes are
   now `calimero_client_py.openapi` (openapi-python-client 0.26.2, from
