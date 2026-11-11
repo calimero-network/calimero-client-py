@@ -107,9 +107,10 @@ jobs:
         manylinux: ${{ matrix.manylinux }}
         args: --release --out dist
         # Core's TDX attestation links OpenSSL on Linux, built from source
-        # (`openssl` with `vendored`, Cargo.toml); its Configure needs
-        # IPC::Cmd, which the manylinux2014 image does not ship.
-        before-script-linux: yum install -y perl-IPC-Cmd
+        # (`openssl` with `vendored`, Cargo.toml); its Configure needs Perl
+        # core modules (IPC::Cmd, Time::Piece, ...) the manylinux2014 image
+        # leaves out.
+        before-script-linux: yum install -y perl-core
 
     - name: Show what was produced
       shell: bash
