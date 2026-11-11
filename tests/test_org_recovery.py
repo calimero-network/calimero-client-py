@@ -46,10 +46,10 @@ def test_an_org_is_recovered_only_with_its_current_seed(cluster):
     alice, apk = person(cluster, 0, "alice-recovery")
     bob, bpk = person(cluster, 1, "bob-recovery")
     seed = CloudClient.new_recovery_seed()
-    org = alice.create_org(
-        "Recoverable", recovery_key=CloudClient.recovery_public_key(seed)
-    )
-    assert alice.get_org(org)["recovery"][
+    org = alice.json.orgs.create(
+        name="Recoverable", recovery_key=CloudClient.recovery_public_key(seed)
+    )["orgId"]
+    assert alice.json.orgs.get(org=org)["recovery"][
         "publicKey"
     ] == CloudClient.recovery_public_key(seed)
 
@@ -58,29 +58,38 @@ def test_an_org_is_recovered_only_with_its_current_seed(cluster):
         bob.start_recovery(org, CloudClient.new_recovery_seed())
     assert code(e.value) == "WRONG_RECOVERY_KEY"
     with pytest.raises(CloudError):
-        bob.set_recovery_key(
-            org, CloudClient.recovery_public_key(CloudClient.new_recovery_seed()), bpk
+        bob.json.orgs.recovery_set(
+            org=org,
+            public_key=CloudClient.recovery_public_key(CloudClient.new_recovery_seed()),
+            confirm=bpk,
         )
 
     # The seed starts one; it waits, and the owner cancels it.
     started = bob.start_recovery(org, seed)
     assert started["readyAt"] - started["startedAt"] == 72 * 3600
-    assert alice.get_org(org)["recovery"]["pending"]["account"] == bob.me()["accountId"]
+    assert (
+        alice.json.orgs.get(org=org)["recovery"]["pending"]["account"]
+        == bob.json.auth.me()["accountId"]
+    )
     with pytest.raises(CloudError) as e:
         bob.start_recovery(org, seed)
     assert code(e.value) == "RECOVERY_PENDING"
     with pytest.raises(CloudError) as e:
-        bob.finish_recovery(org, bpk)
+        bob.json.orgs.recovery_finish(org=org, confirm=bpk)
     assert code(e.value) == "RECOVERY_NOT_READY"
-    alice.cancel_recovery(org, apk)
-    assert alice.get_org(org)["recovery"]["pending"] is None
+    alice.json.orgs.recovery_cancel(org=org, confirm=apk)
+    assert alice.json.orgs.get(org=org)["recovery"]["pending"] is None
 
     # Rotating the key leaves the old seed useless.
     new_seed = CloudClient.new_recovery_seed()
-    alice.set_recovery_key(org, CloudClient.recovery_public_key(new_seed), apk)
+    alice.json.orgs.recovery_set(
+        org=org, public_key=CloudClient.recovery_public_key(new_seed), confirm=apk
+    )
     with pytest.raises(CloudError) as e:
         bob.start_recovery(org, seed)
     assert code(e.value) == "WRONG_RECOVERY_KEY"
     bob.start_recovery(org, new_seed)
-    alice.set_recovery_key(org, None, apk)  # removing it ends the recovery too
-    assert "recovery" not in alice.get_org(org)
+    alice.json.orgs.recovery_set(
+        org=org, public_key=None, confirm=apk
+    )  # removing it ends the recovery too
+    assert "recovery" not in alice.json.orgs.get(org=org)
