@@ -8,21 +8,26 @@ from ...types import Response, UNSET
 from ... import errors
 
 from ...models.error import Error
+from ...models.org_members_detail import OrgMembersDetail
 from ...models.org_members_response_200 import OrgMembersResponse200
 from ...types import UNSET, Unset
 from typing import cast
-from typing import Literal, Union, cast
+from typing import Union
 
 
 def _get_kwargs(
     org: str,
     *,
-    detail: Union[Literal["security"], Unset] = UNSET,
+    detail: Union[Unset, OrgMembersDetail] = UNSET,
 ) -> dict[str, Any]:
 
     params: dict[str, Any] = {}
 
-    params["detail"] = detail
+    json_detail: Union[Unset, str] = UNSET
+    if not isinstance(detail, Unset):
+        json_detail = detail.value
+
+    params["detail"] = json_detail
 
     params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
 
@@ -91,18 +96,19 @@ def sync_detailed(
     org: str,
     *,
     client: AuthenticatedClient,
-    detail: Union[Literal["security"], Unset] = UNSET,
+    detail: Union[Unset, OrgMembersDetail] = UNSET,
 ) -> Response[Union[Error, OrgMembersResponse200]]:
     r"""Members' lockout risk
 
-     `detail=security`, the owner or an admin: each member's passkeys (`1`, `2` or `\"3+\"`), recovery
-    code, last active UTC day and sessions. `403` below admin, `404` outside the organization.
+     `detail=security` (the only listing: without it, or with another value, `400 BAD_REQUEST`), the
+    owner or an admin: each member's passkeys (`1`, `2` or `\"3+\"`), recovery code, last active UTC day
+    and sessions. `403` below admin, `404` outside the organization.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend).
 
     Args:
         org (str):
-        detail (Union[Literal['security'], Unset]):
+        detail (Union[Unset, OrgMembersDetail]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -128,18 +134,19 @@ def sync(
     org: str,
     *,
     client: AuthenticatedClient,
-    detail: Union[Literal["security"], Unset] = UNSET,
+    detail: Union[Unset, OrgMembersDetail] = UNSET,
 ) -> Optional[Union[Error, OrgMembersResponse200]]:
     r"""Members' lockout risk
 
-     `detail=security`, the owner or an admin: each member's passkeys (`1`, `2` or `\"3+\"`), recovery
-    code, last active UTC day and sessions. `403` below admin, `404` outside the organization.
+     `detail=security` (the only listing: without it, or with another value, `400 BAD_REQUEST`), the
+    owner or an admin: each member's passkeys (`1`, `2` or `\"3+\"`), recovery code, last active UTC day
+    and sessions. `403` below admin, `404` outside the organization.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend).
 
     Args:
         org (str):
-        detail (Union[Literal['security'], Unset]):
+        detail (Union[Unset, OrgMembersDetail]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -160,18 +167,19 @@ async def asyncio_detailed(
     org: str,
     *,
     client: AuthenticatedClient,
-    detail: Union[Literal["security"], Unset] = UNSET,
+    detail: Union[Unset, OrgMembersDetail] = UNSET,
 ) -> Response[Union[Error, OrgMembersResponse200]]:
     r"""Members' lockout risk
 
-     `detail=security`, the owner or an admin: each member's passkeys (`1`, `2` or `\"3+\"`), recovery
-    code, last active UTC day and sessions. `403` below admin, `404` outside the organization.
+     `detail=security` (the only listing: without it, or with another value, `400 BAD_REQUEST`), the
+    owner or an admin: each member's passkeys (`1`, `2` or `\"3+\"`), recovery code, last active UTC day
+    and sessions. `403` below admin, `404` outside the organization.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend).
 
     Args:
         org (str):
-        detail (Union[Literal['security'], Unset]):
+        detail (Union[Unset, OrgMembersDetail]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -195,18 +203,19 @@ async def asyncio(
     org: str,
     *,
     client: AuthenticatedClient,
-    detail: Union[Literal["security"], Unset] = UNSET,
+    detail: Union[Unset, OrgMembersDetail] = UNSET,
 ) -> Optional[Union[Error, OrgMembersResponse200]]:
     r"""Members' lockout risk
 
-     `detail=security`, the owner or an admin: each member's passkeys (`1`, `2` or `\"3+\"`), recovery
-    code, last active UTC day and sessions. `403` below admin, `404` outside the organization.
+     `detail=security` (the only listing: without it, or with another value, `400 BAD_REQUEST`), the
+    owner or an admin: each member's passkeys (`1`, `2` or `\"3+\"`), recovery code, last active UTC day
+    and sessions. `403` below admin, `404` outside the organization.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend).
 
     Args:
         org (str):
-        detail (Union[Literal['security'], Unset]):
+        detail (Union[Unset, OrgMembersDetail]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

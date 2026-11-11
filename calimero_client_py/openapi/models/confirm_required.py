@@ -17,7 +17,7 @@ class ConfirmRequired:
 
     Attributes:
         challenge_id (str):
-        challenge (str):
+        challenge (str): base64url (RFC 4648 section 5) without padding
         rp_id (str):
         allow_credentials (list[str]):
     """

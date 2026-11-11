@@ -28,7 +28,6 @@ class ProofOnly:
     """
 
     operator_proof: Union[Unset, "OperatorProof"] = UNSET
-    additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         from ..models.operator_proof import OperatorProof
@@ -38,7 +37,7 @@ class ProofOnly:
             operator_proof = self.operator_proof.to_dict()
 
         field_dict: dict[str, Any] = {}
-        field_dict.update(self.additional_properties)
+
         field_dict.update({})
         if operator_proof is not UNSET:
             field_dict["operatorProof"] = operator_proof
@@ -61,21 +60,4 @@ class ProofOnly:
             operator_proof=operator_proof,
         )
 
-        proof_only.additional_properties = d
         return proof_only
-
-    @property
-    def additional_keys(self) -> list[str]:
-        return list(self.additional_properties.keys())
-
-    def __getitem__(self, key: str) -> Any:
-        return self.additional_properties[key]
-
-    def __setitem__(self, key: str, value: Any) -> None:
-        self.additional_properties[key] = value
-
-    def __delitem__(self, key: str) -> None:
-        del self.additional_properties[key]
-
-    def __contains__(self, key: str) -> bool:
-        return key in self.additional_properties

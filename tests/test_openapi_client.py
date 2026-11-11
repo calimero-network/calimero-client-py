@@ -198,6 +198,19 @@ def test_any_other_answer_is_returned_as_it_came():
     assert len(native.sent) == 1
 
 
+# A log's status, as `POST /ops/apps/{app}/replicas` answers it.
+STATUS = {
+    "group": 7,
+    "leader": 1,
+    "is_leader": True,
+    "term": 2,
+    "last_log": 10,
+    "applied": 10,
+    "voters": [1, 2, 3],
+    "learners": [],
+}
+
+
 def test_an_operator_signature_is_answered_with_the_operator_key():
     message = b"calimero.ops.v1 statement"
     details = {
@@ -210,7 +223,7 @@ def test_an_operator_signature_is_answered_with_the_operator_key():
     }
     native = Native(
         refusal(428, "OPERATOR_SIGNATURE_REQUIRED", details),
-        answer(200, {"status": "ok", "unchanged": False}),
+        answer(200, {"status": STATUS, "unchanged": False}),
         operator_seed="seed",
     )
     api = client_on(native).api(operator_signed=True)
@@ -239,7 +252,7 @@ def test_not_leader_is_followed_and_the_step_up_goes_to_the_leader():
     native = Native(
         refusal(421, "NOT_LEADER", {"leaderUrl": "http://node-2"}),
         refusal(428, "OPERATOR_SIGNATURE_REQUIRED", details),
-        answer(200, {"status": "moved", "unchanged": False}),
+        answer(200, {"status": STATUS, "unchanged": False}),
         api_key=True,
         operator_seed="seed",
     )

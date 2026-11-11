@@ -6,7 +6,9 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
+from ..types import UNSET, Unset
 from typing import cast, Union
+from typing import Union
 
 T = TypeVar("T", bound="AppStorageResponse200")
 
@@ -19,14 +21,14 @@ class AppStorageResponse200:
         bytes_ (int):
         blobs (int):
         blob_bytes (int):
-        last_write_at (Union[None, int]):
+        last_write_at (Union[None, Unset, int]):
     """
 
     keys: int
     bytes_: int
     blobs: int
     blob_bytes: int
-    last_write_at: Union[None, int]
+    last_write_at: Union[None, Unset, int] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -38,8 +40,11 @@ class AppStorageResponse200:
 
         blob_bytes = self.blob_bytes
 
-        last_write_at: Union[None, int]
-        last_write_at = self.last_write_at
+        last_write_at: Union[None, Unset, int]
+        if isinstance(self.last_write_at, Unset):
+            last_write_at = UNSET
+        else:
+            last_write_at = self.last_write_at
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -49,9 +54,10 @@ class AppStorageResponse200:
                 "bytes": bytes_,
                 "blobs": blobs,
                 "blobBytes": blob_bytes,
-                "lastWriteAt": last_write_at,
             }
         )
+        if last_write_at is not UNSET:
+            field_dict["lastWriteAt"] = last_write_at
 
         return field_dict
 
@@ -66,12 +72,14 @@ class AppStorageResponse200:
 
         blob_bytes = d.pop("blobBytes")
 
-        def _parse_last_write_at(data: object) -> Union[None, int]:
+        def _parse_last_write_at(data: object) -> Union[None, Unset, int]:
             if data is None:
                 return data
-            return cast(Union[None, int], data)
+            if isinstance(data, Unset):
+                return data
+            return cast(Union[None, Unset, int], data)
 
-        last_write_at = _parse_last_write_at(d.pop("lastWriteAt"))
+        last_write_at = _parse_last_write_at(d.pop("lastWriteAt", UNSET))
 
         app_storage_response_200 = cls(
             keys=keys,

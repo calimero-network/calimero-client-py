@@ -9,7 +9,7 @@ from ..types import UNSET, Unset
 from typing import cast
 
 if TYPE_CHECKING:
-    from ..models.app import App
+    from ..models.app_entry import AppEntry
 
 
 T = TypeVar("T", bound="AppListResponse200")
@@ -19,14 +19,14 @@ T = TypeVar("T", bound="AppListResponse200")
 class AppListResponse200:
     """
     Attributes:
-        apps (list['App']):
+        apps (list['AppEntry']):
     """
 
-    apps: list["App"]
+    apps: list["AppEntry"]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.app import App
+        from ..models.app_entry import AppEntry
 
         apps = []
         for apps_item_data in self.apps:
@@ -45,13 +45,13 @@ class AppListResponse200:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.app import App
+        from ..models.app_entry import AppEntry
 
         d = dict(src_dict)
         apps = []
         _apps = d.pop("apps")
         for apps_item_data in _apps:
-            apps_item = App.from_dict(apps_item_data)
+            apps_item = AppEntry.from_dict(apps_item_data)
 
             apps.append(apps_item)
 

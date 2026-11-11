@@ -140,6 +140,9 @@ def test_a_raw_body_is_body():
     sent = native.sent[0]
     assert sent["raw"] == b"xyz"
     assert sent["headers"]["content-type"] == "application/octet-stream"
+    native = Native(answer(200, {"blobId": "b", "id": "i", "size": 3, "index": 1}))
+    client_on(native).apps.blob_upload(app="a", body=b"xyz", content_type="image/png")
+    assert native.sent[0]["headers"]["content-type"] == "image/png"
 
 
 def test_an_enum_query_takes_its_value():

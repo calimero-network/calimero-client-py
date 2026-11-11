@@ -8,7 +8,7 @@ from ...types import Response, UNSET
 from ... import errors
 
 from ...models.error import Error
-from ...models.ops_release_deadline_lift_body import OpsReleaseDeadlineLiftBody
+from ...models.proof_only import ProofOnly
 from ...models.written import Written
 from typing import cast
 
@@ -16,7 +16,7 @@ from typing import cast
 def _get_kwargs(
     version: str,
     *,
-    body: OpsReleaseDeadlineLiftBody,
+    body: ProofOnly,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -79,7 +79,7 @@ def sync_detailed(
     version: str,
     *,
     client: AuthenticatedClient,
-    body: OpsReleaseDeadlineLiftBody,
+    body: ProofOnly,
 ) -> Response[Union[Error, Written]]:
     """Lift a release deadline
 
@@ -89,7 +89,8 @@ def sync_detailed(
 
     Args:
         version (str):
-        body (OpsReleaseDeadlineLiftBody):
+        body (ProofOnly): What an operator decision that names nothing in its body may carry: none
+            at first, the operator's proof after the `428`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -115,7 +116,7 @@ def sync(
     version: str,
     *,
     client: AuthenticatedClient,
-    body: OpsReleaseDeadlineLiftBody,
+    body: ProofOnly,
 ) -> Optional[Union[Error, Written]]:
     """Lift a release deadline
 
@@ -125,7 +126,8 @@ def sync(
 
     Args:
         version (str):
-        body (OpsReleaseDeadlineLiftBody):
+        body (ProofOnly): What an operator decision that names nothing in its body may carry: none
+            at first, the operator's proof after the `428`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -146,7 +148,7 @@ async def asyncio_detailed(
     version: str,
     *,
     client: AuthenticatedClient,
-    body: OpsReleaseDeadlineLiftBody,
+    body: ProofOnly,
 ) -> Response[Union[Error, Written]]:
     """Lift a release deadline
 
@@ -156,7 +158,8 @@ async def asyncio_detailed(
 
     Args:
         version (str):
-        body (OpsReleaseDeadlineLiftBody):
+        body (ProofOnly): What an operator decision that names nothing in its body may carry: none
+            at first, the operator's proof after the `428`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -180,7 +183,7 @@ async def asyncio(
     version: str,
     *,
     client: AuthenticatedClient,
-    body: OpsReleaseDeadlineLiftBody,
+    body: ProofOnly,
 ) -> Optional[Union[Error, Written]]:
     """Lift a release deadline
 
@@ -190,7 +193,8 @@ async def asyncio(
 
     Args:
         version (str):
-        body (OpsReleaseDeadlineLiftBody):
+        body (ProofOnly): What an operator decision that names nothing in its body may carry: none
+            at first, the operator's proof after the `428`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

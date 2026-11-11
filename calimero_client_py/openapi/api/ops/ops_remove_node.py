@@ -8,15 +8,15 @@ from ...types import Response, UNSET
 from ... import errors
 
 from ...models.error import Error
-from ...models.ops_remove_node_body import OpsRemoveNodeBody
 from ...models.ops_remove_node_response_200 import OpsRemoveNodeResponse200
+from ...models.proof_only import ProofOnly
 from typing import cast
 
 
 def _get_kwargs(
     id: str,
     *,
-    body: OpsRemoveNodeBody,
+    body: ProofOnly,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -89,7 +89,7 @@ def sync_detailed(
     id: str,
     *,
     client: AuthenticatedClient,
-    body: OpsRemoveNodeBody,
+    body: ProofOnly,
 ) -> Response[Union[Error, OpsRemoveNodeResponse200]]:
     """Remove a node
 
@@ -102,7 +102,8 @@ def sync_detailed(
 
     Args:
         id (str):
-        body (OpsRemoveNodeBody):
+        body (ProofOnly): What an operator decision that names nothing in its body may carry: none
+            at first, the operator's proof after the `428`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -128,7 +129,7 @@ def sync(
     id: str,
     *,
     client: AuthenticatedClient,
-    body: OpsRemoveNodeBody,
+    body: ProofOnly,
 ) -> Optional[Union[Error, OpsRemoveNodeResponse200]]:
     """Remove a node
 
@@ -141,7 +142,8 @@ def sync(
 
     Args:
         id (str):
-        body (OpsRemoveNodeBody):
+        body (ProofOnly): What an operator decision that names nothing in its body may carry: none
+            at first, the operator's proof after the `428`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -162,7 +164,7 @@ async def asyncio_detailed(
     id: str,
     *,
     client: AuthenticatedClient,
-    body: OpsRemoveNodeBody,
+    body: ProofOnly,
 ) -> Response[Union[Error, OpsRemoveNodeResponse200]]:
     """Remove a node
 
@@ -175,7 +177,8 @@ async def asyncio_detailed(
 
     Args:
         id (str):
-        body (OpsRemoveNodeBody):
+        body (ProofOnly): What an operator decision that names nothing in its body may carry: none
+            at first, the operator's proof after the `428`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -199,7 +202,7 @@ async def asyncio(
     id: str,
     *,
     client: AuthenticatedClient,
-    body: OpsRemoveNodeBody,
+    body: ProofOnly,
 ) -> Optional[Union[Error, OpsRemoveNodeResponse200]]:
     """Remove a node
 
@@ -212,7 +215,8 @@ async def asyncio(
 
     Args:
         id (str):
-        body (OpsRemoveNodeBody):
+        body (ProofOnly): What an operator decision that names nothing in its body may carry: none
+            at first, the operator's proof after the `428`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

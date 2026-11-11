@@ -8,7 +8,7 @@ from ...types import Response, UNSET
 from ... import errors
 
 from ...models.error import Error
-from ...models.package_get_response_200 import PackageGetResponse200
+from ...models.package import Package
 from typing import cast
 
 
@@ -28,9 +28,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[Error, PackageGetResponse200]]:
+) -> Optional[Union[Error, Package]]:
     if response.status_code == 200:
-        response_200 = PackageGetResponse200.from_dict(response.json())
+        response_200 = Package.from_dict(response.json())
 
         return response_200
 
@@ -57,7 +57,7 @@ def _parse_response(
 
 def _build_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[Error, PackageGetResponse200]]:
+) -> Response[Union[Error, Package]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -70,7 +70,7 @@ def sync_detailed(
     package: str,
     *,
     client: AuthenticatedClient,
-) -> Response[Union[Error, PackageGetResponse200]]:
+) -> Response[Union[Error, Package]]:
     """One package
 
      The versions the caller may see; `404` when none.
@@ -85,7 +85,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Error, PackageGetResponse200]]
+        Response[Union[Error, Package]]
     """
 
     kwargs = _get_kwargs(
@@ -103,7 +103,7 @@ def sync(
     package: str,
     *,
     client: AuthenticatedClient,
-) -> Optional[Union[Error, PackageGetResponse200]]:
+) -> Optional[Union[Error, Package]]:
     """One package
 
      The versions the caller may see; `404` when none.
@@ -118,7 +118,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Error, PackageGetResponse200]
+        Union[Error, Package]
     """
 
     return sync_detailed(
@@ -131,7 +131,7 @@ async def asyncio_detailed(
     package: str,
     *,
     client: AuthenticatedClient,
-) -> Response[Union[Error, PackageGetResponse200]]:
+) -> Response[Union[Error, Package]]:
     """One package
 
      The versions the caller may see; `404` when none.
@@ -146,7 +146,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Error, PackageGetResponse200]]
+        Response[Union[Error, Package]]
     """
 
     kwargs = _get_kwargs(
@@ -162,7 +162,7 @@ async def asyncio(
     package: str,
     *,
     client: AuthenticatedClient,
-) -> Optional[Union[Error, PackageGetResponse200]]:
+) -> Optional[Union[Error, Package]]:
     """One package
 
      The versions the caller may see; `404` when none.
@@ -177,7 +177,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Error, PackageGetResponse200]
+        Union[Error, Package]
     """
 
     return (

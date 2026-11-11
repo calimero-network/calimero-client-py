@@ -211,13 +211,11 @@ from .openapi.api.sign_up_and_deployments import sign_up_set as _sign_up_set
 from .openapi.models import AccountOutboundApprovalBody
 from .openapi.models import AccountProofProveBody
 from .openapi.models import AccountRecoveryBeginBody
-from .openapi.models import AccountRecoveryCancelBody
 from .openapi.models import AccountRecoveryFinishBody
 from .openapi.models import AccountRecoveryStartBody
 from .openapi.models import AccountReleaseApprovalBody
 from .openapi.models import AliasSetBody
 from .openapi.models import ApikeyCreateBody
-from .openapi.models import ApikeyRevokeBody
 from .openapi.models import AppAccessBody
 from .openapi.models import AppAttestationPurpose
 from .openapi.models import AppCreateBody
@@ -228,18 +226,15 @@ from .openapi.models import AppTeamsScopeBody
 from .openapi.models import AppTransferBody
 from .openapi.models import AppUpgradeBody
 from .openapi.models import AttestationPurpose
+from .openapi.models import ConfirmOnly
 from .openapi.models import ConsentPageCreateBodyType0
 from .openapi.models import ConsentPageCreateBodyType1
 from .openapi.models import ConsentPageCreateBodyType2
 from .openapi.models import DeployerGrantBody
-from .openapi.models import DeployerRevokeBody
 from .openapi.models import DeploymentCreateBody
-from .openapi.models import DeploymentDeleteBody
 from .openapi.models import DeploymentOfferBody
-from .openapi.models import DeploymentWithdrawBody
 from .openapi.models import IntentsBody
 from .openapi.models import InviteCreateBody
-from .openapi.models import InviteRevokeBody
 from .openapi.models import LoginBeginBody
 from .openapi.models import LoginFinishBody
 from .openapi.models import MemberMetadataBody
@@ -247,9 +242,6 @@ from .openapi.models import MemberRemoveTeamsBody
 from .openapi.models import MemberSetTeamsBody
 from .openapi.models import OpsClusterOwnerBody
 from .openapi.models import OpsDeployerGrantBody
-from .openapi.models import OpsDeployerRevokeDeleteBody
-from .openapi.models import OpsDeployerRevokePostBody
-from .openapi.models import OpsDeploymentsGrantedBody
 from .openapi.models import OpsOrgUpgradeBody
 from .openapi.models import OpsOutboundBody
 from .openapi.models import OpsPackageInstallBody
@@ -258,24 +250,19 @@ from .openapi.models import OpsQuotasSetBody
 from .openapi.models import OpsRegisterNodeBody
 from .openapi.models import OpsReleaseBody
 from .openapi.models import OpsReleaseDeadlineBody
-from .openapi.models import OpsReleaseDeadlineLiftBody
-from .openapi.models import OpsRemoveNodeBody
 from .openapi.models import OpsRestoreBody
 from .openapi.models import OpsSetReplicasBody
 from .openapi.models import OpsSignUpInviteCreateBody
-from .openapi.models import OpsSignUpInviteRevokeDeleteBody
-from .openapi.models import OpsSignUpInviteRevokePostBody
 from .openapi.models import OpsSignUpSetBody
 from .openapi.models import OpsUpgradeBody
 from .openapi.models import OrgAllAppsBody
 from .openapi.models import OrgCapabilitiesBody
 from .openapi.models import OrgCreateBody
-from .openapi.models import OrgDeleteBody
+from .openapi.models import OrgMembersDetail
 from .openapi.models import OrgMetadataBody
 from .openapi.models import OrgOutboundApprovalBody
 from .openapi.models import OrgPublisherBody
 from .openapi.models import OrgReleaseApprovalBody
-from .openapi.models import OrgRemoveMemberBody
 from .openapi.models import OrgRenameBody
 from .openapi.models import OrgSetMemberBody
 from .openapi.models import OrgUpgradeBody
@@ -285,24 +272,17 @@ from .openapi.models import OriginsRemoveBody
 from .openapi.models import PackageInstallBody
 from .openapi.models import PasskeyAddFinishBody
 from .openapi.models import PasskeyLabelBody
-from .openapi.models import PasskeyRemoveBody
 from .openapi.models import PresencePublishBody
+from .openapi.models import ProofOnly
 from .openapi.models import PublisherUpgradeBody
-from .openapi.models import RecoveryCancelBody
-from .openapi.models import RecoveryCreateBody
-from .openapi.models import RecoveryFinishBody
-from .openapi.models import RecoveryRemoveBody
 from .openapi.models import RecoverySetBody
 from .openapi.models import RecoveryStartBody
 from .openapi.models import RefreshBody
 from .openapi.models import RegisterBeginBody
 from .openapi.models import RegisterFinishBody
 from .openapi.models import SignUpInviteCreateBody
-from .openapi.models import SignUpInviteRevokeBody
 from .openapi.models import SignUpSetBody
 from .openapi.models import TeamCreateBody
-from .openapi.models import TeamDeleteBody
-from .openapi.models import TeamRemoveMemberBody
 from .openapi.models import TeamSetMemberBody
 from .openapi.models import TeamUpdateBody
 from .openapi.models import UploadBeginBody
@@ -682,10 +662,12 @@ class Apps(Group):
             None,
         )
 
-    def blob_upload(self, *, app, sealed=UNSET, body):
+    def blob_upload(
+        self, *, app, sealed=UNSET, body, content_type="application/octet-stream"
+    ):
         """Upload a blob (`POST /apps/{app}/blobs`, `blob_upload`).
 
-        A plain blob (`sealed=true` is refused: sealed files go through `/files`).
+        A plain blob, stored with the request's `Content-Type` (default `application/octet-stream`), which a component app's download answers with. Any `sealed` parameter, `true` or `false`, is refused `400 USE_FILES_API`: sealed files go through `/files`.
 
         **Who:** whoever the app's access admits (a public app: anyone).
 
@@ -693,17 +675,20 @@ class Apps(Group):
             app: path
             sealed: query
             body: the raw bytes
+            content_type: the body's media type
 
         Returns: BlobUploadResponse200
         """
-        return self._run(_BLOB_UPLOAD, (app,), {"sealed": sealed}, body)
+        return self._run(
+            _BLOB_UPLOAD, (app,), {"sealed": sealed}, body, content_type=content_type
+        )
 
     def call(self, *, app, method, args=UNSET, idempotency_key=UNSET, confirm=None):
         """Call a method (`POST /apps/{app}/intents`, `intents`).
 
         A logged call: the result, the events of the call the caller receives, and the answering node's receipt. A `confirm` method answers `412` first. An app error is `422 APP_ERROR` with `details { index, code, fields }`; a trap `422 TRAP`.
 
-        **Who:** whoever the app's access admits (a public app: anyone).
+        **Who:** whoever the app's access admits (a public app: anyone). **Step-up:** when the method is a `confirm` method of the app's ABI, answers `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over `details.challenge`.
 
         Args:
             app: path
@@ -897,7 +882,7 @@ class Apps(Group):
 
         The body of `/intents` or `/views` without `method`, which the path names, as the app's OpenAPI document lists it: a view the running bundle's ABI declares (without `confirm`) is answered as `/views`, anything else as `/intents`, with that route's gate, step-up and limits. Retry-safe as a view always, as a call with `idempotencyKey`.
 
-        **Who:** whoever the app's access admits (a public app: anyone).
+        **Who:** whoever the app's access admits (a public app: anyone). **Step-up:** when the method is a `confirm` method of the app's ABI, answers `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over `details.challenge`.
 
         Args:
             app: path
@@ -978,7 +963,7 @@ class Apps(Group):
     def presence_publish(self, *, app, seq, state=UNSET):
         """Publish presence (`POST /apps/{app}/presence`, `presence_publish`).
 
-        The caller's presence state, in sequence; not logged.
+        The caller's presence state (hex), in sequence; not logged. A `null` (or absent) `state` retracts it.
 
         **Who:** whoever the app's access admits (a public app: anyone).
 
@@ -1251,7 +1236,7 @@ class Apps(Group):
     def xcalls(self, *, app):
         """An app's cross-app calls (`GET /apps/{app}/xcalls`, `app_xcalls`).
 
-        The owner or an organization admin: calls waiting for delivery and dead letters.
+        The owner or an organization admin: how many calls wait in its outbox for delivery (`pending`, a count), and its dead letters, oldest first (`atMs`: the entry time it was dead-lettered at, Unix milliseconds).
 
         **Who:** signed in (a session or an API key).
 
@@ -1292,7 +1277,7 @@ _ACCOUNT_RECOVERY_BEGIN = Operation(
 _ACCOUNT_RECOVERY_CANCEL = Operation(
     _account_recovery_cancel,
     "account_recovery_cancel",
-    body=AccountRecoveryCancelBody,
+    body=ConfirmOnly,
     answer="json",
     confirm=True,
 )
@@ -1358,7 +1343,7 @@ _APIKEY_LIST = Operation(
     answer="json",
 )
 _APIKEY_REVOKE = Operation(
-    _apikey_revoke, "apikey_revoke", body=ApikeyRevokeBody, answer="json", confirm=True
+    _apikey_revoke, "apikey_revoke", body=ConfirmOnly, answer="json", confirm=True
 )
 _LOGIN_BEGIN = Operation(
     _login_begin, "login_begin", body=LoginBeginBody, answer="json", once=True
@@ -1404,25 +1389,13 @@ _PASSKEY_LABEL = Operation(
     answer="json",
 )
 _PASSKEY_REMOVE = Operation(
-    _passkey_remove,
-    "passkey_remove",
-    body=PasskeyRemoveBody,
-    answer="json",
-    confirm=True,
+    _passkey_remove, "passkey_remove", body=ConfirmOnly, answer="json", confirm=True
 )
 _RECOVERY_CREATE = Operation(
-    _recovery_create,
-    "recovery_create",
-    body=RecoveryCreateBody,
-    answer="json",
-    confirm=True,
+    _recovery_create, "recovery_create", body=ConfirmOnly, answer="json", confirm=True
 )
 _RECOVERY_REMOVE = Operation(
-    _recovery_remove,
-    "recovery_remove",
-    body=RecoveryRemoveBody,
-    answer="json",
-    confirm=True,
+    _recovery_remove, "recovery_remove", body=ConfirmOnly, answer="json", confirm=True
 )
 _REFRESH = Operation(
     _refresh,
@@ -2016,6 +1989,8 @@ class Consent(Group):
     def page_result(self, *, request):
         """What became of a consent request (`GET /consent/{request}/result`, `consent_page_result`).
 
+        `decidedAt` (Unix seconds) is `null` while it is pending.
+
         **Who:** a passkey session (an API key is refused).
 
         Args:
@@ -2036,7 +2011,7 @@ _DEPLOYMENT_CREATE = Operation(
 _DEPLOYMENT_DELETE = Operation(
     _deployment_delete,
     "deployment_delete",
-    body=DeploymentDeleteBody,
+    body=ConfirmOnly,
     answer="json",
     confirm=True,
 )
@@ -2054,11 +2029,7 @@ _DEPLOYER_LIST = Operation(
     answer="json",
 )
 _DEPLOYER_REVOKE = Operation(
-    _deployer_revoke,
-    "deployer_revoke",
-    body=DeployerRevokeBody,
-    answer="json",
-    confirm=True,
+    _deployer_revoke, "deployer_revoke", body=ConfirmOnly, answer="json", confirm=True
 )
 _DEPLOYMENT_GET = Operation(
     _deployment_get,
@@ -2101,7 +2072,7 @@ _SIGN_UP_INVITE_LIST = Operation(
 _SIGN_UP_INVITE_REVOKE = Operation(
     _sign_up_invite_revoke,
     "sign_up_invite_revoke",
-    body=SignUpInviteRevokeBody,
+    body=ConfirmOnly,
     answer="json",
     confirm=True,
 )
@@ -2117,7 +2088,7 @@ _SIGN_UP_SET = Operation(
 _DEPLOYMENT_WITHDRAW = Operation(
     _deployment_withdraw,
     "deployment_withdraw",
-    body=DeploymentWithdrawBody,
+    body=ConfirmOnly,
     answer="json",
     confirm=True,
 )
@@ -2204,6 +2175,8 @@ class Deployments(Group):
     def get(self, *, id):
         """One deployment (`GET /deployments/{id}`, `deployment_get`).
 
+        As anyone may read it: its name, its owner's kind and name (`null` when unknown), and the releases it offers; never its managers or customers.
+
         **Who:** signed in (a session or an API key).
 
         Args:
@@ -2215,6 +2188,8 @@ class Deployments(Group):
 
     def list(self):
         """Deployments (`GET /deployments`, `deployment_list`).
+
+        The deployments the caller manages.
 
         **Who:** signed in (a session or an API key).
 
@@ -2383,21 +2358,21 @@ _OPS_DEPLOYER_GRANT = Operation(
 _OPS_DEPLOYER_REVOKE_DELETE = Operation(
     _ops_deployer_revoke_delete,
     "ops_deployer_revoke_delete",
-    body=OpsDeployerRevokeDeleteBody,
+    body=ProofOnly,
     answer="json",
     operator=True,
 )
 _OPS_DEPLOYER_REVOKE_POST = Operation(
     _ops_deployer_revoke_post,
     "ops_deployer_revoke_post",
-    body=OpsDeployerRevokePostBody,
+    body=ProofOnly,
     answer="json",
     operator=True,
 )
 _OPS_DEPLOYMENTS_GRANTED = Operation(
     _ops_deployments_granted,
     "ops_deployments_granted",
-    body=OpsDeploymentsGrantedBody,
+    body=ProofOnly,
     answer="json",
     operator=True,
 )
@@ -2507,14 +2482,14 @@ _OPS_RELEASE_DEADLINE = Operation(
 _OPS_RELEASE_DEADLINE_LIFT = Operation(
     _ops_release_deadline_lift,
     "ops_release_deadline_lift",
-    body=OpsReleaseDeadlineLiftBody,
+    body=ProofOnly,
     answer="json",
     operator=True,
 )
 _OPS_REMOVE_NODE = Operation(
     _ops_remove_node,
     "ops_remove_node",
-    body=OpsRemoveNodeBody,
+    body=ProofOnly,
     answer="json",
     operator=True,
     leader=True,
@@ -2552,14 +2527,14 @@ _OPS_SIGN_UP_INVITE_LIST = Operation(
 _OPS_SIGN_UP_INVITE_REVOKE_DELETE = Operation(
     _ops_sign_up_invite_revoke_delete,
     "ops_sign_up_invite_revoke_delete",
-    body=OpsSignUpInviteRevokeDeleteBody,
+    body=ProofOnly,
     answer="json",
     operator=True,
 )
 _OPS_SIGN_UP_INVITE_REVOKE_POST = Operation(
     _ops_sign_up_invite_revoke_post,
     "ops_sign_up_invite_revoke_post",
-    body=OpsSignUpInviteRevokePostBody,
+    body=ProofOnly,
     answer="json",
     operator=True,
 )
@@ -3082,7 +3057,7 @@ class Ops(Group):
     def set_replicas(self, *, app, replicas, operator_proof=None):
         """Move an app's replicas (`POST /ops/apps/{app}/replicas`, `ops_set_replicas`).
 
-        Signed over `<app> / __set_replicas / { replicas }` (sorted); at least `min(3, nodes)` registered nodes, each on a release the app's owner approved. The set it already has answers `unchanged: true`.
+        Signed over `<app> / __set_replicas / { replicas }` (sorted); at least `min(3, nodes)` registered nodes, each on a release the app's owner approved. The set it already has answers `unchanged: true`. `status` is the app group's Raft status when the move finished (as the leader saw it).
 
         **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first; send it again with `operatorProof`, the operator key's signature over `details.message` and its `nonce`.
 
@@ -3280,7 +3255,7 @@ _ORG_CREATE = Operation(
     answer="json",
 )
 _ORG_DELETE = Operation(
-    _org_delete, "org_delete", body=OrgDeleteBody, answer="json", confirm=True
+    _org_delete, "org_delete", body=ConfirmOnly, answer="json", confirm=True
 )
 _ORG_GET = Operation(
     _org_get,
@@ -3304,7 +3279,7 @@ _INVITE_REDEEM = Operation(
     answer="json",
 )
 _INVITE_REVOKE = Operation(
-    _invite_revoke, "invite_revoke", body=InviteRevokeBody, answer="json", confirm=True
+    _invite_revoke, "invite_revoke", body=ConfirmOnly, answer="json", confirm=True
 )
 _MEMBER_METADATA = Operation(
     _member_metadata,
@@ -3356,18 +3331,10 @@ _PUBLISHER_UPGRADE = Operation(
     confirm=True,
 )
 _RECOVERY_CANCEL = Operation(
-    _recovery_cancel,
-    "recovery_cancel",
-    body=RecoveryCancelBody,
-    answer="json",
-    confirm=True,
+    _recovery_cancel, "recovery_cancel", body=ConfirmOnly, answer="json", confirm=True
 )
 _RECOVERY_FINISH = Operation(
-    _recovery_finish,
-    "recovery_finish",
-    body=RecoveryFinishBody,
-    answer="json",
-    confirm=True,
+    _recovery_finish, "recovery_finish", body=ConfirmOnly, answer="json", confirm=True
 )
 _RECOVERY_SET = Operation(
     _recovery_set, "recovery_set", body=RecoverySetBody, answer="json", confirm=True
@@ -3388,7 +3355,7 @@ _ORG_RELEASE_APPROVAL = Operation(
 _ORG_REMOVE_MEMBER = Operation(
     _org_remove_member,
     "org_remove_member",
-    body=OrgRemoveMemberBody,
+    body=ConfirmOnly,
     answer="json",
     confirm=True,
 )
@@ -3409,7 +3376,7 @@ _TEAM_CREATE = Operation(
     answer="json",
 )
 _TEAM_DELETE = Operation(
-    _team_delete, "team_delete", body=TeamDeleteBody, answer="json", confirm=True
+    _team_delete, "team_delete", body=ConfirmOnly, answer="json", confirm=True
 )
 _TEAM_GET = Operation(
     _team_get,
@@ -3420,7 +3387,7 @@ _TEAM_GET = Operation(
 _TEAM_REMOVE_MEMBER = Operation(
     _team_remove_member,
     "team_remove_member",
-    body=TeamRemoveMemberBody,
+    body=ConfirmOnly,
     answer="json",
     confirm=True,
 )
@@ -3602,14 +3569,14 @@ class Orgs(Group):
     def get(self, *, org):
         """One organization (`GET /orgs/{org}`, `org_get`).
 
-        Its members, teams (those the caller reaches or manages) and metadata.
+        As the directory records it, with only the teams the caller reaches or manages and the people they see; and its `mode` (from its app teams), the accounts that may approve its releases (`releaseApprovers`), the keys it publishes under (`publishes`), and `newWorkStopped`: the release whose passed deadline stops new work in it (`after`, RFC 3339), `null` when none does. Those four are absent from a node older than they are (1.0.0-rc.1 sends none of them).
 
         **Who:** signed in (a session or an API key).
 
         Args:
             org: path
 
-        Returns: OrgGetResponse200
+        Returns: Org
         """
         return self._run(_ORG_GET, (org,), {}, None)
 
@@ -3783,7 +3750,7 @@ class Orgs(Group):
     def members(self, *, org, detail=UNSET):
         """Members' lockout risk (`GET /orgs/{org}/members`, `org_members`).
 
-        `detail=security`, the owner or an admin: each member's passkeys (`1`, `2` or `"3+"`), recovery code, last active UTC day and sessions. `403` below admin, `404` outside the organization.
+        `detail=security` (the only listing: without it, or with another value, `400 BAD_REQUEST`), the owner or an admin: each member's passkeys (`1`, `2` or `"3+"`), recovery code, last active UTC day and sessions. `403` below admin, `404` outside the organization.
 
         **Who:** an account holder (a passkey session not bound to an app's frontend).
 
@@ -3793,7 +3760,12 @@ class Orgs(Group):
 
         Returns: OrgMembersResponse200
         """
-        return self._run(_ORG_MEMBERS, (org,), {"detail": detail}, None)
+        return self._run(
+            _ORG_MEMBERS,
+            (org,),
+            {"detail": Operation.enum(OrgMembersDetail, detail)},
+            None,
+        )
 
     def metadata(self, *, org, metadata):
         """Set an organization's metadata (`POST /orgs/{org}/metadata`, `org_metadata`).
@@ -3918,7 +3890,7 @@ class Orgs(Group):
     def recovery_set(self, *, org, public_key=UNSET, confirm=None):
         """Set the organization's recovery key (`POST /orgs/{org}/recovery`, `recovery_set`).
 
-        Set, rotate or (`null`) remove it; the owner; cancels a recovery under way. `412` first.
+        Set or rotate it (`publicKey`: base64url Ed25519 public key), or remove it (`publicKey: null`; an absent `publicKey` removes it too); the owner; cancels a recovery under way. `412` first.
 
         **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over `details.challenge`.
 
@@ -4091,7 +4063,7 @@ class Orgs(Group):
             org: path
             team: path
 
-        Returns: TeamGetResponse200
+        Returns: TeamView
         """
         return self._run(
             _TEAM_GET,
@@ -4175,7 +4147,7 @@ class Orgs(Group):
     ):
         """Update a team (`POST /orgs/{org}/teams/{team}`, `team_update`).
 
-        Rename, open or restrict, move under another parent (`parent: null`: to the top), or set its metadata.
+        Rename, open or restrict, move under another parent, or set its metadata. `parent` absent leaves the team where it is; `parent: null` (an explicit null) moves it to the top; a team id moves it under that team.
 
         **Who:** a passkey session (an API key is refused).
 
@@ -4393,7 +4365,7 @@ class Packages(Group):
         Args:
             package: path
 
-        Returns: PackageGetResponse200
+        Returns: Package
         """
         return self._run(_PACKAGE_GET, (package,), {}, None)
 

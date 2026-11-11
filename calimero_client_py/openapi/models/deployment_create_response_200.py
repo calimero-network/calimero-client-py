@@ -6,26 +6,50 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
+from typing import cast, Union
+
 T = TypeVar("T", bound="DeploymentCreateResponse200")
 
 
 @_attrs_define
 class DeploymentCreateResponse200:
-    """ """
+    """Other properties than those listed may be present: the ones listed are those clients rely on.
 
+    Attributes:
+        host (Union[None, str]):
+    """
+
+    host: Union[None, str]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        host: Union[None, str]
+        host = self.host
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
+        field_dict.update(
+            {
+                "host": host,
+            }
+        )
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        deployment_create_response_200 = cls()
+
+        def _parse_host(data: object) -> Union[None, str]:
+            if data is None:
+                return data
+            return cast(Union[None, str], data)
+
+        host = _parse_host(d.pop("host"))
+
+        deployment_create_response_200 = cls(
+            host=host,
+        )
 
         deployment_create_response_200.additional_properties = d
         return deployment_create_response_200

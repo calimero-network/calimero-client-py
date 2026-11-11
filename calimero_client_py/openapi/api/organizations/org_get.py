@@ -8,7 +8,7 @@ from ...types import Response, UNSET
 from ... import errors
 
 from ...models.error import Error
-from ...models.org_get_response_200 import OrgGetResponse200
+from ...models.org import Org
 from typing import cast
 
 
@@ -28,9 +28,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[Error, OrgGetResponse200]]:
+) -> Optional[Union[Error, Org]]:
     if response.status_code == 200:
-        response_200 = OrgGetResponse200.from_dict(response.json())
+        response_200 = Org.from_dict(response.json())
 
         return response_200
 
@@ -57,7 +57,7 @@ def _parse_response(
 
 def _build_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[Error, OrgGetResponse200]]:
+) -> Response[Union[Error, Org]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -70,10 +70,14 @@ def sync_detailed(
     org: str,
     *,
     client: AuthenticatedClient,
-) -> Response[Union[Error, OrgGetResponse200]]:
+) -> Response[Union[Error, Org]]:
     """One organization
 
-     Its members, teams (those the caller reaches or manages) and metadata.
+     As the directory records it, with only the teams the caller reaches or manages and the people they
+    see; and its `mode` (from its app teams), the accounts that may approve its releases
+    (`releaseApprovers`), the keys it publishes under (`publishes`), and `newWorkStopped`: the release
+    whose passed deadline stops new work in it (`after`, RFC 3339), `null` when none does. Those four
+    are absent from a node older than they are (1.0.0-rc.1 sends none of them).
 
     **Who:** signed in (a session or an API key).
 
@@ -85,7 +89,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Error, OrgGetResponse200]]
+        Response[Union[Error, Org]]
     """
 
     kwargs = _get_kwargs(
@@ -103,10 +107,14 @@ def sync(
     org: str,
     *,
     client: AuthenticatedClient,
-) -> Optional[Union[Error, OrgGetResponse200]]:
+) -> Optional[Union[Error, Org]]:
     """One organization
 
-     Its members, teams (those the caller reaches or manages) and metadata.
+     As the directory records it, with only the teams the caller reaches or manages and the people they
+    see; and its `mode` (from its app teams), the accounts that may approve its releases
+    (`releaseApprovers`), the keys it publishes under (`publishes`), and `newWorkStopped`: the release
+    whose passed deadline stops new work in it (`after`, RFC 3339), `null` when none does. Those four
+    are absent from a node older than they are (1.0.0-rc.1 sends none of them).
 
     **Who:** signed in (a session or an API key).
 
@@ -118,7 +126,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Error, OrgGetResponse200]
+        Union[Error, Org]
     """
 
     return sync_detailed(
@@ -131,10 +139,14 @@ async def asyncio_detailed(
     org: str,
     *,
     client: AuthenticatedClient,
-) -> Response[Union[Error, OrgGetResponse200]]:
+) -> Response[Union[Error, Org]]:
     """One organization
 
-     Its members, teams (those the caller reaches or manages) and metadata.
+     As the directory records it, with only the teams the caller reaches or manages and the people they
+    see; and its `mode` (from its app teams), the accounts that may approve its releases
+    (`releaseApprovers`), the keys it publishes under (`publishes`), and `newWorkStopped`: the release
+    whose passed deadline stops new work in it (`after`, RFC 3339), `null` when none does. Those four
+    are absent from a node older than they are (1.0.0-rc.1 sends none of them).
 
     **Who:** signed in (a session or an API key).
 
@@ -146,7 +158,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Error, OrgGetResponse200]]
+        Response[Union[Error, Org]]
     """
 
     kwargs = _get_kwargs(
@@ -162,10 +174,14 @@ async def asyncio(
     org: str,
     *,
     client: AuthenticatedClient,
-) -> Optional[Union[Error, OrgGetResponse200]]:
+) -> Optional[Union[Error, Org]]:
     """One organization
 
-     Its members, teams (those the caller reaches or manages) and metadata.
+     As the directory records it, with only the teams the caller reaches or manages and the people they
+    see; and its `mode` (from its app teams), the accounts that may approve its releases
+    (`releaseApprovers`), the keys it publishes under (`publishes`), and `newWorkStopped`: the release
+    whose passed deadline stops new work in it (`after`, RFC 3339), `null` when none does. Those four
+    are absent from a node older than they are (1.0.0-rc.1 sends none of them).
 
     **Who:** signed in (a session or an API key).
 
@@ -177,7 +193,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Error, OrgGetResponse200]
+        Union[Error, Org]
     """
 
     return (

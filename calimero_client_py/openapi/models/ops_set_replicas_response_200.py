@@ -6,6 +6,14 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
+from typing import cast
+
+if TYPE_CHECKING:
+    from ..models.ops_set_replicas_response_200_status import (
+        OpsSetReplicasResponse200Status,
+    )
+
+
 T = TypeVar("T", bound="OpsSetReplicasResponse200")
 
 
@@ -13,16 +21,20 @@ T = TypeVar("T", bound="OpsSetReplicasResponse200")
 class OpsSetReplicasResponse200:
     """
     Attributes:
-        status (str):
+        status (OpsSetReplicasResponse200Status):
         unchanged (bool):
     """
 
-    status: str
+    status: "OpsSetReplicasResponse200Status"
     unchanged: bool
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        status = self.status
+        from ..models.ops_set_replicas_response_200_status import (
+            OpsSetReplicasResponse200Status,
+        )
+
+        status = self.status.to_dict()
 
         unchanged = self.unchanged
 
@@ -39,8 +51,12 @@ class OpsSetReplicasResponse200:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.ops_set_replicas_response_200_status import (
+            OpsSetReplicasResponse200Status,
+        )
+
         d = dict(src_dict)
-        status = d.pop("status")
+        status = OpsSetReplicasResponse200Status.from_dict(d.pop("status"))
 
         unchanged = d.pop("unchanged")
 

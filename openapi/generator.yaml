@@ -1,6 +1,6 @@
 # openapi-python-client's settings for calimero_client_py/openapi
 # (scripts/generate_openapi_client.py passes this file; see that script for
-# the version it pins and the changes it makes to the document first).
+# the version it pins).
 project_name_override: calimero_openapi
 package_name_override: calimero_openapi
 # The script runs black itself, the formatter this repository checks with.

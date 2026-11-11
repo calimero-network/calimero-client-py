@@ -11,7 +11,8 @@ T = TypeVar("T", bound="OpsPackageInstallResponse200")
 
 @_attrs_define
 class OpsPackageInstallResponse200:
-    """
+    """Other properties than those listed may be present: the ones listed are those clients rely on.
+
     Attributes:
         package (str):
         version (str):

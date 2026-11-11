@@ -11,7 +11,8 @@ T = TypeVar("T", bound="InviteRedeemResponse200")
 
 @_attrs_define
 class InviteRedeemResponse200:
-    """
+    """Other properties than those listed may be present: the ones listed are those clients rely on.
+
     Attributes:
         org (str):
     """

@@ -7,7 +7,7 @@ from ...client import AuthenticatedClient, Client
 from ...types import Response, UNSET
 from ... import errors
 
-from ...models.deployment_withdraw_body import DeploymentWithdrawBody
+from ...models.confirm_only import ConfirmOnly
 from ...models.error import Error
 from ...models.written import Written
 from typing import cast
@@ -17,7 +17,7 @@ def _get_kwargs(
     id: str,
     app: str,
     *,
-    body: DeploymentWithdrawBody,
+    body: ConfirmOnly,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -97,7 +97,7 @@ def sync_detailed(
     app: str,
     *,
     client: AuthenticatedClient,
-    body: DeploymentWithdrawBody,
+    body: ConfirmOnly,
 ) -> Response[Union[Error, Written]]:
     """Withdraw an offer
 
@@ -108,7 +108,8 @@ def sync_detailed(
     Args:
         id (str):
         app (str):
-        body (DeploymentWithdrawBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -136,7 +137,7 @@ def sync(
     app: str,
     *,
     client: AuthenticatedClient,
-    body: DeploymentWithdrawBody,
+    body: ConfirmOnly,
 ) -> Optional[Union[Error, Written]]:
     """Withdraw an offer
 
@@ -147,7 +148,8 @@ def sync(
     Args:
         id (str):
         app (str):
-        body (DeploymentWithdrawBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -170,7 +172,7 @@ async def asyncio_detailed(
     app: str,
     *,
     client: AuthenticatedClient,
-    body: DeploymentWithdrawBody,
+    body: ConfirmOnly,
 ) -> Response[Union[Error, Written]]:
     """Withdraw an offer
 
@@ -181,7 +183,8 @@ async def asyncio_detailed(
     Args:
         id (str):
         app (str):
-        body (DeploymentWithdrawBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -207,7 +210,7 @@ async def asyncio(
     app: str,
     *,
     client: AuthenticatedClient,
-    body: DeploymentWithdrawBody,
+    body: ConfirmOnly,
 ) -> Optional[Union[Error, Written]]:
     """Withdraw an offer
 
@@ -218,7 +221,8 @@ async def asyncio(
     Args:
         id (str):
         app (str):
-        body (DeploymentWithdrawBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

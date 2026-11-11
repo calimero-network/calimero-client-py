@@ -7,8 +7,8 @@ from ...client import AuthenticatedClient, Client
 from ...types import Response, UNSET
 from ... import errors
 
+from ...models.confirm_only import ConfirmOnly
 from ...models.error import Error
-from ...models.invite_revoke_body import InviteRevokeBody
 from ...models.invite_revoke_response_200 import InviteRevokeResponse200
 from typing import cast
 
@@ -17,7 +17,7 @@ def _get_kwargs(
     org: str,
     key: str,
     *,
-    body: InviteRevokeBody,
+    body: ConfirmOnly,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -97,7 +97,7 @@ def sync_detailed(
     key: str,
     *,
     client: AuthenticatedClient,
-    body: InviteRevokeBody,
+    body: ConfirmOnly,
 ) -> Response[Union[Error, InviteRevokeResponse200]]:
     """Revoke an invite
 
@@ -107,7 +107,8 @@ def sync_detailed(
     Args:
         org (str):
         key (str):
-        body (InviteRevokeBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -135,7 +136,7 @@ def sync(
     key: str,
     *,
     client: AuthenticatedClient,
-    body: InviteRevokeBody,
+    body: ConfirmOnly,
 ) -> Optional[Union[Error, InviteRevokeResponse200]]:
     """Revoke an invite
 
@@ -145,7 +146,8 @@ def sync(
     Args:
         org (str):
         key (str):
-        body (InviteRevokeBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -168,7 +170,7 @@ async def asyncio_detailed(
     key: str,
     *,
     client: AuthenticatedClient,
-    body: InviteRevokeBody,
+    body: ConfirmOnly,
 ) -> Response[Union[Error, InviteRevokeResponse200]]:
     """Revoke an invite
 
@@ -178,7 +180,8 @@ async def asyncio_detailed(
     Args:
         org (str):
         key (str):
-        body (InviteRevokeBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -204,7 +207,7 @@ async def asyncio(
     key: str,
     *,
     client: AuthenticatedClient,
-    body: InviteRevokeBody,
+    body: ConfirmOnly,
 ) -> Optional[Union[Error, InviteRevokeResponse200]]:
     """Revoke an invite
 
@@ -214,7 +217,8 @@ async def asyncio(
     Args:
         org (str):
         key (str):
-        body (InviteRevokeBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

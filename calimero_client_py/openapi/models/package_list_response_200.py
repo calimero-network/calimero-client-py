@@ -8,6 +8,10 @@ from ..types import UNSET, Unset
 
 from typing import cast
 
+if TYPE_CHECKING:
+    from ..models.package import Package
+
+
 T = TypeVar("T", bound="PackageListResponse200")
 
 
@@ -15,14 +19,19 @@ T = TypeVar("T", bound="PackageListResponse200")
 class PackageListResponse200:
     """
     Attributes:
-        packages (list[Any]):
+        packages (list['Package']):
     """
 
-    packages: list[Any]
+    packages: list["Package"]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        packages = self.packages
+        from ..models.package import Package
+
+        packages = []
+        for packages_item_data in self.packages:
+            packages_item = packages_item_data.to_dict()
+            packages.append(packages_item)
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -36,8 +45,15 @@ class PackageListResponse200:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.package import Package
+
         d = dict(src_dict)
-        packages = cast(list[Any], d.pop("packages"))
+        packages = []
+        _packages = d.pop("packages")
+        for packages_item_data in _packages:
+            packages_item = Package.from_dict(packages_item_data)
+
+            packages.append(packages_item)
 
         package_list_response_200 = cls(
             packages=packages,

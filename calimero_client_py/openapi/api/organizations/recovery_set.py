@@ -93,7 +93,8 @@ def sync_detailed(
 ) -> Response[Union[Error, RecoverySetResponse200]]:
     """Set the organization's recovery key
 
-     Set, rotate or (`null`) remove it; the owner; cancels a recovery under way. `412` first.
+     Set or rotate it (`publicKey`: base64url Ed25519 public key), or remove it (`publicKey: null`; an
+    absent `publicKey` removes it too); the owner; cancels a recovery under way. `412` first.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
     `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
@@ -131,7 +132,8 @@ def sync(
 ) -> Optional[Union[Error, RecoverySetResponse200]]:
     """Set the organization's recovery key
 
-     Set, rotate or (`null`) remove it; the owner; cancels a recovery under way. `412` first.
+     Set or rotate it (`publicKey`: base64url Ed25519 public key), or remove it (`publicKey: null`; an
+    absent `publicKey` removes it too); the owner; cancels a recovery under way. `412` first.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
     `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
@@ -164,7 +166,8 @@ async def asyncio_detailed(
 ) -> Response[Union[Error, RecoverySetResponse200]]:
     """Set the organization's recovery key
 
-     Set, rotate or (`null`) remove it; the owner; cancels a recovery under way. `412` first.
+     Set or rotate it (`publicKey`: base64url Ed25519 public key), or remove it (`publicKey: null`; an
+    absent `publicKey` removes it too); the owner; cancels a recovery under way. `412` first.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
     `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
@@ -200,7 +203,8 @@ async def asyncio(
 ) -> Optional[Union[Error, RecoverySetResponse200]]:
     """Set the organization's recovery key
 
-     Set, rotate or (`null`) remove it; the owner; cancels a recovery under way. `412` first.
+     Set or rotate it (`publicKey`: base64url Ed25519 public key), or remove it (`publicKey: null`; an
+    absent `publicKey` removes it too); the owner; cancels a recovery under way. `412` first.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
     `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over

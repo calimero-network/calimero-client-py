@@ -100,6 +100,7 @@ def sync_detailed(
 
      Signed over `<app> / __set_replicas / { replicas }` (sorted); at least `min(3, nodes)` registered
     nodes, each on a release the app's owner approved. The set it already has answers `unchanged: true`.
+    `status` is the app group's Raft status when the move finished (as the leader saw it).
 
     **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first;
     send it again with `operatorProof`, the operator key's signature over `details.message` and its
@@ -139,6 +140,7 @@ def sync(
 
      Signed over `<app> / __set_replicas / { replicas }` (sorted); at least `min(3, nodes)` registered
     nodes, each on a release the app's owner approved. The set it already has answers `unchanged: true`.
+    `status` is the app group's Raft status when the move finished (as the leader saw it).
 
     **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first;
     send it again with `operatorProof`, the operator key's signature over `details.message` and its
@@ -173,6 +175,7 @@ async def asyncio_detailed(
 
      Signed over `<app> / __set_replicas / { replicas }` (sorted); at least `min(3, nodes)` registered
     nodes, each on a release the app's owner approved. The set it already has answers `unchanged: true`.
+    `status` is the app group's Raft status when the move finished (as the leader saw it).
 
     **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first;
     send it again with `operatorProof`, the operator key's signature over `details.message` and its
@@ -210,6 +213,7 @@ async def asyncio(
 
      Signed over `<app> / __set_replicas / { replicas }` (sorted); at least `min(3, nodes)` registered
     nodes, each on a release the app's owner approved. The set it already has answers `unchanged: true`.
+    `status` is the app group's Raft status when the move finished (as the leader saw it).
 
     **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first;
     send it again with `operatorProof`, the operator key's signature over `details.message` and its

@@ -8,6 +8,10 @@ from ..types import UNSET, Unset
 
 from typing import cast
 
+if TYPE_CHECKING:
+    from ..models.dead_letter import DeadLetter
+
+
 T = TypeVar("T", bound="AppXcallsResponse200")
 
 
@@ -15,18 +19,23 @@ T = TypeVar("T", bound="AppXcallsResponse200")
 class AppXcallsResponse200:
     """
     Attributes:
-        pending (list[Any]):
-        dead_letters (list[Any]):
+        pending (int):
+        dead_letters (list['DeadLetter']):
     """
 
-    pending: list[Any]
-    dead_letters: list[Any]
+    pending: int
+    dead_letters: list["DeadLetter"]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.dead_letter import DeadLetter
+
         pending = self.pending
 
-        dead_letters = self.dead_letters
+        dead_letters = []
+        for dead_letters_item_data in self.dead_letters:
+            dead_letters_item = dead_letters_item_data.to_dict()
+            dead_letters.append(dead_letters_item)
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -41,10 +50,17 @@ class AppXcallsResponse200:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        d = dict(src_dict)
-        pending = cast(list[Any], d.pop("pending"))
+        from ..models.dead_letter import DeadLetter
 
-        dead_letters = cast(list[Any], d.pop("deadLetters"))
+        d = dict(src_dict)
+        pending = d.pop("pending")
+
+        dead_letters = []
+        _dead_letters = d.pop("deadLetters")
+        for dead_letters_item_data in _dead_letters:
+            dead_letters_item = DeadLetter.from_dict(dead_letters_item_data)
+
+            dead_letters.append(dead_letters_item)
 
         app_xcalls_response_200 = cls(
             pending=pending,

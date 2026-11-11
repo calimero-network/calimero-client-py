@@ -6,21 +6,25 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
+from ..types import UNSET, Unset
+from typing import Union
+
 T = TypeVar("T", bound="UsageResponse200")
 
 
 @_attrs_define
 class UsageResponse200:
-    """
+    """Other properties than those listed may be present: the ones listed are those clients rely on.
+
     Attributes:
         bundle_bytes (str): an unsigned 64-bit integer as a decimal string (D20)
-        developer_fuel_today (str): an unsigned 64-bit integer as a decimal string (D20)
-        developer_writes_today (str): an unsigned 64-bit integer as a decimal string (D20)
+        developer_fuel_today (Union[Unset, str]): an unsigned 64-bit integer as a decimal string (D20)
+        developer_writes_today (Union[Unset, str]): an unsigned 64-bit integer as a decimal string (D20)
     """
 
     bundle_bytes: str
-    developer_fuel_today: str
-    developer_writes_today: str
+    developer_fuel_today: Union[Unset, str] = UNSET
+    developer_writes_today: Union[Unset, str] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -35,10 +39,12 @@ class UsageResponse200:
         field_dict.update(
             {
                 "bundleBytes": bundle_bytes,
-                "developerFuelToday": developer_fuel_today,
-                "developerWritesToday": developer_writes_today,
             }
         )
+        if developer_fuel_today is not UNSET:
+            field_dict["developerFuelToday"] = developer_fuel_today
+        if developer_writes_today is not UNSET:
+            field_dict["developerWritesToday"] = developer_writes_today
 
         return field_dict
 
@@ -47,9 +53,9 @@ class UsageResponse200:
         d = dict(src_dict)
         bundle_bytes = d.pop("bundleBytes")
 
-        developer_fuel_today = d.pop("developerFuelToday")
+        developer_fuel_today = d.pop("developerFuelToday", UNSET)
 
-        developer_writes_today = d.pop("developerWritesToday")
+        developer_writes_today = d.pop("developerWritesToday", UNSET)
 
         usage_response_200 = cls(
             bundle_bytes=bundle_bytes,

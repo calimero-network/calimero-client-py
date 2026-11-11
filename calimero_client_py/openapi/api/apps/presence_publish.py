@@ -88,7 +88,8 @@ def sync_detailed(
 ) -> Response[Union[Error, PresencePublishResponse200]]:
     """Publish presence
 
-     The caller's presence state, in sequence; not logged.
+     The caller's presence state (hex), in sequence; not logged. A `null` (or absent) `state` retracts
+    it.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 
@@ -124,7 +125,8 @@ def sync(
 ) -> Optional[Union[Error, PresencePublishResponse200]]:
     """Publish presence
 
-     The caller's presence state, in sequence; not logged.
+     The caller's presence state (hex), in sequence; not logged. A `null` (or absent) `state` retracts
+    it.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 
@@ -155,7 +157,8 @@ async def asyncio_detailed(
 ) -> Response[Union[Error, PresencePublishResponse200]]:
     """Publish presence
 
-     The caller's presence state, in sequence; not logged.
+     The caller's presence state (hex), in sequence; not logged. A `null` (or absent) `state` retracts
+    it.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 
@@ -189,7 +192,8 @@ async def asyncio(
 ) -> Optional[Union[Error, PresencePublishResponse200]]:
     """Publish presence
 
-     The caller's presence state, in sequence; not logged.
+     The caller's presence state (hex), in sequence; not logged. A `null` (or absent) `state` retracts
+    it.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 

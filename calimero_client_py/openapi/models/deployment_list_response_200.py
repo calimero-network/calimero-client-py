@@ -8,6 +8,10 @@ from ..types import UNSET, Unset
 
 from typing import cast
 
+if TYPE_CHECKING:
+    from ..models.deployment import Deployment
+
+
 T = TypeVar("T", bound="DeploymentListResponse200")
 
 
@@ -15,14 +19,19 @@ T = TypeVar("T", bound="DeploymentListResponse200")
 class DeploymentListResponse200:
     """
     Attributes:
-        deployments (list[Any]):
+        deployments (list['Deployment']):
     """
 
-    deployments: list[Any]
+    deployments: list["Deployment"]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        deployments = self.deployments
+        from ..models.deployment import Deployment
+
+        deployments = []
+        for deployments_item_data in self.deployments:
+            deployments_item = deployments_item_data.to_dict()
+            deployments.append(deployments_item)
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -36,8 +45,15 @@ class DeploymentListResponse200:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.deployment import Deployment
+
         d = dict(src_dict)
-        deployments = cast(list[Any], d.pop("deployments"))
+        deployments = []
+        _deployments = d.pop("deployments")
+        for deployments_item_data in _deployments:
+            deployments_item = Deployment.from_dict(deployments_item_data)
+
+            deployments.append(deployments_item)
 
         deployment_list_response_200 = cls(
             deployments=deployments,

@@ -6,8 +6,8 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
+from ..models.consent_page_create_body_type_1_kind import ConsentPageCreateBodyType1Kind
 from typing import cast
-from typing import Literal, cast
 
 if TYPE_CHECKING:
     from ..models.consent_page_create_body_type_1_subject import (
@@ -22,12 +22,12 @@ T = TypeVar("T", bound="ConsentPageCreateBodyType1")
 class ConsentPageCreateBodyType1:
     """
     Attributes:
-        kind (Literal['upgrade']):
+        kind (ConsentPageCreateBodyType1Kind):
         subject (ConsentPageCreateBodyType1Subject):
         return_to (str):
     """
 
-    kind: Literal["upgrade"]
+    kind: ConsentPageCreateBodyType1Kind
     subject: "ConsentPageCreateBodyType1Subject"
     return_to: str
 
@@ -36,7 +36,7 @@ class ConsentPageCreateBodyType1:
             ConsentPageCreateBodyType1Subject,
         )
 
-        kind = self.kind
+        kind = self.kind.value
 
         subject = self.subject.to_dict()
 
@@ -61,9 +61,7 @@ class ConsentPageCreateBodyType1:
         )
 
         d = dict(src_dict)
-        kind = cast(Literal["upgrade"], d.pop("kind"))
-        if kind != "upgrade":
-            raise ValueError(f"kind must match const 'upgrade', got '{kind}'")
+        kind = ConsentPageCreateBodyType1Kind(d.pop("kind"))
 
         subject = ConsentPageCreateBodyType1Subject.from_dict(d.pop("subject"))
 

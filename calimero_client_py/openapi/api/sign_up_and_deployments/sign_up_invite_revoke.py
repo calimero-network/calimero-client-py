@@ -7,8 +7,8 @@ from ...client import AuthenticatedClient, Client
 from ...types import Response, UNSET
 from ... import errors
 
+from ...models.confirm_only import ConfirmOnly
 from ...models.error import Error
-from ...models.sign_up_invite_revoke_body import SignUpInviteRevokeBody
 from ...models.written import Written
 from typing import cast
 
@@ -16,7 +16,7 @@ from typing import cast
 def _get_kwargs(
     key: str,
     *,
-    body: SignUpInviteRevokeBody,
+    body: ConfirmOnly,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -89,7 +89,7 @@ def sync_detailed(
     key: str,
     *,
     client: AuthenticatedClient,
-    body: SignUpInviteRevokeBody,
+    body: ConfirmOnly,
 ) -> Response[Union[Error, Written]]:
     """Withdraw a cluster sign-up invite
 
@@ -99,7 +99,8 @@ def sync_detailed(
 
     Args:
         key (str):
-        body (SignUpInviteRevokeBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -125,7 +126,7 @@ def sync(
     key: str,
     *,
     client: AuthenticatedClient,
-    body: SignUpInviteRevokeBody,
+    body: ConfirmOnly,
 ) -> Optional[Union[Error, Written]]:
     """Withdraw a cluster sign-up invite
 
@@ -135,7 +136,8 @@ def sync(
 
     Args:
         key (str):
-        body (SignUpInviteRevokeBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -156,7 +158,7 @@ async def asyncio_detailed(
     key: str,
     *,
     client: AuthenticatedClient,
-    body: SignUpInviteRevokeBody,
+    body: ConfirmOnly,
 ) -> Response[Union[Error, Written]]:
     """Withdraw a cluster sign-up invite
 
@@ -166,7 +168,8 @@ async def asyncio_detailed(
 
     Args:
         key (str):
-        body (SignUpInviteRevokeBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -190,7 +193,7 @@ async def asyncio(
     key: str,
     *,
     client: AuthenticatedClient,
-    body: SignUpInviteRevokeBody,
+    body: ConfirmOnly,
 ) -> Optional[Union[Error, Written]]:
     """Withdraw a cluster sign-up invite
 
@@ -200,7 +203,8 @@ async def asyncio(
 
     Args:
         key (str):
-        body (SignUpInviteRevokeBody):
+        body (ConfirmOnly): The body of a step-up that names nothing else: none (or `{}`) at
+            first, the passkey assertion after the `412`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

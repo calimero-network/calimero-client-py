@@ -6,7 +6,7 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
-from typing import Literal, cast
+from ..models.access_type_2_kind import AccessType2Kind
 
 T = TypeVar("T", bound="AccessType2")
 
@@ -15,14 +15,14 @@ T = TypeVar("T", bound="AccessType2")
 class AccessType2:
     """
     Attributes:
-        kind (Literal['public']):
+        kind (AccessType2Kind):
     """
 
-    kind: Literal["public"]
+    kind: AccessType2Kind
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        kind = self.kind
+        kind = self.kind.value
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -37,9 +37,7 @@ class AccessType2:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        kind = cast(Literal["public"], d.pop("kind"))
-        if kind != "public":
-            raise ValueError(f"kind must match const 'public', got '{kind}'")
+        kind = AccessType2Kind(d.pop("kind"))
 
         access_type_2 = cls(
             kind=kind,

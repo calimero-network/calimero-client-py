@@ -11,7 +11,8 @@ T = TypeVar("T", bound="OpsQuotasGetResponse200")
 
 @_attrs_define
 class OpsQuotasGetResponse200:
-    """
+    """Other properties than those listed may be present: the ones listed are those clients rely on.
+
     Attributes:
         max_apps_per_account (int):
         max_bundle_bytes_per_account (int):
