@@ -17,7 +17,9 @@ name: OpenAPI sync
 #
 # The pull request is made with a GitHub App installation token, not
 # GITHUB_TOKEN: a pull request GITHUB_TOKEN opens or pushes to runs no
-# workflow, so it would arrive with no CI at all and read as green.
+# workflow, so it would arrive with no CI at all and read as green. The App's
+# credentials are the org-shared vars.ACTIONS_APP_ID /
+# secrets.ACTIONS_APP_PRIVATE_KEY, which must be shared with this repository.
 
 on:
   repository_dispatch:
@@ -165,8 +167,8 @@ jobs:
         id: token
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
-          app-id: ${{ vars.GH_APP_ID }}
-          private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+          app-id: ${{ vars.ACTIONS_APP_ID }}
+          private-key: ${{ secrets.ACTIONS_APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
           # Only what the sync needs, not everything the App holds.
