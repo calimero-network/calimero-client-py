@@ -48,30 +48,15 @@ use std::pin::Pin;
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
-use calimero_client::{Client, Error, Session};
+use calimero_client::{Error, Session};
 
-/// What the recovery needs of one node's client. [`Client`] in the bindings; a
-/// stand-in in the tests below.
+/// What the recovery needs of one node's client. [`SealedNode`](super::sealed::SealedNode)
+/// in the bindings; a stand-in in the tests below.
 pub(crate) trait Node: Send + Sync {
     async fn session(&self) -> Option<Session>;
     async fn use_session(&self, session: Session);
     async fn use_api_key(&self, key: &str);
     async fn refresh(&self) -> Result<Session, Error>;
-}
-
-impl Node for Client {
-    async fn session(&self) -> Option<Session> {
-        Client::session(self).await
-    }
-    async fn use_session(&self, session: Session) {
-        Client::use_session(self, session).await;
-    }
-    async fn use_api_key(&self, key: &str) {
-        Client::use_api_key(self, key).await;
-    }
-    async fn refresh(&self) -> Result<Session, Error> {
-        Client::refresh(self).await
-    }
 }
 
 /// A listing of the cluster's nodes, in the order to use them, and how long

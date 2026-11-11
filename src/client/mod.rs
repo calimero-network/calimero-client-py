@@ -1,39 +1,45 @@
-//! `CloudClient` (also `Client`): a connection to one node of a Calimero 1.0
-//! cluster. Attestation, the sealed channel and passkey handling run in core's
-//! Rust client, so Python never re-implements the trust check. Every method
-//! blocks with the GIL released.
+//! `SealedClient` (`calimero_client_py._native`): the attested sealed
+//! channel to the nodes of a Calimero 1.0 cluster, under the Python client.
 //!
-//! The methods are split by area, each file its own `#[pymethods]` block:
-//! [`account`], [`apps`], [`blobs`], [`orgs`], [`governance`], [`packages`]
-//! and [`ops`]. This file holds the connection and the generic transport.
+//! The routes are a client generated from core's OpenAPI document; the
+//! Python package (`calimero_client_py`) runs it on [`request`]
+//! (`SealedClient.request`) through an httpx transport, and answers the
+//! node's step-ups (`412 CONFIRM_REQUIRED`, `428 OPERATOR_SIGNATURE_REQUIRED`)
+//! there. What stays in Rust is what a generated client cannot be made of:
+//! the attestation and the sealed channel ([`sealed`]), the recovery that
+//! moves between nodes and refreshes a session ([`recover`], [`directory`]),
+//! the event streams ([`streams`]), and the keys the client signs with
+//! ([`account`], [`account_recovery`], [`org_recovery`], the operator key).
+//! Every method blocks with the GIL released.
+//!
+//! [`request`]: PyCloudClient::request
 
 mod account;
 mod account_recovery;
-mod apps;
-mod blobs;
 mod directory;
-mod governance;
-mod ops;
 mod org_recovery;
-mod orgs;
-mod packages;
 mod prelude;
 mod recover;
+mod sealed;
+mod streams;
+
+use std::collections::HashMap;
 
 pub(crate) use directory::DirectoryError;
 
 use crate::error::directory_err;
 use prelude::*;
 use recover::Nodes;
+use sealed::{as_response, recoverable, RawRequest, RawResponse, SealedNode};
 
-/// A connection to one node of a Calimero 1.0 cluster (and, given `nodes`,
-/// the others it may move to). Also exported as `Client`, the preferred name.
-#[pyclass(name = "CloudClient")]
+/// The attested sealed channel to one node of a Calimero 1.0 cluster (and,
+/// given `nodes`, the others it may move to).
+#[pyclass(name = "SealedClient", module = "calimero_client_py._native")]
 pub struct PyCloudClient {
     /// The nodes this client may use, the one in use, and the credential
     /// (the API key, the ops token for the Ops API, which a request sent on
     /// to the leader carries too). See [`recover`].
-    nodes: Arc<Nodes<Client>>,
+    nodes: Arc<Nodes<SealedNode>>,
     runtime: Arc<Runtime>,
     /// The trust policy this client was made with, so a request that must
     /// run on a leader (`NOT_LEADER`) is sent to a node attested the same way.
@@ -41,6 +47,9 @@ pub struct PyCloudClient {
     /// The operator's Ed25519 key (`use_operator_key`): the Ops API's
     /// decisions answer `428 OPERATOR_SIGNATURE_REQUIRED` with it.
     operator_key: Arc<std::sync::Mutex<Option<OperatorKey>>>,
+    /// Leaders a `421 NOT_LEADER` named (`request_at`), attested under
+    /// `policy` once and kept.
+    leaders: std::sync::Mutex<HashMap<String, Arc<SealedNode>>>,
 }
 
 /// The operator's signing key, as the node's `--operator-key` names its
@@ -56,9 +65,83 @@ pub(crate) fn operator_key_from_hex(seed: &str) -> PyResult<OperatorKey> {
         .ok_or_else(|| PyValueError::new_err("operator_key must be a 32-byte Ed25519 seed, hex"))
 }
 
-/// How many `421 NOT_LEADER` redirects an Ops request follows. A node that
-/// holds no replica names one that may itself redirect once more.
-const LEADER_HOPS: usize = 3;
+/// How often a request made with `retry_unavailable` is sent again to the
+/// same node while it answers `503` or cannot be reached, and how long it
+/// waits first: 200 ms, doubling, at most 2 s (about 9 s in all, past a
+/// leader election), as core's `Client::call` does it.
+const CALL_RETRIES: u32 = 6;
+const CALL_RETRY_FIRST: Duration = Duration::from_millis(200);
+const CALL_RETRY_MAX: Duration = Duration::from_secs(2);
+
+/// How the client's recovery treats a request (`SealedClient.request`'s
+/// `mode`).
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Mode {
+    /// A `401` refreshes once, a `421 WRONG_NODE` or a node out of reach
+    /// moves on, and the request is sent again.
+    Run,
+    /// As `Run`, and a node answering `503` or timing out is left for the
+    /// next too: a request safe to send twice (a read, a call with its
+    /// idempotency key).
+    Repeatable,
+    /// Sent once (a sign-in or sign-up: its caller repeats it with the
+    /// passkey); a `421 WRONG_NODE` still moves the client on.
+    Once,
+}
+
+impl Mode {
+    fn parse(mode: &str) -> PyResult<Self> {
+        match mode {
+            "run" => Ok(Self::Run),
+            "repeatable" => Ok(Self::Repeatable),
+            "once" => Ok(Self::Once),
+            other => Err(PyValueError::new_err(format!(
+                "mode is \"run\", \"repeatable\" or \"once\", not {other:?}"
+            ))),
+        }
+    }
+}
+
+/// The credential a request carries: the API key, else the node's session.
+async fn credential(api_key: Option<String>, node: &SealedNode) -> Option<String> {
+    match api_key {
+        Some(key) => Some(key),
+        None => node.session().await.map(|s| s.session_token),
+    }
+}
+
+/// Send `req` to `node` once, or, with `retry`, again while it answers `503`
+/// or cannot be reached ([`CALL_RETRIES`]). An answer the recovery acts on
+/// comes back as an error ([`recoverable`]).
+async fn attempt(
+    node: &SealedNode,
+    req: &RawRequest,
+    token: Option<&str>,
+    repeatable: bool,
+    retry: bool,
+) -> Result<RawResponse, Error> {
+    let once = async || match node.send(req, token).await {
+        Ok(resp) => match recoverable(&resp, repeatable || retry) {
+            Some(e) => Err(e),
+            None => Ok(resp),
+        },
+        Err(e) => Err(e),
+    };
+    if !retry {
+        return once().await;
+    }
+    let mut wait = CALL_RETRY_FIRST;
+    for _ in 0..CALL_RETRIES {
+        match once().await {
+            Err(e) if e.is_unavailable() => {
+                tokio::time::sleep(wait).await;
+                wait = (wait * 2).min(CALL_RETRY_MAX);
+            }
+            done => return done,
+        }
+    }
+    once().await
+}
 
 impl PyCloudClient {
     /// Run `op` on the node in use with the GIL released, answering a `401`
@@ -68,34 +151,22 @@ impl PyCloudClient {
     fn run<T: Send>(
         &self,
         py: Python<'_>,
-        op: impl AsyncFn(Arc<Client>) -> Result<T, Error> + Send,
+        op: impl AsyncFn(Arc<SealedNode>) -> Result<T, Error> + Send,
     ) -> PyResult<T> {
         let (rt, nodes) = (Arc::clone(&self.runtime), Arc::clone(&self.nodes));
         py.allow_threads(move || rt.block_on(nodes.run(op)).map_err(cloud_err))
     }
 
-    /// [`run`](Self::run) for a request that is safe to send twice (a read, a
-    /// call with its idempotency key): a node that answers `503` or cannot be
-    /// reached is also left for the next, as [`Nodes::run_repeatable`] does.
+    /// [`run`](Self::run) for a request that is safe to send twice (a read):
+    /// a node that answers `503` or cannot be reached is also left for the
+    /// next, as [`Nodes::run_repeatable`] does.
     fn run_repeatable<T: Send>(
         &self,
         py: Python<'_>,
-        op: impl AsyncFn(Arc<Client>) -> Result<T, Error> + Send,
+        op: impl AsyncFn(Arc<SealedNode>) -> Result<T, Error> + Send,
     ) -> PyResult<T> {
         let (rt, nodes) = (Arc::clone(&self.runtime), Arc::clone(&self.nodes));
         py.allow_threads(move || rt.block_on(nodes.run_repeatable(op)).map_err(cloud_err))
-    }
-
-    /// [`run`](Self::run) for a sign-in or sign-up, sent once: a node that
-    /// answers it `421` moves the client on, and the caller signs in again
-    /// with the passkey.
-    fn run_once<T: Send>(
-        &self,
-        py: Python<'_>,
-        op: impl AsyncFnOnce(Arc<Client>) -> Result<T, Error> + Send,
-    ) -> PyResult<T> {
-        let (rt, nodes) = (Arc::clone(&self.runtime), Arc::clone(&self.nodes));
-        py.allow_threads(move || rt.block_on(nodes.run_once(op)).map_err(cloud_err))
     }
 
     /// Block on `f` with the GIL released, as it is: no recovery.
@@ -109,145 +180,8 @@ impl PyCloudClient {
     }
 
     /// The node in use.
-    fn client(&self) -> Arc<Client> {
+    fn client(&self) -> Arc<SealedNode> {
         self.nodes.current().1
-    }
-}
-
-/// Send `body` once; a `412 CONFIRM_REQUIRED` is answered with `passkey`'s
-/// assertion over the node's challenge, added to `body` as `confirm:
-/// {challengeId, assertion}`, and the request is sent again. What core's
-/// `post_confirmed` / `delete_confirmed` do, for a request core has no
-/// confirmed form of (a DELETE whose body names what goes).
-pub(crate) async fn confirm_step_up(
-    body: Value,
-    passkey: &mut dyn Passkey,
-    send: impl AsyncFn(Value) -> Result<Value, Error>,
-) -> Result<Value, Error> {
-    let details = match send(body.clone()).await {
-        Err(e) if e.code() == Some("CONFIRM_REQUIRED") => {
-            e.details().cloned().unwrap_or(Value::Null)
-        }
-        other => return other,
-    };
-    let challenge =
-        calimero_identity::from_b64url(details["challenge"].as_str().unwrap_or_default())
-            .map_err(|e| Error::Transport(eyre::eyre!("the node's challenge: {e}")))?;
-    let assertion = passkey.get(&challenge);
-    let mut body = body;
-    if let Some(b) = body.as_object_mut() {
-        let _prev = b.insert(
-            "confirm".into(),
-            serde_json::json!({ "challengeId": details["challengeId"], "assertion": assertion }),
-        );
-    }
-    send(body).await
-}
-
-#[derive(Clone, Copy)]
-pub(crate) enum Verb {
-    Get,
-    Post,
-    Delete,
-}
-
-async fn send_verb(c: &Client, verb: Verb, path: &str, body: Value) -> Result<Value, Error> {
-    match verb {
-        Verb::Get => c.get(path).await,
-        Verb::Post => c.post(path, body).await,
-        Verb::Delete => c.delete(path).await,
-    }
-}
-
-/// [`send_verb`] for an operator decision: with `key`, a `428
-/// OPERATOR_SIGNATURE_REQUIRED` is answered with its signature over the bytes
-/// the node names (the Rust client's `post_operator_signed` /
-/// `delete_operator_signed`); without one the `428` is raised as it came.
-async fn send_signed(
-    c: &Client,
-    verb: Verb,
-    path: &str,
-    body: Value,
-    key: Option<&OperatorKey>,
-) -> Result<Value, Error> {
-    use ed25519_dalek::Signer;
-    let Some(key) = key else {
-        return send_verb(c, verb, path, body).await;
-    };
-    let sign = |message: &[u8]| key.sign(message).to_bytes().to_vec();
-    match verb {
-        Verb::Get => c.get(path).await,
-        Verb::Post => c.post_operator_signed(path, body, &sign).await,
-        Verb::Delete => c.delete_operator_signed(path, &sign).await,
-    }
-}
-
-impl PyCloudClient {
-    /// A session replaced the API key as the client's credential.
-    fn forget_api_key(&self) {
-        self.nodes.set_api_key(None);
-    }
-
-    fn confirmed(
-        &self,
-        py: Python<'_>,
-        path: String,
-        body: Value,
-        passkey: &PySoftPasskey,
-    ) -> PyResult<Value> {
-        let pk = Arc::clone(&passkey.inner);
-        self.run(py, async |c| {
-            let mut auth = pk.lock().await;
-            c.post_confirmed(&path, body.clone(), &mut *auth).await
-        })
-    }
-
-    /// DELETE `path`, answering `412 CONFIRM_REQUIRED` with `passkey`.
-    fn confirmed_delete(
-        &self,
-        py: Python<'_>,
-        path: String,
-        passkey: &PySoftPasskey,
-    ) -> PyResult<Value> {
-        let pk = Arc::clone(&passkey.inner);
-        self.run(py, async |c| {
-            let mut auth = pk.lock().await;
-            c.delete_confirmed(&path, &mut *auth).await
-        })
-    }
-
-    /// DELETE `path` with `body` as JSON, answering `412 CONFIRM_REQUIRED`
-    /// with `passkey` (the node reads what is removed from the body: a
-    /// package's web origin). Core's `delete_confirmed` sends `{}`, so the
-    /// step-up is made here, as [`confirm_step_up`] does it.
-    fn confirmed_delete_with_body(
-        &self,
-        py: Python<'_>,
-        path: String,
-        body: Value,
-        passkey: &PySoftPasskey,
-    ) -> PyResult<Value> {
-        let pk = Arc::clone(&passkey.inner);
-        self.run(py, async |c| {
-            let mut auth = pk.lock().await;
-            confirm_step_up(body.clone(), &mut *auth, async |b| {
-                c.delete_with_body(&path, b).await
-            })
-            .await
-        })
-    }
-
-    fn send(&self, py: Python<'_>, verb: Verb, path: String, body: Value) -> PyResult<Value> {
-        let body = if body.is_null() {
-            Value::Object(serde_json::Map::new())
-        } else {
-            body
-        };
-        let op = async |c: Arc<Client>| send_verb(&c, verb, &path, body.clone()).await;
-        match verb {
-            Verb::Get => self.run_repeatable(py, op),
-            Verb::Post | Verb::Delete => self.run(py, op),
-        }
     }
 
     /// The operator key `use_operator_key` set, if any.
@@ -258,90 +192,32 @@ impl PyCloudClient {
             .clone()
     }
 
-    /// `send` for an operator decision, signed with the operator key (see
-    /// [`send_signed`]).
-    fn send_operator(
-        &self,
-        py: Python<'_>,
-        verb: Verb,
-        path: String,
-        body: Value,
-    ) -> PyResult<Value> {
-        let body = if body.is_null() {
-            Value::Object(serde_json::Map::new())
-        } else {
-            body
-        };
-        let key = self.operator_key();
-        self.run(py, async |c| {
-            send_signed(&c, verb, &path, body.clone(), key.as_ref()).await
-        })
-    }
-
-    /// `send_operator`, following `421 NOT_LEADER` to the leader the node
-    /// names (an app group's for replica moves, the system group's for node
-    /// removal). The leader is attested under this client's policy and gets
-    /// the same API key, and the decision is signed again there; without a
-    /// key the redirect is raised as it came.
-    fn send_to_leader(
-        &self,
-        py: Python<'_>,
-        verb: Verb,
-        path: String,
-        body: Value,
-    ) -> PyResult<Value> {
-        let key = self.nodes.api_key();
-        let operator = self.operator_key();
-        let (policy, first) = (self.policy.clone(), self.client());
-        self.block(py, async move {
-            let mut c = first;
-            for _ in 0..LEADER_HOPS {
-                match send_signed(&c, verb, &path, body.clone(), operator.as_ref()).await {
-                    Err(e) if e.code() == Some("NOT_LEADER") => {
-                        let leader = e
-                            .details()
-                            .and_then(|d| d["leaderUrl"].as_str())
-                            .map(str::to_owned);
-                        let (Some(url), Some(key)) = (leader, key.as_deref()) else {
-                            return Err(e);
-                        };
-                        let next =
-                            Client::connect(&url, policy.clone()).map_err(Error::Transport)?;
-                        next.use_api_key(key).await;
-                        c = Arc::new(next);
-                    }
-                    done => return done,
-                }
-            }
-            send_signed(&c, verb, &path, body, operator.as_ref()).await
-        })
+    /// The leader at `url`, attested under this client's policy on first use.
+    fn leader(&self, url: &str) -> PyResult<Arc<SealedNode>> {
+        let url = url.trim_end_matches('/').to_owned();
+        let mut leaders = self
+            .leaders
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if let Some(node) = leaders.get(&url) {
+            return Ok(Arc::clone(node));
+        }
+        let _enter = self.runtime.enter();
+        let node = Arc::new(
+            SealedNode::connect(&url, self.policy.clone())
+                .map_err(|e| PyValueError::new_err(format!("{e:#}")))?,
+        );
+        let _prev = leaders.insert(url, Arc::clone(&node));
+        Ok(node)
     }
 }
 
-impl PyCloudClient {
-    fn operator_signed(
-        &self,
-        py: Python<'_>,
-        verb: Verb,
-        path: &str,
-        body: Value,
-        operator_key: Option<&str>,
-    ) -> PyResult<PyObject> {
-        let key = match operator_key {
-            Some(seed) => Some(operator_key_from_hex(seed)?),
-            None => self.operator_key(),
-        };
-        let path = path.trim_start_matches('/').to_owned();
-        let body = if body.is_null() {
-            Value::Object(serde_json::Map::new())
-        } else {
-            body
-        };
-        let v = self.run(py, async |c| {
-            send_signed(&c, verb, &path, body.clone(), key.as_ref()).await
-        })?;
-        to_py(py, &v)
-    }
+/// The answer, as Python gets it: `(status, [(name, value)], body)`.
+fn to_tuple(py: Python<'_>, r: RawResponse) -> (u16, Vec<(String, String)>, PyObject) {
+    let body = pyo3::types::PyBytes::new_bound(py, &r.body)
+        .into_any()
+        .unbind();
+    (r.status, r.headers, body)
 }
 
 /// The trust policy every node of the client is attested under.
@@ -381,7 +257,7 @@ fn connect_all(
     runtime: &Runtime,
     urls: impl IntoIterator<Item = String>,
     policy: &Policy,
-) -> PyResult<Vec<(String, Client)>> {
+) -> PyResult<Vec<(String, SealedNode)>> {
     let mut unique: Vec<String> = Vec::new();
     for url in urls {
         let url = url.trim_end_matches('/').to_owned();
@@ -393,7 +269,7 @@ fn connect_all(
     unique
         .into_iter()
         .map(|url| {
-            let client = Client::connect(&url, policy.clone())
+            let client = SealedNode::connect(&url, policy.clone())
                 .map_err(|e| PyValueError::new_err(format!("{e:#}")))?;
             Ok((url, client))
         })
@@ -449,6 +325,7 @@ impl PyCloudClient {
             runtime: Arc::new(runtime),
             policy,
             operator_key: Arc::new(std::sync::Mutex::new(None)),
+            leaders: std::sync::Mutex::new(HashMap::new()),
         })
     }
 
@@ -504,108 +381,140 @@ impl PyCloudClient {
             runtime: Arc::new(runtime),
             policy,
             operator_key: Arc::new(std::sync::Mutex::new(None)),
+            leaders: std::sync::Mutex::new(HashMap::new()),
         })
     }
 
-    /// POST `body` to `path`, answering a `412 CONFIRM_REQUIRED` with
-    /// `passkey`'s assertion over the node's challenge: what an owner
-    /// approves (upgrades, organization upgrades, release and outbound
-    /// approvals, deleting an organization's...).
-    #[pyo3(signature = (path, body, passkey))]
-    fn post_confirmed(
+    /// Send one request through the sealed channel to the node in use, as
+    /// the generated client made it (`path` relative to the node, query
+    /// included; `body` as bytes, empty for none), with the client's
+    /// credential, and answer it as it came: `(status, headers, body)`.
+    ///
+    /// `mode` is how the recovery treats it: `"run"` (a `401` refreshes the
+    /// session once, a `421 WRONG_NODE` or a node out of reach moves to the
+    /// next node, and the request is sent again), `"repeatable"` (as `"run"`,
+    /// and a `503` or a timeout moves on too: a read, or a call with its
+    /// idempotency key) or `"once"` (a sign-in or sign-up). With
+    /// `retry_unavailable`, a node answering `503` or out of reach is sent
+    /// the request again for a while first (a call: its idempotency key makes
+    /// it run once). An answer the recovery gave up on comes back as the
+    /// node's error answer. Raises `CloudError` (status 0, `TRANSPORT`) when
+    /// no node could be reached or attested, and `413 TOO_LARGE` when the
+    /// node refused the envelope as too large.
+    #[pyo3(signature = (method, path, headers, body, mode = "run", retry_unavailable = false))]
+    fn request(
         &self,
         py: Python<'_>,
-        path: &str,
-        body: Option<&Bound<'_, PyAny>>,
-        passkey: &PySoftPasskey,
-    ) -> PyResult<PyObject> {
-        let body = to_json(py, body)?;
-        let body = if body.is_null() {
-            Value::Object(serde_json::Map::new())
-        } else {
-            body
+        method: String,
+        path: String,
+        headers: Vec<(String, String)>,
+        body: Vec<u8>,
+        mode: &str,
+        retry_unavailable: bool,
+    ) -> PyResult<(u16, Vec<(String, String)>, PyObject)> {
+        let mode = Mode::parse(mode)?;
+        let req = RawRequest {
+            method,
+            path,
+            headers,
+            body,
         };
-        let v = self.confirmed(py, path.trim_start_matches('/').to_owned(), body, passkey)?;
-        to_py(py, &v)
-    }
-
-    /// POST any API path (organizations, teams, invites, ...).
-    #[pyo3(signature = (path, body = None))]
-    fn post(
-        &self,
-        py: Python<'_>,
-        path: &str,
-        body: Option<&Bound<'_, PyAny>>,
-    ) -> PyResult<PyObject> {
-        let (b, path) = (to_json(py, body)?, path.to_owned());
-        let v = self.run(py, async |c| c.post(&path, b.clone()).await)?;
-        to_py(py, &v)
-    }
-
-    /// GET any API path.
-    fn get(&self, py: Python<'_>, path: &str) -> PyResult<PyObject> {
-        let path = path.to_owned();
-        let v = self.run_repeatable(py, async |c| c.get(&path).await)?;
-        to_py(py, &v)
-    }
-
-    /// DELETE any API path; `body`, when given, goes as JSON (a proof the
-    /// caller made itself: `{"confirm": ...}` for a passkey, a member or a
-    /// team row, `{"operatorProof": ...}` for `ops/nodes/{id}`). Without one
-    /// the DELETE carries no body, as before.
-    #[pyo3(signature = (path, body = None))]
-    fn delete(
-        &self,
-        py: Python<'_>,
-        path: &str,
-        body: Option<&Bound<'_, PyAny>>,
-    ) -> PyResult<PyObject> {
-        let path = path.to_owned();
-        let body = match body {
-            Some(b) if !b.is_none() => Some(to_json(py, Some(b))?),
-            _ => None,
+        let repeatable = mode == Mode::Repeatable;
+        let nodes = Arc::clone(&self.nodes);
+        let op = async |node: Arc<SealedNode>| {
+            let token = credential(nodes.api_key(), &node).await;
+            attempt(&node, &req, token.as_deref(), repeatable, retry_unavailable).await
         };
-        let v = self.run(py, async |c| match &body {
-            None => c.delete(&path).await,
-            Some(b) => c.delete_with_body(&path, b.clone()).await,
+        let (rt, n) = (Arc::clone(&self.runtime), Arc::clone(&self.nodes));
+        let answer = py.allow_threads(move || {
+            rt.block_on(async {
+                let sent = match mode {
+                    Mode::Run => n.run(op).await,
+                    Mode::Repeatable => n.run_repeatable(op).await,
+                    Mode::Once => n.run_once(op).await,
+                };
+                sent.or_else(as_response)
+            })
+        });
+        Ok(to_tuple(py, answer.map_err(cloud_err)?))
+    }
+
+    /// Send one request to the leader at `url` that a `421 NOT_LEADER`
+    /// named (an app group's for replica moves, the system group's for node
+    /// removal), as `request` sends it but with no recovery. The leader is
+    /// attested under this client's policy and gets the client's API key
+    /// (the ops token); `ValueError` without one.
+    fn request_at(
+        &self,
+        py: Python<'_>,
+        url: &str,
+        method: String,
+        path: String,
+        headers: Vec<(String, String)>,
+        body: Vec<u8>,
+    ) -> PyResult<(u16, Vec<(String, String)>, PyObject)> {
+        let Some(key) = self.nodes.api_key() else {
+            return Err(PyValueError::new_err(
+                "a leader is sent the request only with an API key",
+            ));
+        };
+        let node = self.leader(url)?;
+        let req = RawRequest {
+            method,
+            path,
+            headers,
+            body,
+        };
+        let answer = self.block(py, async move {
+            node.send(&req, Some(&key)).await.or_else(as_response)
         })?;
-        to_py(py, &v)
+        Ok(to_tuple(py, answer))
     }
 
-    /// PUT any API path (an alias: `auth/aliases/{alias}` with `{"app": ...}`).
-    #[pyo3(signature = (path, body = None))]
-    fn put(
-        &self,
-        py: Python<'_>,
-        path: &str,
-        body: Option<&Bound<'_, PyAny>>,
-    ) -> PyResult<PyObject> {
-        let (b, path) = (to_json(py, body)?, path.to_owned());
-        let v = self.run(py, async |c| c.put(&path, b.clone()).await)?;
-        to_py(py, &v)
+    /// Whether requests carry an API key (`use_api_key`) rather than a session.
+    #[getter]
+    fn has_api_key(&self) -> bool {
+        self.nodes.api_key().is_some()
     }
 
-    /// DELETE `path`, answering `412 CONFIRM_REQUIRED` (deleting an
-    /// organization) with `passkey`, as `post_confirmed` does. `body`, when
-    /// given, goes as JSON, and the approval is added to it (`{"origin": ...}`
-    /// on `package-origins/{package}`).
-    #[pyo3(signature = (path, passkey, body = None))]
-    fn delete_confirmed(
-        &self,
-        py: Python<'_>,
-        path: &str,
-        passkey: &PySoftPasskey,
-        body: Option<&Bound<'_, PyAny>>,
-    ) -> PyResult<PyObject> {
-        let path = path.trim_start_matches('/').to_owned();
-        let v = match body {
-            Some(b) if !b.is_none() => {
-                let body = to_json(py, Some(b))?;
-                self.confirmed_delete_with_body(py, path, body, passkey)?
-            }
-            _ => self.confirmed_delete(py, path, passkey)?,
-        };
-        to_py(py, &v)
+    /// Exchange the refresh token for a new session, on the node in use (any
+    /// node of the cluster takes it). One at a time with the refreshes the
+    /// client makes on its own after a `401`: a refresh token is used once.
+    fn refresh(&self, py: Python<'_>) -> PyResult<PyObject> {
+        let nodes = Arc::clone(&self.nodes);
+        let s = self.block(py, async move { nodes.refresh().await })?;
+        to_py(py, &s)
+    }
+
+    /// Authenticate every request with an API key (`cal_...`).
+    fn use_api_key(&self, py: Python<'_>, key: &str) -> PyResult<()> {
+        self.nodes.set_api_key(Some(key.to_owned()));
+        let (c, key) = (self.client(), key.to_owned());
+        self.block(py, async move {
+            c.use_api_key(&key).await;
+            Ok(())
+        })
+    }
+
+    /// Authenticate with a session returned by `sign_up`/`sign_in`.
+    fn use_session(&self, py: Python<'_>, session: &Bound<'_, PyAny>) -> PyResult<()> {
+        let s: Session = serde_json::from_value(to_json(py, Some(session))?)
+            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+        let c = self.client();
+        self.block(py, async move {
+            recover::Node::use_session(&*c, s).await;
+            Ok(())
+        })?;
+        self.nodes.set_api_key(None);
+        Ok(())
+    }
+
+    /// The session in use (`sign_up`, `sign_in`, `refresh`, `use_session`),
+    /// or `None` (none yet, or an API key instead).
+    fn session(&self, py: Python<'_>) -> PyResult<PyObject> {
+        let c = self.client();
+        let s = self.block(py, async move { Ok(c.session().await) })?;
+        to_py(py, &s)
     }
 
     /// Sign the Ops API's decisions with the operator's Ed25519 key (its
@@ -632,36 +541,17 @@ impl PyCloudClient {
         ))
     }
 
-    /// POST an operator decision to `path`, answering `428
-    /// OPERATOR_SIGNATURE_REQUIRED` with `operator_key` (a seed, hex), else
-    /// the key `use_operator_key` set.
-    #[pyo3(signature = (path, body = None, operator_key = None))]
-    fn post_operator_signed(
-        &self,
-        py: Python<'_>,
-        path: &str,
-        body: Option<&Bound<'_, PyAny>>,
-        operator_key: Option<&str>,
-    ) -> PyResult<PyObject> {
-        self.operator_signed(py, Verb::Post, path, to_json(py, body)?, operator_key)
-    }
-
-    /// DELETE an operator decision (`ops/nodes/{id}`), signed as
-    /// `post_operator_signed`.
-    #[pyo3(signature = (path, operator_key = None))]
-    fn delete_operator_signed(
-        &self,
-        py: Python<'_>,
-        path: &str,
-        operator_key: Option<&str>,
-    ) -> PyResult<PyObject> {
-        self.operator_signed(py, Verb::Delete, path, Value::Null, operator_key)
-    }
-
-    /// GET any API path whose answer is text (`ops/metrics`).
-    fn get_text(&self, py: Python<'_>, path: &str) -> PyResult<String> {
-        let path = path.to_owned();
-        self.run_repeatable(py, async |c| c.get_text(&path).await)
+    /// The operator key's signature (hex) over `message`, the bytes a `428
+    /// OPERATOR_SIGNATURE_REQUIRED` names: with `seed` (hex), else the key
+    /// `use_operator_key` set; `None` without either.
+    #[pyo3(signature = (message, seed = None))]
+    fn operator_sign(&self, message: &[u8], seed: Option<&str>) -> PyResult<Option<String>> {
+        use ed25519_dalek::Signer;
+        let key = match seed {
+            Some(seed) => Some(operator_key_from_hex(seed)?),
+            None => self.operator_key(),
+        };
+        Ok(key.map(|k| hex::encode(k.sign(message).to_bytes())))
     }
 
     /// The URL of the node in use: `base_url`, until a `421 WRONG_NODE` or
@@ -682,80 +572,5 @@ impl PyCloudClient {
     fn attestation(&self, py: Python<'_>) -> PyResult<PyObject> {
         let v = self.run_repeatable(py, async |c| c.attestation().await)?;
         to_py(py, &v)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::cell::RefCell;
-
-    use calimero_identity::testing::SoftAuthenticator;
-    use serde_json::json;
-
-    use super::*;
-
-    fn confirm_required(challenge_id: &str, challenge: &[u8]) -> Error {
-        Error::Api {
-            status: 412,
-            code: "CONFIRM_REQUIRED".into(),
-            message: "confirm with a passkey".into(),
-            details: json!({
-                "challengeId": challenge_id,
-                "challenge": calimero_identity::b64url(challenge),
-                "rpId": "localhost",
-                "allowCredentials": [],
-            }),
-        }
-    }
-
-    #[tokio::test]
-    async fn a_confirm_required_is_answered_once_with_the_body_kept() {
-        let mut pk = SoftAuthenticator::new("localhost", "http://localhost:3000");
-        let sent = RefCell::new(Vec::new());
-        let v = confirm_step_up(
-            json!({ "origin": "https://app.example" }),
-            &mut pk,
-            async |b| {
-                sent.borrow_mut().push(b.clone());
-                if b.get("confirm").is_some() {
-                    Ok(json!({ "removed": true }))
-                } else {
-                    Err(confirm_required("ch-1", b"challenge bytes"))
-                }
-            },
-        )
-        .await
-        .unwrap();
-        assert_eq!(v, json!({ "removed": true }));
-        let sent = sent.into_inner();
-        assert_eq!(sent.len(), 2);
-        assert_eq!(sent[0], json!({ "origin": "https://app.example" }));
-        assert_eq!(sent[1]["origin"], "https://app.example");
-        assert_eq!(sent[1]["confirm"]["challengeId"], "ch-1");
-        // The assertion signs the node's challenge, as core's step-up does.
-        let expected = serde_json::to_value(pk.assert(b"challenge bytes")).unwrap();
-        assert_eq!(
-            sent[1]["confirm"]["assertion"]["clientDataJson"],
-            expected["clientDataJson"]
-        );
-    }
-
-    #[tokio::test]
-    async fn any_other_answer_is_returned_as_it_came() {
-        let mut pk = SoftAuthenticator::new("localhost", "http://localhost:3000");
-        let calls = RefCell::new(0);
-        let err = confirm_step_up(json!({ "origin": "x" }), &mut pk, async |_b| {
-            *calls.borrow_mut() += 1;
-            Err::<Value, _>(Error::Api {
-                status: 404,
-                code: "NOT_FOUND".into(),
-                message: "no such origin".into(),
-                details: Value::Null,
-            })
-        })
-        .await
-        .unwrap_err();
-        assert_eq!(err.code(), Some("NOT_FOUND"));
-        assert_eq!(*calls.borrow(), 1);
     }
 }

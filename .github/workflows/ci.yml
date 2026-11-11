@@ -49,6 +49,14 @@ jobs:
       run: |
         black --check .
 
+    # calimero_client_py/openapi and calimero_client_py/facade.py are
+    # generated from openapi/openapi.json and checked in: regenerate them and
+    # fail on any difference (scripts/generate_openapi_client.py says how).
+    - name: Check the generated client is current
+      run: |
+        pip install openapi-python-client==0.26.2
+        python scripts/generate_openapi_client.py --check
+
     # pyo3 only turns a Rust panic into a Python exception when it unwinds.
     - name: Check the release profile unwinds
       run: |
@@ -124,7 +132,7 @@ jobs:
   # Cargo.toml pins core's 1.0.0-rc.1 tag, so a change on core master to
   # `calimero-client` (a field added to a request type, a renamed method)
   # breaks only the next pin bump. This builds against core master as it is
-  # today. `calimero-identity` moves with it, or cargo resolves two copies of
+  # today. `calimero-identity` and `calimero-sealed` move with it, or cargo resolves two copies of
   # the crates they share.
   core-master:
     runs-on: ubuntu-latest
@@ -141,5 +149,5 @@ jobs:
       run: |
         sed -i 's/tag = "[^"]*"/branch = "master"/' Cargo.toml
         grep -n 'branch = "master"' Cargo.toml
-        cargo update -p calimero-client -p calimero-identity
+        cargo update -p calimero-client -p calimero-identity -p calimero-sealed
         cargo check --all-targets

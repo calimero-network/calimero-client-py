@@ -200,7 +200,7 @@ impl Remote {
     }
 }
 
-impl super::recover::Directory<calimero_client::Client> for Remote {
+impl super::recover::Directory<super::sealed::SealedNode> for Remote {
     fn fetch(
         &self,
     ) -> std::pin::Pin<
@@ -209,8 +209,8 @@ impl super::recover::Directory<calimero_client::Client> for Remote {
         Box::pin(async move { self.listing().await.map_err(|e| e.message) })
     }
 
-    fn connect(&self, url: &str) -> Result<calimero_client::Client, String> {
-        calimero_client::Client::connect(url, self.policy.clone()).map_err(|e| format!("{e:#}"))
+    fn connect(&self, url: &str) -> Result<super::sealed::SealedNode, String> {
+        super::sealed::SealedNode::connect(url, self.policy.clone()).map_err(|e| format!("{e:#}"))
     }
 }
 
