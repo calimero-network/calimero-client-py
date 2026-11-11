@@ -7,7 +7,12 @@ from attrs import field as _attrs_field
 from ..types import UNSET, Unset
 
 from ..types import UNSET, Unset
+from typing import cast
 from typing import Union
+
+if TYPE_CHECKING:
+    from ..models.governance import Governance
+
 
 T = TypeVar("T", bound="OpsStatusResponse200")
 
@@ -18,7 +23,9 @@ class OpsStatusResponse200:
     Attributes:
         node (Any):
         system (Any):
-        governance (Any):
+        governance (Governance): Who decides what on this cluster: release approvals, app upgrades and outbound
+            approvals (`owner`: each app's owner; `operator`: the operator), and, left out at their defaults, `deployments`
+            (`open`), `deployers` (`operator`) and `signUp` (`open`).
         groups (Any):
         nodes (Any):
         apps (Any):
@@ -28,7 +35,7 @@ class OpsStatusResponse200:
 
     node: Any
     system: Any
-    governance: Any
+    governance: "Governance"
     groups: Any
     nodes: Any
     apps: Any
@@ -37,11 +44,13 @@ class OpsStatusResponse200:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.governance import Governance
+
         node = self.node
 
         system = self.system
 
-        governance = self.governance
+        governance = self.governance.to_dict()
 
         groups = self.groups
 
@@ -73,12 +82,14 @@ class OpsStatusResponse200:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.governance import Governance
+
         d = dict(src_dict)
         node = d.pop("node")
 
         system = d.pop("system")
 
-        governance = d.pop("governance")
+        governance = Governance.from_dict(d.pop("governance"))
 
         groups = d.pop("groups")
 

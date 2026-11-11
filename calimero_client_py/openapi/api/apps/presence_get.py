@@ -68,7 +68,10 @@ def sync_detailed(
 ) -> Response[Union[Error, PresenceGetResponse200]]:
     """Who is present
 
-     **Who:** whoever the app's access admits (a public app: anyone).
+     One entry per present device (a session's passkey, or an API key): its account, device and state
+    (hex).
+
+    **Who:** whoever the app's access admits (a public app: anyone).
 
     Args:
         app (str):
@@ -99,7 +102,10 @@ def sync(
 ) -> Optional[Union[Error, PresenceGetResponse200]]:
     """Who is present
 
-     **Who:** whoever the app's access admits (a public app: anyone).
+     One entry per present device (a session's passkey, or an API key): its account, device and state
+    (hex).
+
+    **Who:** whoever the app's access admits (a public app: anyone).
 
     Args:
         app (str):
@@ -125,7 +131,10 @@ async def asyncio_detailed(
 ) -> Response[Union[Error, PresenceGetResponse200]]:
     """Who is present
 
-     **Who:** whoever the app's access admits (a public app: anyone).
+     One entry per present device (a session's passkey, or an API key): its account, device and state
+    (hex).
+
+    **Who:** whoever the app's access admits (a public app: anyone).
 
     Args:
         app (str):
@@ -154,7 +163,10 @@ async def asyncio(
 ) -> Optional[Union[Error, PresenceGetResponse200]]:
     """Who is present
 
-     **Who:** whoever the app's access admits (a public app: anyone).
+     One entry per present device (a session's passkey, or an API key): its account, device and state
+    (hex).
+
+    **Who:** whoever the app's access admits (a public app: anyone).
 
     Args:
         app (str):

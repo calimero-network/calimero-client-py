@@ -9,6 +9,11 @@ from ..types import UNSET, Unset
 from typing import cast
 from typing import cast, Union
 
+if TYPE_CHECKING:
+    from ..models.governance import Governance
+    from ..models.report_app import ReportApp
+
+
 T = TypeVar("T", bound="OpsAppsResponse200")
 
 
@@ -17,23 +22,31 @@ class OpsAppsResponse200:
     """
     Attributes:
         fresh (bool):
-        governance (Any):
-        apps (list[Any]):
+        governance (Governance): Who decides what on this cluster: release approvals, app upgrades and outbound
+            approvals (`owner`: each app's owner; `operator`: the operator), and, left out at their defaults, `deployments`
+            (`open`), `deployers` (`operator`) and `signUp` (`open`).
+        apps (list['ReportApp']):
         next_ (Union[None, str]):
     """
 
     fresh: bool
-    governance: Any
-    apps: list[Any]
+    governance: "Governance"
+    apps: list["ReportApp"]
     next_: Union[None, str]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.governance import Governance
+        from ..models.report_app import ReportApp
+
         fresh = self.fresh
 
-        governance = self.governance
+        governance = self.governance.to_dict()
 
-        apps = self.apps
+        apps = []
+        for apps_item_data in self.apps:
+            apps_item = apps_item_data.to_dict()
+            apps.append(apps_item)
 
         next_: Union[None, str]
         next_ = self.next_
@@ -53,12 +66,20 @@ class OpsAppsResponse200:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.governance import Governance
+        from ..models.report_app import ReportApp
+
         d = dict(src_dict)
         fresh = d.pop("fresh")
 
-        governance = d.pop("governance")
+        governance = Governance.from_dict(d.pop("governance"))
 
-        apps = cast(list[Any], d.pop("apps"))
+        apps = []
+        _apps = d.pop("apps")
+        for apps_item_data in _apps:
+            apps_item = ReportApp.from_dict(apps_item_data)
+
+            apps.append(apps_item)
 
         def _parse_next_(data: object) -> Union[None, str]:
             if data is None:

@@ -6,14 +6,14 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
-T = TypeVar("T", bound="OpsSignUpInviteCreateResponse200")
+T = TypeVar("T", bound="PackageUploadResponse200Services")
 
 
 @_attrs_define
-class OpsSignUpInviteCreateResponse200:
+class PackageUploadResponse200Services:
     """ """
 
-    additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
+    additional_properties: dict[str, str] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
 
@@ -25,19 +25,19 @@ class OpsSignUpInviteCreateResponse200:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        ops_sign_up_invite_create_response_200 = cls()
+        package_upload_response_200_services = cls()
 
-        ops_sign_up_invite_create_response_200.additional_properties = d
-        return ops_sign_up_invite_create_response_200
+        package_upload_response_200_services.additional_properties = d
+        return package_upload_response_200_services
 
     @property
     def additional_keys(self) -> list[str]:
         return list(self.additional_properties.keys())
 
-    def __getitem__(self, key: str) -> Any:
+    def __getitem__(self, key: str) -> str:
         return self.additional_properties[key]
 
-    def __setitem__(self, key: str, value: Any) -> None:
+    def __setitem__(self, key: str, value: str) -> None:
         self.additional_properties[key] = value
 
     def __delitem__(self, key: str) -> None:

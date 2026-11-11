@@ -6,34 +6,34 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
-from typing import cast
+from ..models.app_scope_type_0_kind import AppScopeType0Kind
 
-T = TypeVar("T", bound="OrgOutboundApprovalsAdditionalProperty")
+T = TypeVar("T", bound="AppScopeType0")
 
 
 @_attrs_define
-class OrgOutboundApprovalsAdditionalProperty:
+class AppScopeType0:
     """
     Attributes:
-        prefixes (list[str]):
-        reviewed (list[str]):
+        kind (AppScopeType0Kind):
+        org (str):
     """
 
-    prefixes: list[str]
-    reviewed: list[str]
+    kind: AppScopeType0Kind
+    org: str
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        prefixes = self.prefixes
+        kind = self.kind.value
 
-        reviewed = self.reviewed
+        org = self.org
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "prefixes": prefixes,
-                "reviewed": reviewed,
+                "kind": kind,
+                "org": org,
             }
         )
 
@@ -42,17 +42,17 @@ class OrgOutboundApprovalsAdditionalProperty:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        prefixes = cast(list[str], d.pop("prefixes"))
+        kind = AppScopeType0Kind(d.pop("kind"))
 
-        reviewed = cast(list[str], d.pop("reviewed"))
+        org = d.pop("org")
 
-        org_outbound_approvals_additional_property = cls(
-            prefixes=prefixes,
-            reviewed=reviewed,
+        app_scope_type_0 = cls(
+            kind=kind,
+            org=org,
         )
 
-        org_outbound_approvals_additional_property.additional_properties = d
-        return org_outbound_approvals_additional_property
+        app_scope_type_0.additional_properties = d
+        return app_scope_type_0
 
     @property
     def additional_keys(self) -> list[str]:

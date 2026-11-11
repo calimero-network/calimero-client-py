@@ -6,7 +6,11 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
+from ..models.org_members_response_200_members_item_passkeys_type_1 import (
+    OrgMembersResponse200MembersItemPasskeysType1,
+)
 from ..models.org_role import OrgRole
+from typing import cast
 from typing import cast, Union
 
 T = TypeVar("T", bound="OrgMembersResponse200MembersItem")
@@ -17,20 +21,20 @@ class OrgMembersResponse200MembersItem:
     """
     Attributes:
         account (str):
-        name (str):
+        name (Union[None, str]):
         role (OrgRole): A member's role in an organization.
-        teams (Any):
-        passkeys (Any):
+        teams (list[str]):
+        passkeys (Union[OrgMembersResponse200MembersItemPasskeysType1, int]):
         recovery_code (bool):
         last_active_day (Union[None, str]):
         sessions (int):
     """
 
     account: str
-    name: str
+    name: Union[None, str]
     role: OrgRole
-    teams: Any
-    passkeys: Any
+    teams: list[str]
+    passkeys: Union[OrgMembersResponse200MembersItemPasskeysType1, int]
     recovery_code: bool
     last_active_day: Union[None, str]
     sessions: int
@@ -39,13 +43,18 @@ class OrgMembersResponse200MembersItem:
     def to_dict(self) -> dict[str, Any]:
         account = self.account
 
+        name: Union[None, str]
         name = self.name
 
         role = self.role.value
 
         teams = self.teams
 
-        passkeys = self.passkeys
+        passkeys: Union[int, str]
+        if isinstance(self.passkeys, OrgMembersResponse200MembersItemPasskeysType1):
+            passkeys = self.passkeys.value
+        else:
+            passkeys = self.passkeys
 
         recovery_code = self.recovery_code
 
@@ -76,13 +85,31 @@ class OrgMembersResponse200MembersItem:
         d = dict(src_dict)
         account = d.pop("account")
 
-        name = d.pop("name")
+        def _parse_name(data: object) -> Union[None, str]:
+            if data is None:
+                return data
+            return cast(Union[None, str], data)
+
+        name = _parse_name(d.pop("name"))
 
         role = OrgRole(d.pop("role"))
 
-        teams = d.pop("teams")
+        teams = cast(list[str], d.pop("teams"))
 
-        passkeys = d.pop("passkeys")
+        def _parse_passkeys(
+            data: object,
+        ) -> Union[OrgMembersResponse200MembersItemPasskeysType1, int]:
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                passkeys_type_1 = OrgMembersResponse200MembersItemPasskeysType1(data)
+
+                return passkeys_type_1
+            except:  # noqa: E722
+                pass
+            return cast(Union[OrgMembersResponse200MembersItemPasskeysType1, int], data)
+
+        passkeys = _parse_passkeys(d.pop("passkeys"))
 
         recovery_code = d.pop("recoveryCode")
 

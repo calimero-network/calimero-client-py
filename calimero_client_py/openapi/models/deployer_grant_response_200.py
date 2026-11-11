@@ -12,6 +12,7 @@ from typing import cast, Union
 if TYPE_CHECKING:
     from ..models.deployer_type_0 import DeployerType0
     from ..models.deployer_type_1 import DeployerType1
+    from ..models.deployer_grant import DeployerGrant
 
 
 T = TypeVar("T", bound="DeployerGrantResponse200")
@@ -23,17 +24,19 @@ class DeployerGrantResponse200:
     Attributes:
         key (str):
         deployer (Union['DeployerType0', 'DeployerType1']): An account or an organization.
-        grant (Any):
+        grant (DeployerGrant): A grant to install where deployments are granted: until when (Unix seconds; absent: it
+            does not end), when and by whom it was granted.
     """
 
     key: str
     deployer: Union["DeployerType0", "DeployerType1"]
-    grant: Any
+    grant: "DeployerGrant"
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         from ..models.deployer_type_0 import DeployerType0
         from ..models.deployer_type_1 import DeployerType1
+        from ..models.deployer_grant import DeployerGrant
 
         key = self.key
 
@@ -43,7 +46,7 @@ class DeployerGrantResponse200:
         else:
             deployer = self.deployer.to_dict()
 
-        grant = self.grant
+        grant = self.grant.to_dict()
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -61,6 +64,7 @@ class DeployerGrantResponse200:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.deployer_type_0 import DeployerType0
         from ..models.deployer_type_1 import DeployerType1
+        from ..models.deployer_grant import DeployerGrant
 
         d = dict(src_dict)
         key = d.pop("key")
@@ -82,7 +86,7 @@ class DeployerGrantResponse200:
 
         deployer = _parse_deployer(d.pop("deployer"))
 
-        grant = d.pop("grant")
+        grant = DeployerGrant.from_dict(d.pop("grant"))
 
         deployer_grant_response_200 = cls(
             key=key,

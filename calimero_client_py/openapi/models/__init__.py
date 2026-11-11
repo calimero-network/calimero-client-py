@@ -47,6 +47,12 @@ from .app_access_body import AppAccessBody
 from .app_access_response_200 import AppAccessResponse200
 from .app_attestation_purpose import AppAttestationPurpose
 from .app_attestation_response_200 import AppAttestationResponse200
+from .app_attestation_response_200_replicas_item_type_0 import (
+    AppAttestationResponse200ReplicasItemType0,
+)
+from .app_attestation_response_200_replicas_item_type_1 import (
+    AppAttestationResponse200ReplicasItemType1,
+)
 from .app_create_body import AppCreateBody
 from .app_create_response_200 import AppCreateResponse200
 from .app_delete_response_200 import AppDeleteResponse200
@@ -66,12 +72,21 @@ from .app_restore import AppRestore
 from .app_restore_source import AppRestoreSource
 from .app_run_response_200 import AppRunResponse200
 from .app_runs_response_200 import AppRunsResponse200
+from .app_scope_type_0 import AppScopeType0
+from .app_scope_type_0_kind import AppScopeType0Kind
+from .app_scope_type_1 import AppScopeType1
+from .app_scope_type_1_kind import AppScopeType1Kind
 from .app_storage_response_200 import AppStorageResponse200
 from .app_team_list_response_200 import AppTeamListResponse200
+from .app_team_list_response_200_app_teams_item import (
+    AppTeamListResponse200AppTeamsItem,
+)
 from .app_team_list_response_200_mode import AppTeamListResponse200Mode
 from .app_teams_scope_body import AppTeamsScopeBody
 from .app_teams_scope_body_apps_item import AppTeamsScopeBodyAppsItem
 from .app_teams_scope_response_200 import AppTeamsScopeResponse200
+from .app_teams_scope_response_200_mode import AppTeamsScopeResponse200Mode
+from .app_teams_scope_response_200_teams_item import AppTeamsScopeResponse200TeamsItem
 from .app_transfer_body import AppTransferBody
 from .app_upgrade_body import AppUpgradeBody
 from .app_upgrade_response_200 import AppUpgradeResponse200
@@ -89,6 +104,8 @@ from .blob_list_response_200_blobs_item import BlobListResponse200BlobsItem
 from .blob_revoke_response_200 import BlobRevokeResponse200
 from .blob_upload_response_200 import BlobUploadResponse200
 from .bundle_put_response_200 import BundlePutResponse200
+from .bundle_release import BundleRelease
+from .cluster_release import ClusterRelease
 from .confirm import Confirm
 from .confirm_only import ConfirmOnly
 from .confirm_required import ConfirmRequired
@@ -118,9 +135,13 @@ from .consent_page_result_response_200 import ConsentPageResultResponse200
 from .consent_page_result_response_200_kind import ConsentPageResultResponse200Kind
 from .consent_page_result_response_200_status import ConsentPageResultResponse200Status
 from .dead_letter import DeadLetter
+from .deployer_grant import DeployerGrant
 from .deployer_grant_body import DeployerGrantBody
 from .deployer_grant_response_200 import DeployerGrantResponse200
 from .deployer_list_response_200 import DeployerListResponse200
+from .deployer_list_response_200_deployers import DeployerListResponse200Deployers
+from .deployer_list_response_200_deployments import DeployerListResponse200Deployments
+from .deployer_list_response_200_grants_item import DeployerListResponse200GrantsItem
 from .deployer_revoke_response_200 import DeployerRevokeResponse200
 from .deployer_type_0 import DeployerType0
 from .deployer_type_1 import DeployerType1
@@ -137,11 +158,27 @@ from .deployment_list_response_200 import DeploymentListResponse200
 from .deployment_offer_body import DeploymentOfferBody
 from .deployment_offer_response_200 import DeploymentOfferResponse200
 from .deployment_orgs_response_200 import DeploymentOrgsResponse200
+from .deployment_orgs_response_200_orgs_item import DeploymentOrgsResponse200OrgsItem
+from .deployment_orgs_response_200_orgs_item_apps_item import (
+    DeploymentOrgsResponse200OrgsItemAppsItem,
+)
+from .deployment_record import DeploymentRecord
+from .deployment_record_apps import DeploymentRecordApps
+from .deployment_record_apps_additional_property import (
+    DeploymentRecordAppsAdditionalProperty,
+)
 from .error import Error
 from .file_info_response_200 import FileInfoResponse200
 from .files_list_response_200 import FilesListResponse200
 from .files_list_response_200_files_item import FilesListResponse200FilesItem
 from .files_upload_response_200 import FilesUploadResponse200
+from .governance import Governance
+from .governance_app_upgrades import GovernanceAppUpgrades
+from .governance_deployers import GovernanceDeployers
+from .governance_deployments import GovernanceDeployments
+from .governance_outbound import GovernanceOutbound
+from .governance_releases import GovernanceReleases
+from .governance_sign_up import GovernanceSignUp
 from .health_response_200 import HealthResponse200
 from .intents_body import IntentsBody
 from .intents_response_200 import IntentsResponse200
@@ -149,6 +186,7 @@ from .intents_response_200_events_item import IntentsResponse200EventsItem
 from .invite_create_body import InviteCreateBody
 from .invite_create_response_200 import InviteCreateResponse200
 from .invite_list_response_200 import InviteListResponse200
+from .invite_list_response_200_invites_item import InviteListResponse200InvitesItem
 from .invite_redeem_response_200 import InviteRedeemResponse200
 from .invite_revoke_response_200 import InviteRevokeResponse200
 from .login_begin_body import LoginBeginBody
@@ -157,7 +195,9 @@ from .login_finish_body import LoginFinishBody
 from .logout_response_200 import LogoutResponse200
 from .me_response_200 import MeResponse200
 from .me_response_200_orgs_item import MeResponse200OrgsItem
+from .me_response_200_outbound_approvals import MeResponse200OutboundApprovals
 from .me_response_200_passkeys_item import MeResponse200PasskeysItem
+from .me_response_200_recovery_pending_type_0 import MeResponse200RecoveryPendingType0
 from .me_response_200_via import MeResponse200Via
 from .member_metadata_body import MemberMetadataBody
 from .member_metadata_response_200 import MemberMetadataResponse200
@@ -184,12 +224,23 @@ from .ops_orgs_response_200_orgs_item import OpsOrgsResponse200OrgsItem
 from .ops_outbound_body import OpsOutboundBody
 from .ops_package_install_body import OpsPackageInstallBody
 from .ops_package_install_response_200 import OpsPackageInstallResponse200
+from .ops_package_install_response_200_services import (
+    OpsPackageInstallResponse200Services,
+)
 from .ops_package_list_response_200 import OpsPackageListResponse200
 from .ops_package_upload_response_200 import OpsPackageUploadResponse200
+from .ops_package_upload_response_200_services import (
+    OpsPackageUploadResponse200Services,
+)
 from .ops_placement_response_200 import OpsPlacementResponse200
 from .ops_placement_response_200_apps_item import OpsPlacementResponse200AppsItem
 from .ops_placement_response_200_nodes_item import OpsPlacementResponse200NodesItem
 from .ops_pools_get_response_200 import OpsPoolsGetResponse200
+from .ops_pools_get_response_200_capacity import OpsPoolsGetResponse200Capacity
+from .ops_pools_get_response_200_pools import OpsPoolsGetResponse200Pools
+from .ops_pools_get_response_200_pools_additional_property import (
+    OpsPoolsGetResponse200PoolsAdditionalProperty,
+)
 from .ops_pools_set_body import OpsPoolsSetBody
 from .ops_pools_set_body_pools import OpsPoolsSetBodyPools
 from .ops_pools_set_body_pools_additional_property import (
@@ -214,8 +265,13 @@ from .ops_set_replicas_body import OpsSetReplicasBody
 from .ops_set_replicas_response_200 import OpsSetReplicasResponse200
 from .ops_set_replicas_response_200_status import OpsSetReplicasResponse200Status
 from .ops_sign_up_invite_create_body import OpsSignUpInviteCreateBody
-from .ops_sign_up_invite_create_response_200 import OpsSignUpInviteCreateResponse200
 from .ops_sign_up_invite_list_response_200 import OpsSignUpInviteListResponse200
+from .ops_sign_up_invite_list_response_200_run_by import (
+    OpsSignUpInviteListResponse200RunBy,
+)
+from .ops_sign_up_invite_list_response_200_sign_up import (
+    OpsSignUpInviteListResponse200SignUp,
+)
 from .ops_sign_up_set_body import OpsSignUpSetBody
 from .ops_status_response_200 import OpsStatusResponse200
 from .ops_upgrade_body import OpsUpgradeBody
@@ -234,15 +290,15 @@ from .org_members import OrgMembers
 from .org_members_detail import OrgMembersDetail
 from .org_members_response_200 import OrgMembersResponse200
 from .org_members_response_200_members_item import OrgMembersResponse200MembersItem
+from .org_members_response_200_members_item_passkeys_type_1 import (
+    OrgMembersResponse200MembersItemPasskeysType1,
+)
 from .org_metadata_body import OrgMetadataBody
 from .org_metadata_response_200 import OrgMetadataResponse200
 from .org_mode import OrgMode
 from .org_new_work_stopped_type_0 import OrgNewWorkStoppedType0
 from .org_outbound_approval_body import OrgOutboundApprovalBody
 from .org_outbound_approvals import OrgOutboundApprovals
-from .org_outbound_approvals_additional_property import (
-    OrgOutboundApprovalsAdditionalProperty,
-)
 from .org_publisher_body import OrgPublisherBody
 from .org_publisher_response_200 import OrgPublisherResponse200
 from .org_recovery import OrgRecovery
@@ -261,14 +317,18 @@ from .org_upgrade_runs import OrgUpgradeRuns
 from .org_usage_response_200 import OrgUsageResponse200
 from .origins_add_body import OriginsAddBody
 from .origins_list_response_200 import OriginsListResponse200
+from .origins_list_response_200_origins_item import OriginsListResponse200OriginsItem
 from .origins_remove_body import OriginsRemoveBody
+from .outbound_approval import OutboundApproval
 from .outbound_selection_type_0 import OutboundSelectionType0
 from .package import Package
 from .package_install_body import PackageInstallBody
 from .package_install_response_200 import PackageInstallResponse200
+from .package_install_response_200_services import PackageInstallResponse200Services
 from .package_list_response_200 import PackageListResponse200
 from .package_ref import PackageRef
 from .package_upload_response_200 import PackageUploadResponse200
+from .package_upload_response_200_services import PackageUploadResponse200Services
 from .package_versions_item import PackageVersionsItem
 from .package_versions_item_services import PackageVersionsItemServices
 from .package_versions_item_source import PackageVersionsItemSource
@@ -280,6 +340,7 @@ from .passkey_label_body import PasskeyLabelBody
 from .passkey_label_response_200 import PasskeyLabelResponse200
 from .passkey_remove_response_200 import PasskeyRemoveResponse200
 from .presence_get_response_200 import PresenceGetResponse200
+from .presence_get_response_200_present_item import PresenceGetResponse200PresentItem
 from .presence_publish_body import PresencePublishBody
 from .presence_publish_response_200 import PresencePublishResponse200
 from .proof_only import ProofOnly
@@ -301,6 +362,23 @@ from .register_finish_body import RegisterFinishBody
 from .registration import Registration
 from .release import Release
 from .releases_public_response_200 import ReleasesPublicResponse200
+from .releases_public_response_200_deadlines_item import (
+    ReleasesPublicResponse200DeadlinesItem,
+)
+from .report_app import ReportApp
+from .report_app_latest_blocked import ReportAppLatestBlocked
+from .report_app_latest_blocked_nodes_item import ReportAppLatestBlockedNodesItem
+from .report_app_latest_blocked_nodes_item_runtime_type_1 import (
+    ReportAppLatestBlockedNodesItemRuntimeType1,
+)
+from .report_app_latest_blocked_reason import ReportAppLatestBlockedReason
+from .report_app_package_type_0 import ReportAppPackageType0
+from .report_app_publisher_type_0 import ReportAppPublisherType0
+from .report_app_releases_approved_by import ReportAppReleasesApprovedBy
+from .report_app_replicas_item import ReportAppReplicasItem
+from .report_app_upgrades_held_by import ReportAppUpgradesHeldBy
+from .report_upgrade import ReportUpgrade
+from .report_upgrade_actor_kind import ReportUpgradeActorKind
 from .session import Session
 from .session_revoke_response_200 import SessionRevokeResponse200
 from .sessions_list_response_200 import SessionsListResponse200
@@ -308,9 +386,12 @@ from .sessions_list_response_200_sessions_item import (
     SessionsListResponse200SessionsItem,
 )
 from .sign_up import SignUp
+from .sign_up_invite import SignUpInvite
 from .sign_up_invite_create_body import SignUpInviteCreateBody
 from .sign_up_invite_create_response_200 import SignUpInviteCreateResponse200
 from .sign_up_invite_list_response_200 import SignUpInviteListResponse200
+from .sign_up_invite_list_response_200_run_by import SignUpInviteListResponse200RunBy
+from .sign_up_invite_list_response_200_sign_up import SignUpInviteListResponse200SignUp
 from .sign_up_public_response_200 import SignUpPublicResponse200
 from .sign_up_set_body import SignUpSetBody
 from .team import Team
@@ -388,6 +469,8 @@ __all__ = (
     "AppAccessResponse200",
     "AppAttestationPurpose",
     "AppAttestationResponse200",
+    "AppAttestationResponse200ReplicasItemType0",
+    "AppAttestationResponse200ReplicasItemType1",
     "AppCreateBody",
     "AppCreateResponse200",
     "AppDeleteResponse200",
@@ -408,12 +491,19 @@ __all__ = (
     "AppRestoreSource",
     "AppRunResponse200",
     "AppRunsResponse200",
+    "AppScopeType0",
+    "AppScopeType0Kind",
+    "AppScopeType1",
+    "AppScopeType1Kind",
     "AppStorageResponse200",
     "AppTeamListResponse200",
+    "AppTeamListResponse200AppTeamsItem",
     "AppTeamListResponse200Mode",
     "AppTeamsScopeBody",
     "AppTeamsScopeBodyAppsItem",
     "AppTeamsScopeResponse200",
+    "AppTeamsScopeResponse200Mode",
+    "AppTeamsScopeResponse200TeamsItem",
     "AppTransferBody",
     "AppUpgradeBody",
     "AppUpgradeResponse200",
@@ -430,6 +520,8 @@ __all__ = (
     "BlobRevokeResponse200",
     "BlobUploadResponse200",
     "BundlePutResponse200",
+    "BundleRelease",
+    "ClusterRelease",
     "Confirm",
     "ConfirmOnly",
     "ConfirmRequired",
@@ -451,9 +543,13 @@ __all__ = (
     "ConsentPageResultResponse200Kind",
     "ConsentPageResultResponse200Status",
     "DeadLetter",
+    "DeployerGrant",
     "DeployerGrantBody",
     "DeployerGrantResponse200",
     "DeployerListResponse200",
+    "DeployerListResponse200Deployers",
+    "DeployerListResponse200Deployments",
+    "DeployerListResponse200GrantsItem",
     "DeployerRevokeResponse200",
     "DeployerType0",
     "DeployerType1",
@@ -470,11 +566,23 @@ __all__ = (
     "DeploymentOfferBody",
     "DeploymentOfferResponse200",
     "DeploymentOrgsResponse200",
+    "DeploymentOrgsResponse200OrgsItem",
+    "DeploymentOrgsResponse200OrgsItemAppsItem",
+    "DeploymentRecord",
+    "DeploymentRecordApps",
+    "DeploymentRecordAppsAdditionalProperty",
     "Error",
     "FileInfoResponse200",
     "FilesListResponse200",
     "FilesListResponse200FilesItem",
     "FilesUploadResponse200",
+    "Governance",
+    "GovernanceAppUpgrades",
+    "GovernanceDeployers",
+    "GovernanceDeployments",
+    "GovernanceOutbound",
+    "GovernanceReleases",
+    "GovernanceSignUp",
     "HealthResponse200",
     "IntentsBody",
     "IntentsResponse200",
@@ -482,6 +590,7 @@ __all__ = (
     "InviteCreateBody",
     "InviteCreateResponse200",
     "InviteListResponse200",
+    "InviteListResponse200InvitesItem",
     "InviteRedeemResponse200",
     "InviteRevokeResponse200",
     "LoginBeginBody",
@@ -497,7 +606,9 @@ __all__ = (
     "MemberSetTeamsResponse200",
     "MeResponse200",
     "MeResponse200OrgsItem",
+    "MeResponse200OutboundApprovals",
     "MeResponse200PasskeysItem",
+    "MeResponse200RecoveryPendingType0",
     "MeResponse200Via",
     "OperatorProof",
     "OperatorSignatureRequired",
@@ -517,12 +628,17 @@ __all__ = (
     "OpsOutboundBody",
     "OpsPackageInstallBody",
     "OpsPackageInstallResponse200",
+    "OpsPackageInstallResponse200Services",
     "OpsPackageListResponse200",
     "OpsPackageUploadResponse200",
+    "OpsPackageUploadResponse200Services",
     "OpsPlacementResponse200",
     "OpsPlacementResponse200AppsItem",
     "OpsPlacementResponse200NodesItem",
     "OpsPoolsGetResponse200",
+    "OpsPoolsGetResponse200Capacity",
+    "OpsPoolsGetResponse200Pools",
+    "OpsPoolsGetResponse200PoolsAdditionalProperty",
     "OpsPoolsSetBody",
     "OpsPoolsSetBodyPools",
     "OpsPoolsSetBodyPoolsAdditionalProperty",
@@ -545,8 +661,9 @@ __all__ = (
     "OpsSetReplicasResponse200",
     "OpsSetReplicasResponse200Status",
     "OpsSignUpInviteCreateBody",
-    "OpsSignUpInviteCreateResponse200",
     "OpsSignUpInviteListResponse200",
+    "OpsSignUpInviteListResponse200RunBy",
+    "OpsSignUpInviteListResponse200SignUp",
     "OpsSignUpSetBody",
     "OpsStatusResponse200",
     "OpsUpgradeBody",
@@ -565,13 +682,13 @@ __all__ = (
     "OrgMembersDetail",
     "OrgMembersResponse200",
     "OrgMembersResponse200MembersItem",
+    "OrgMembersResponse200MembersItemPasskeysType1",
     "OrgMetadataBody",
     "OrgMetadataResponse200",
     "OrgMode",
     "OrgNewWorkStoppedType0",
     "OrgOutboundApprovalBody",
     "OrgOutboundApprovals",
-    "OrgOutboundApprovalsAdditionalProperty",
     "OrgPublisherBody",
     "OrgPublisherResponse200",
     "OrgRecovery",
@@ -590,14 +707,18 @@ __all__ = (
     "OrgUsageResponse200",
     "OriginsAddBody",
     "OriginsListResponse200",
+    "OriginsListResponse200OriginsItem",
     "OriginsRemoveBody",
+    "OutboundApproval",
     "OutboundSelectionType0",
     "Package",
     "PackageInstallBody",
     "PackageInstallResponse200",
+    "PackageInstallResponse200Services",
     "PackageListResponse200",
     "PackageRef",
     "PackageUploadResponse200",
+    "PackageUploadResponse200Services",
     "PackageVersionsItem",
     "PackageVersionsItemServices",
     "PackageVersionsItemSource",
@@ -609,6 +730,7 @@ __all__ = (
     "PasskeyLabelResponse200",
     "PasskeyRemoveResponse200",
     "PresenceGetResponse200",
+    "PresenceGetResponse200PresentItem",
     "PresencePublishBody",
     "PresencePublishResponse200",
     "ProofOnly",
@@ -630,14 +752,30 @@ __all__ = (
     "Registration",
     "Release",
     "ReleasesPublicResponse200",
+    "ReleasesPublicResponse200DeadlinesItem",
+    "ReportApp",
+    "ReportAppLatestBlocked",
+    "ReportAppLatestBlockedNodesItem",
+    "ReportAppLatestBlockedNodesItemRuntimeType1",
+    "ReportAppLatestBlockedReason",
+    "ReportAppPackageType0",
+    "ReportAppPublisherType0",
+    "ReportAppReleasesApprovedBy",
+    "ReportAppReplicasItem",
+    "ReportAppUpgradesHeldBy",
+    "ReportUpgrade",
+    "ReportUpgradeActorKind",
     "Session",
     "SessionRevokeResponse200",
     "SessionsListResponse200",
     "SessionsListResponse200SessionsItem",
     "SignUp",
+    "SignUpInvite",
     "SignUpInviteCreateBody",
     "SignUpInviteCreateResponse200",
     "SignUpInviteListResponse200",
+    "SignUpInviteListResponse200RunBy",
+    "SignUpInviteListResponse200SignUp",
     "SignUpPublicResponse200",
     "SignUpSetBody",
     "Team",

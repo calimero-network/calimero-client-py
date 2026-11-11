@@ -68,7 +68,11 @@ def sync_detailed(
 ) -> Response[Union[DeployerListResponse200, Error]]:
     """The deployers
 
-     **Who:** an account holder (a passkey session not bound to an app's frontend).
+     The operator, or the cluster's owner: the deployments and deployers governance, the owner (`null`
+    until named), and every grant (`until` RFC 3339 and `untilSecs`, `null` for none; `grantedAt` RFC
+    3339; `deployer` `null` for a key it cannot read).
+
+    **Who:** an account holder (a passkey session not bound to an app's frontend).
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -93,7 +97,11 @@ def sync(
 ) -> Optional[Union[DeployerListResponse200, Error]]:
     """The deployers
 
-     **Who:** an account holder (a passkey session not bound to an app's frontend).
+     The operator, or the cluster's owner: the deployments and deployers governance, the owner (`null`
+    until named), and every grant (`until` RFC 3339 and `untilSecs`, `null` for none; `grantedAt` RFC
+    3339; `deployer` `null` for a key it cannot read).
+
+    **Who:** an account holder (a passkey session not bound to an app's frontend).
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -114,7 +122,11 @@ async def asyncio_detailed(
 ) -> Response[Union[DeployerListResponse200, Error]]:
     """The deployers
 
-     **Who:** an account holder (a passkey session not bound to an app's frontend).
+     The operator, or the cluster's owner: the deployments and deployers governance, the owner (`null`
+    until named), and every grant (`until` RFC 3339 and `untilSecs`, `null` for none; `grantedAt` RFC
+    3339; `deployer` `null` for a key it cannot read).
+
+    **Who:** an account holder (a passkey session not bound to an app's frontend).
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -137,7 +149,11 @@ async def asyncio(
 ) -> Optional[Union[DeployerListResponse200, Error]]:
     """The deployers
 
-     **Who:** an account holder (a passkey session not bound to an app's frontend).
+     The operator, or the cluster's owner: the deployments and deployers governance, the owner (`null`
+    until named), and every grant (`until` RFC 3339 and `untilSecs`, `null` for none; `grantedAt` RFC
+    3339; `deployer` `null` for a key it cannot read).
+
+    **Who:** an account holder (a passkey session not bound to an app's frontend).
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

@@ -63,7 +63,8 @@ def sync_detailed(
 ) -> Response[Union[Error, OpsServedResponse200]]:
     """Custom domains to serve
 
-     Every served origin a package's manager registered, by the package's label, never its name.
+     Every served origin a package's manager registered, by the package's label, never its name;
+    `addedAt` is RFC 3339.
 
     **Who:** the ops token.
 
@@ -90,7 +91,8 @@ def sync(
 ) -> Optional[Union[Error, OpsServedResponse200]]:
     """Custom domains to serve
 
-     Every served origin a package's manager registered, by the package's label, never its name.
+     Every served origin a package's manager registered, by the package's label, never its name;
+    `addedAt` is RFC 3339.
 
     **Who:** the ops token.
 
@@ -113,7 +115,8 @@ async def asyncio_detailed(
 ) -> Response[Union[Error, OpsServedResponse200]]:
     """Custom domains to serve
 
-     Every served origin a package's manager registered, by the package's label, never its name.
+     Every served origin a package's manager registered, by the package's label, never its name;
+    `addedAt` is RFC 3339.
 
     **Who:** the ops token.
 
@@ -138,7 +141,8 @@ async def asyncio(
 ) -> Optional[Union[Error, OpsServedResponse200]]:
     """Custom domains to serve
 
-     Every served origin a package's manager registered, by the package's label, never its name.
+     Every served origin a package's manager registered, by the package's label, never its name;
+    `addedAt` is RFC 3339.
 
     **Who:** the ops token.
 

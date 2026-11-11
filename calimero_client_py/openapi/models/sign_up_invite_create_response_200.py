@@ -11,23 +11,52 @@ T = TypeVar("T", bound="SignUpInviteCreateResponse200")
 
 @_attrs_define
 class SignUpInviteCreateResponse200:
-    """Other properties than those listed may be present: the ones listed are those clients rely on.
-
+    """
     Attributes:
         token (str):
+        invite_key (str):
+        uses (int):
+        expires_at (str):
+        expires_at_secs (int):
+        created_by (str):
+        created_at (str):
     """
 
     token: str
+    invite_key: str
+    uses: int
+    expires_at: str
+    expires_at_secs: int
+    created_by: str
+    created_at: str
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         token = self.token
+
+        invite_key = self.invite_key
+
+        uses = self.uses
+
+        expires_at = self.expires_at
+
+        expires_at_secs = self.expires_at_secs
+
+        created_by = self.created_by
+
+        created_at = self.created_at
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
                 "token": token,
+                "inviteKey": invite_key,
+                "uses": uses,
+                "expiresAt": expires_at,
+                "expiresAtSecs": expires_at_secs,
+                "createdBy": created_by,
+                "createdAt": created_at,
             }
         )
 
@@ -38,8 +67,26 @@ class SignUpInviteCreateResponse200:
         d = dict(src_dict)
         token = d.pop("token")
 
+        invite_key = d.pop("inviteKey")
+
+        uses = d.pop("uses")
+
+        expires_at = d.pop("expiresAt")
+
+        expires_at_secs = d.pop("expiresAtSecs")
+
+        created_by = d.pop("createdBy")
+
+        created_at = d.pop("createdAt")
+
         sign_up_invite_create_response_200 = cls(
             token=token,
+            invite_key=invite_key,
+            uses=uses,
+            expires_at=expires_at,
+            expires_at_secs=expires_at_secs,
+            created_by=created_by,
+            created_at=created_at,
         )
 
         sign_up_invite_create_response_200.additional_properties = d

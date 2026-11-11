@@ -73,7 +73,7 @@ Regenerate after a change to core's API:
 
 ```bash
 pip install openapi-python-client==0.26.2 black==26.10.1
-python scripts/refresh_openapi.py              # core's docs/openapi (or --ref master, --core ../core)
+python scripts/refresh_openapi.py              # core's master (or --ref <ref>, --core ../core)
 python scripts/generate_openapi_client.py      # CI runs it with --check
 ```
 

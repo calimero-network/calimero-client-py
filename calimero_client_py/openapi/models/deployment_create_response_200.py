@@ -6,23 +6,38 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
+from typing import cast
 from typing import cast, Union
+
+if TYPE_CHECKING:
+    from ..models.deployment_record import DeploymentRecord
+
 
 T = TypeVar("T", bound="DeploymentCreateResponse200")
 
 
 @_attrs_define
 class DeploymentCreateResponse200:
-    """Other properties than those listed may be present: the ones listed are those clients rely on.
-
+    """
     Attributes:
+        id (str):
+        deployment (DeploymentRecord): A deployment as the directory records it: the release it offers by app name
+            (`addedAt` Unix seconds), who created it and when (Unix seconds).
         host (Union[None, str]):
     """
 
+    id: str
+    deployment: "DeploymentRecord"
     host: Union[None, str]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.deployment_record import DeploymentRecord
+
+        id = self.id
+
+        deployment = self.deployment.to_dict()
+
         host: Union[None, str]
         host = self.host
 
@@ -30,6 +45,8 @@ class DeploymentCreateResponse200:
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
+                "id": id,
+                "deployment": deployment,
                 "host": host,
             }
         )
@@ -38,7 +55,12 @@ class DeploymentCreateResponse200:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.deployment_record import DeploymentRecord
+
         d = dict(src_dict)
+        id = d.pop("id")
+
+        deployment = DeploymentRecord.from_dict(d.pop("deployment"))
 
         def _parse_host(data: object) -> Union[None, str]:
             if data is None:
@@ -48,6 +70,8 @@ class DeploymentCreateResponse200:
         host = _parse_host(d.pop("host"))
 
         deployment_create_response_200 = cls(
+            id=id,
+            deployment=deployment,
             host=host,
         )
 

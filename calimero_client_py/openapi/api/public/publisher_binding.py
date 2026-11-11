@@ -7,6 +7,7 @@ from ...client import AuthenticatedClient, Client
 from ...types import Response, UNSET
 from ... import errors
 
+from ...models.error import Error
 from ...models.publisher_binding_response_200 import PublisherBindingResponse200
 from typing import cast
 
@@ -27,11 +28,21 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[PublisherBindingResponse200]:
+) -> Optional[Union[Error, PublisherBindingResponse200]]:
     if response.status_code == 200:
         response_200 = PublisherBindingResponse200.from_dict(response.json())
 
         return response_200
+
+    if response.status_code == 401:
+        response_401 = Error.from_dict(response.json())
+
+        return response_401
+
+    if response.status_code == 421:
+        response_421 = Error.from_dict(response.json())
+
+        return response_421
 
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
@@ -41,7 +52,7 @@ def _parse_response(
 
 def _build_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[PublisherBindingResponse200]:
+) -> Response[Union[Error, PublisherBindingResponse200]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -53,13 +64,14 @@ def _build_response(
 def sync_detailed(
     signer: str,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Response[PublisherBindingResponse200]:
-    """A signing key's organization
+    client: AuthenticatedClient,
+) -> Response[Union[Error, PublisherBindingResponse200]]:
+    """Whether a signing key is bound
 
-     The organization a package signing key (`did:key`) is bound to, if any.
+     Whether a package signing key (`did:key`) is bound to an organization on this cluster (`bound`,
+    never which), and its binding generation (`0`: never bound).
 
-    **Who:** anyone.
+    **Who:** signed in (a session or an API key).
 
     Args:
         signer (str):
@@ -69,7 +81,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[PublisherBindingResponse200]
+        Response[Union[Error, PublisherBindingResponse200]]
     """
 
     kwargs = _get_kwargs(
@@ -86,13 +98,14 @@ def sync_detailed(
 def sync(
     signer: str,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Optional[PublisherBindingResponse200]:
-    """A signing key's organization
+    client: AuthenticatedClient,
+) -> Optional[Union[Error, PublisherBindingResponse200]]:
+    """Whether a signing key is bound
 
-     The organization a package signing key (`did:key`) is bound to, if any.
+     Whether a package signing key (`did:key`) is bound to an organization on this cluster (`bound`,
+    never which), and its binding generation (`0`: never bound).
 
-    **Who:** anyone.
+    **Who:** signed in (a session or an API key).
 
     Args:
         signer (str):
@@ -102,7 +115,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        PublisherBindingResponse200
+        Union[Error, PublisherBindingResponse200]
     """
 
     return sync_detailed(
@@ -114,13 +127,14 @@ def sync(
 async def asyncio_detailed(
     signer: str,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Response[PublisherBindingResponse200]:
-    """A signing key's organization
+    client: AuthenticatedClient,
+) -> Response[Union[Error, PublisherBindingResponse200]]:
+    """Whether a signing key is bound
 
-     The organization a package signing key (`did:key`) is bound to, if any.
+     Whether a package signing key (`did:key`) is bound to an organization on this cluster (`bound`,
+    never which), and its binding generation (`0`: never bound).
 
-    **Who:** anyone.
+    **Who:** signed in (a session or an API key).
 
     Args:
         signer (str):
@@ -130,7 +144,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[PublisherBindingResponse200]
+        Response[Union[Error, PublisherBindingResponse200]]
     """
 
     kwargs = _get_kwargs(
@@ -145,13 +159,14 @@ async def asyncio_detailed(
 async def asyncio(
     signer: str,
     *,
-    client: Union[AuthenticatedClient, Client],
-) -> Optional[PublisherBindingResponse200]:
-    """A signing key's organization
+    client: AuthenticatedClient,
+) -> Optional[Union[Error, PublisherBindingResponse200]]:
+    """Whether a signing key is bound
 
-     The organization a package signing key (`did:key`) is bound to, if any.
+     Whether a package signing key (`did:key`) is bound to an organization on this cluster (`bound`,
+    never which), and its binding generation (`0`: never bound).
 
-    **Who:** anyone.
+    **Who:** signed in (a session or an API key).
 
     Args:
         signer (str):
@@ -161,7 +176,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        PublisherBindingResponse200
+        Union[Error, PublisherBindingResponse200]
     """
 
     return (

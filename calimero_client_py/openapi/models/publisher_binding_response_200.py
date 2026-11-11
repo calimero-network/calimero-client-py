@@ -11,21 +11,59 @@ T = TypeVar("T", bound="PublisherBindingResponse200")
 
 @_attrs_define
 class PublisherBindingResponse200:
-    """ """
+    """
+    Attributes:
+        signer_id (str):
+        cluster (str):
+        generation (int):
+        bound (bool):
+    """
 
+    signer_id: str
+    cluster: str
+    generation: int
+    bound: bool
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        signer_id = self.signer_id
+
+        cluster = self.cluster
+
+        generation = self.generation
+
+        bound = self.bound
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
+        field_dict.update(
+            {
+                "signerId": signer_id,
+                "cluster": cluster,
+                "generation": generation,
+                "bound": bound,
+            }
+        )
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        publisher_binding_response_200 = cls()
+        signer_id = d.pop("signerId")
+
+        cluster = d.pop("cluster")
+
+        generation = d.pop("generation")
+
+        bound = d.pop("bound")
+
+        publisher_binding_response_200 = cls(
+            signer_id=signer_id,
+            cluster=cluster,
+            generation=generation,
+            bound=bound,
+        )
 
         publisher_binding_response_200.additional_properties = d
         return publisher_binding_response_200
