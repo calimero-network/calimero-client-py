@@ -35,156 +35,182 @@ def wasm() -> bytes:
 
 def test_api_keys_are_scoped_listed_and_revoked(cluster, wasm):
     alice, pk = person(cluster, 0, "alice-keys")
-    app = alice.create_app("keyed", alice.upload_bundle(wasm))
-    alice.call(app, "set", {"key": "k", "value": "v"})
-    key_id, key = alice.create_api_key(
-        {"label": "reader", "apps": [app], "readOnly": True}, pk
+    app = alice.json.apps.create(
+        name="keyed", bundle=alice.json.packages.bundle_put(body=wasm)["hash"]
+    )["appId"]
+    alice.json.apps.call(app=app, method="set", args={"key": "k", "value": "v"})
+    made = alice.json.auth.apikey_create(
+        label="reader", apps=[app], read_only=True, confirm=pk
     )
-    listed = {k["keyId"]: k for k in alice.list_api_keys()}
+    key_id, key = made["keyId"], made["key"]
+    listed = {k["keyId"]: k for k in alice.json.auth.apikey_list()["keys"]}
     assert listed[key_id]["label"] == "reader" and listed[key_id]["readOnly"]
 
     agent = cluster.client(1)
     agent.use_api_key(key)
-    assert agent.view(app, "get", {"key": "k"})["result"] == "v"
+    assert (
+        agent.json.apps.view(app=app, method="get", args={"key": "k"})["result"] == "v"
+    )
     with pytest.raises(CloudError):
-        agent.call(app, "set", {"key": "k", "value": "w"})
+        agent.json.apps.call(app=app, method="set", args={"key": "k", "value": "w"})
 
     # A node from before revokes at once; this one asks for the passkey (412).
-    alice.revoke_api_key(key_id, pk)
+    alice.json.auth.apikey_revoke(key=key_id, confirm=pk)
     time.sleep(0.3)
-    assert key_id not in {k["keyId"] for k in alice.list_api_keys()}
+    assert key_id not in {k["keyId"] for k in alice.json.auth.apikey_list()["keys"]}
     with pytest.raises(CloudError) as e:
-        agent.view(app, "get", {"key": "k"})
+        agent.json.apps.view(app=app, method="get", args={"key": "k"})
     assert code(e.value) == "UNAUTHENTICATED"
 
 
 def test_orgs_and_teams_end_to_end(cluster, wasm):
     alice, pk = person(cluster, 0, "alice-teams")
     bob, _ = person(cluster, 1, "bob-teams")
-    bob_id = bob.me()["accountId"]
-    org = alice.create_org("Initech")
-    token = alice.invite(org, "member", pk, ttl_secs=600, uses=1)
-    bob.redeem_invite(token)
-    assert alice.get_org(org)["members"][bob_id] == "member"
+    bob_id = bob.json.auth.me()["accountId"]
+    org = alice.json.orgs.create(name="Initech")["orgId"]
+    token = alice.json.orgs.invite_create(
+        org=org, role="member", confirm=pk, ttl_secs=600, uses=1
+    )["token"]
+    bob.json.orgs.invite_redeem(token=token)
+    assert alice.json.orgs.get(org=org)["members"][bob_id] == "member"
     with pytest.raises(CloudError):
-        cluster.client(2).redeem_invite(token)  # one use only
+        cluster.client(2).json.orgs.invite_redeem(token=token)  # one use only
 
-    team = alice.create_team(org, "eng")  # restricted by default
-    sub = alice.create_team(org, "backend", join="everyone", parent=team)
-    alice.set_team_member(org, team, bob_id, pk, role="readOnly")
-    app = alice.create_app(
-        "eng-kv",
-        alice.upload_bundle(wasm),
-        {"org": org, "access": {"kind": "team", "team": team}},
+    team = alice.json.orgs.team_create(org=org, name="eng", join="invite")[
+        "teamId"
+    ]  # restricted by default
+    sub = alice.json.orgs.team_create(
+        org=org, name="backend", join="everyone", parent=team
+    )["teamId"]
+    alice.json.orgs.team_set_member(
+        org=org, team=team, account=bob_id, confirm=pk, role="readOnly"
     )
-    view = bob.get_team(org, team)
+    app = alice.json.apps.create(
+        name="eng-kv",
+        bundle=alice.json.packages.bundle_put(body=wasm)["hash"],
+        **{"org": org, "access": {"kind": "team", "team": team}},
+    )["appId"]
+    view = bob.json.orgs.team_get(org=org, team=team)
     assert view["myRole"] == "readOnly" and sub in view["children"]
     assert [a["appId"] for a in view["apps"]] == [app]
     with pytest.raises(CloudError) as e:
-        bob.call(app, "set", {"key": "k", "value": "bob"})
+        bob.json.apps.call(app=app, method="set", args={"key": "k", "value": "bob"})
     assert e.value.args[1] == 403
 
-    alice.set_team_member(org, team, bob_id, pk, role="member")
-    bob.call(app, "set", {"key": "k", "value": "bob"})
+    alice.json.orgs.team_set_member(
+        org=org, team=team, account=bob_id, confirm=pk, role="member"
+    )
+    bob.json.apps.call(app=app, method="set", args={"key": "k", "value": "bob"})
 
-    alice.update_team(org, team, name="engineering", metadata={"colour": "teal"})
-    view = alice.get_team(org, team)
+    alice.json.orgs.team_update(
+        org=org, team=team, name="engineering", metadata={"colour": "teal"}
+    )
+    view = alice.json.orgs.team_get(org=org, team=team)
     assert view["name"] == "engineering" and view["metadata"] == {"colour": "teal"}
-    other = alice.create_team(org, "ops")
-    alice.update_team(org, sub, parent=other)
-    assert alice.get_team(org, sub)["parent"] == other
+    other = alice.json.orgs.team_create(org=org, name="ops", join="invite")["teamId"]
+    alice.json.orgs.team_update(org=org, team=sub, parent=other)
+    assert alice.json.orgs.team_get(org=org, team=sub)["parent"] == other
 
-    alice.set_capabilities(org, 0, pk, account=bob_id)
-    assert alice.get_org(org)["capabilities"][bob_id] == 0
+    alice.json.orgs.capabilities(org=org, capabilities=0, confirm=pk, account=bob_id)
+    assert alice.json.orgs.get(org=org)["capabilities"][bob_id] == 0
 
-    alice.remove_team_member(org, team, bob_id, pk)
+    alice.json.orgs.team_remove_member(org=org, team=team, account=bob_id, confirm=pk)
     time.sleep(0.3)
     with pytest.raises(CloudError) as e:
-        bob.get_team(org, team)
+        bob.json.orgs.team_get(org=org, team=team)
     assert code(e.value) == "NOT_FOUND"
 
     # A team with no apps (`other` keeps only `sub`) goes without a passkey.
-    alice.delete_team(org, other)
+    alice.json.orgs.team_delete(org=org, team=other)
     time.sleep(0.3)
     for gone in (other, sub):
         with pytest.raises(CloudError) as e:
-            alice.get_team(org, gone)
+            alice.json.orgs.team_get(org=org, team=gone)
         assert code(e.value) == "NOT_FOUND"
     # The team holds an app: deleting it takes alice's passkey, and the node's
     # ask names the apps that go (core#4891). A node from before deletes it at
     # once, so the 412 is checked only where it is asked.
     try:
-        alice.delete_team(org, team)
+        alice.json.orgs.team_delete(org=org, team=team)
     except CloudError as asked:
         assert code(asked) == "CONFIRM_REQUIRED", asked.args
         assert json.loads(asked.args[3])["apps"] == [app]
-        assert alice.get_app(app)["name"] == "eng-kv"
-        alice.delete_team(org, team, pk)
+        assert alice.json.apps.get(app=app)["name"] == "eng-kv"
+        alice.json.orgs.team_delete(org=org, team=team, confirm=pk)
     time.sleep(0.3)
     with pytest.raises(CloudError) as e:
-        alice.get_app(app)
+        alice.json.apps.get(app=app)
     assert code(e.value) == "NOT_FOUND"
 
-    alice.remove_member(org, bob_id, pk)
+    alice.json.orgs.remove_member(org=org, account=bob_id, confirm=pk)
     time.sleep(0.3)
-    assert bob_id not in alice.get_org(org)["members"]
+    assert bob_id not in alice.json.orgs.get(org=org)["members"]
 
 
 def test_app_directory_access_and_upgrade(cluster, wasm):
     alice, alice_pk = person(cluster, 0, "alice-apps")
     carol, _ = person(cluster, 2, "carol-apps")
-    bundle = alice.upload_bundle(wasm)
-    app = alice.create_app("dir", bundle)
-    assert app in {a["appId"] for a in alice.list_apps()}
-    assert alice.get_app(app)["name"] == "dir"
-    alice.call(app, "set", {"key": "k", "value": "v"})
+    bundle = alice.json.packages.bundle_put(body=wasm)["hash"]
+    app = alice.json.apps.create(name="dir", bundle=bundle)["appId"]
+    assert app in {a["appId"] for a in alice.json.apps.list()["apps"]}
+    assert alice.json.apps.get(app=app)["name"] == "dir"
+    alice.json.apps.call(app=app, method="set", args={"key": "k", "value": "v"})
 
     with pytest.raises(CloudError):
-        carol.view(app, "get", {"key": "k"})
-    alice.set_access(app, {"kind": "accounts", "accounts": [carol.me()["accountId"]]})
+        carol.json.apps.view(app=app, method="get", args={"key": "k"})
+    alice.json.apps.access(
+        app=app,
+        access={"kind": "accounts", "accounts": [carol.json.auth.me()["accountId"]]},
+    )
     time.sleep(0.3)
-    assert carol.view(app, "get", {"key": "k"})["result"] == "v"
+    assert (
+        carol.json.apps.view(app=app, method="get", args={"key": "k"})["result"] == "v"
+    )
 
     # The owner approves an upgrade with their passkey; without it the node asks.
     with pytest.raises(CloudError) as asked:
-        alice.upgrade_app(app, bundle)
+        alice.json.apps.upgrade(app=app, bundle=bundle)
     assert asked.value.args[2] == "CONFIRM_REQUIRED"
-    out = alice.upgrade_app(app, bundle, passkey=alice_pk)
+    out = alice.json.apps.upgrade(app=app, bundle=bundle, confirm=alice_pk)
     assert out["status"] == "ok", out
-    assert alice.view(app, "get", {"key": "k"})["result"] == "v"
+    assert (
+        alice.json.apps.view(app=app, method="get", args={"key": "k"})["result"] == "v"
+    )
 
 
 def test_passkey_removal_and_sign_out(cluster):
     laptop, laptop_key = person(cluster, 0, "alice-signout")
     phone_key = SoftPasskey()
     cred = laptop.add_passkey(phone_key, laptop_key)
-    laptop.remove_passkey(cred, laptop_key)
+    laptop.json.auth.passkey_remove(cred=cred, confirm=laptop_key)
     time.sleep(0.3)
     with pytest.raises(CloudError):
         cluster.client(1).sign_in(phone_key)
 
-    laptop.sign_out()
+    laptop.json.auth.logout()
     with pytest.raises(CloudError):
         laptop.refresh()
 
 
 def test_a_team_moves_to_the_top(cluster):
     alice, _ = person(cluster, 0, "alice-move")
-    org = alice.create_org("Movers")
-    top = alice.create_team(org, "top")
-    sub = alice.create_team(org, "sub", parent=top)
-    alice.update_team(org, sub, to_top=True)
-    assert alice.get_team(org, sub)["parent"] is None
+    org = alice.json.orgs.create(name="Movers")["orgId"]
+    top = alice.json.orgs.team_create(org=org, name="top", join="invite")["teamId"]
+    sub = alice.json.orgs.team_create(org=org, name="sub", parent=top, join="invite")[
+        "teamId"
+    ]
+    alice.json.orgs.team_update(org=org, team=sub, parent=None)
+    assert alice.json.orgs.team_get(org=org, team=sub)["parent"] is None
 
 
 def test_aliases_org_deletion_and_signing_out_everywhere(cluster, wasm):
     alice, pk = person(cluster, 0, "alice-everywhere")
-    bundle = alice.upload_bundle(wasm)
-    app = alice.create_app("kv-alias", bundle)
+    bundle = alice.json.packages.bundle_put(body=wasm)["hash"]
+    app = alice.json.apps.create(name="kv-alias", bundle=bundle)["appId"]
     alice.put("auth/aliases/notes", {"app": app})
     assert alice.get("auth/aliases")["aliases"] == {"notes": app}
 
-    org = alice.create_org("Doomed")
+    org = alice.json.orgs.create(name="Doomed")["orgId"]
     with pytest.raises(CloudError) as e:
         alice.delete(f"orgs/{org}")
     assert code(e.value) == "CONFIRM_REQUIRED"
@@ -194,19 +220,19 @@ def test_aliases_org_deletion_and_signing_out_everywhere(cluster, wasm):
 
     laptop = cluster.client(1)
     laptop.sign_in(pk)
-    alice.sign_out_everywhere()
+    alice.json.auth.logout_all()
     with pytest.raises(CloudError):
         laptop.get("auth/me")
 
 
 def test_passkey_times_and_sessions_listed_and_ended_one_at_a_time(cluster):
     laptop, pk = person(cluster, 0, "alice-sessions")
-    me = laptop.me()
+    me = laptop.json.auth.me()
     mine = next(p for p in me["passkeys"] if p["id"] == me["passkeyId"])
     phone = cluster.client(1)
     phone.sign_in(pk)
     try:
-        listed = laptop.sessions()
+        listed = laptop.json.auth.sessions_list()["sessions"]
     except CloudError as e:
         # 1.0.0-rc.14 and earlier: no `/auth/sessions` (a bare `404`), and
         # no passkey times.
@@ -224,29 +250,35 @@ def test_passkey_times_and_sessions_listed_and_ended_one_at_a_time(cluster):
         assert s["passkey"] == me["passkeyId"], s
         assert s["app"] is None, s
         assert isinstance(s["lastActiveAt"], int), s
-    assert [s["session"] for s in phone.sessions() if s["current"]] == [
-        other["session"]
-    ]
+    assert [
+        s["session"]
+        for s in phone.json.auth.sessions_list()["sessions"]
+        if s["current"]
+    ] == [other["session"]]
 
     # The laptop ends the phone's session: the phone must sign in again.
-    laptop.revoke_session(other["session"])
+    laptop.json.auth.session_revoke(session=other["session"])
     with pytest.raises(LoginRequired):
-        phone.me()
-    assert [s["session"] for s in laptop.sessions()] == [own["session"]]
+        phone.json.auth.me()
+    assert [s["session"] for s in laptop.json.auth.sessions_list()["sessions"]] == [
+        own["session"]
+    ]
     with pytest.raises(CloudError) as e:
-        laptop.revoke_session(other["session"])
+        laptop.json.auth.session_revoke(session=other["session"])
     assert (e.value.args[1], code(e.value)) == (404, "NOT_FOUND"), e.value
-    assert laptop.me()["accountId"] == me["accountId"]
+    assert laptop.json.auth.me()["accountId"] == me["accountId"]
 
 
 def test_admins_see_their_members_lockout_risk(cluster):
     alice, pk = person(cluster, 0, "alice-security")
     bob, _ = person(cluster, 1, "bob-security")
-    org = alice.create_org("Lockout Co")
-    bob.redeem_invite(alice.invite(org, "member", pk))
-    bob_id = bob.me()["accountId"]
+    org = alice.json.orgs.create(name="Lockout Co")["orgId"]
+    bob.json.orgs.invite_redeem(
+        token=alice.json.orgs.invite_create(org=org, role="member", confirm=pk)["token"]
+    )
+    bob_id = bob.json.auth.me()["accountId"]
     try:
-        members = alice.org_members_security(org)
+        members = alice.json.orgs.members(org=org, detail="security")["members"]
     except CloudError as e:
         # A node before core #4902: no `GET /orgs/{org}/members` (a bare
         # `404`, or `405` beside the existing POST).
@@ -277,17 +309,20 @@ def test_admins_see_their_members_lockout_risk(cluster):
         ), m
     # A member is refused; removed, bob is gone from the listing.
     with pytest.raises(CloudError) as e:
-        bob.org_members_security(org)
+        bob.json.orgs.members(org=org, detail="security")["members"]
     assert e.value.args[1] == 403, e.value
-    alice.remove_member(org, bob_id, pk)
-    assert bob_id not in [m["account"] for m in alice.org_members_security(org)]
+    alice.json.orgs.remove_member(org=org, account=bob_id, confirm=pk)
+    assert bob_id not in [
+        m["account"]
+        for m in alice.json.orgs.members(org=org, detail="security")["members"]
+    ]
 
 
 def test_activity_lists_sign_ins_and_approvals(cluster):
     laptop, pk = person(cluster, 0, "alice-activity")
-    me = laptop.me()
+    me = laptop.json.auth.me()
     try:
-        listed = laptop.activity()
+        listed = laptop.json.auth.activity_list()["activity"]
     except CloudError as e:
         # A node before core #4901: no `/auth/activity` (a bare `404`).
         if e.args[1] != 404 or code(e) == "NOT_FOUND":
@@ -298,61 +333,72 @@ def test_activity_lists_sign_ins_and_approvals(cluster):
     ], listed
     signed_up = listed[0]["at"]
 
-    laptop.create_api_key({"label": "ci"}, pk)
-    listed = laptop.activity()
+    laptop.json.auth.apikey_create(label="ci", confirm=pk)
+    listed = laptop.json.auth.activity_list()["activity"]
     assert [(a["kind"], a["method"]) for a in listed] == [
         ("approval", "__create_api_key"),
         ("signIn", None),
     ], listed
     assert all(a["passkey"] == me["passkeyId"] for a in listed), listed
-    assert all(a["at"] > signed_up for a in laptop.activity(after=signed_up))
+    assert all(
+        a["at"] > signed_up
+        for a in laptop.json.auth.activity_list(after=signed_up)["activity"]
+    )
 
     # Each account reads only its own.
     bob, _ = person(cluster, 1, "bob-activity")
-    bobs = bob.activity()
+    bobs = bob.json.auth.activity_list()["activity"]
     assert len(bobs) == 1 and bobs[0]["passkey"] != me["passkeyId"], bobs
 
 
 def test_blobs_presence_transfer_and_upgrade_runs_have_typed_calls(cluster, wasm):
     alice, pk = person(cluster, 0, "alice-typed")
     bob, _ = person(cluster, 1, "bob-typed")
-    bundle = alice.upload_bundle(wasm)
-    app = alice.create_app("typed", bundle)
+    bundle = alice.json.packages.bundle_put(body=wasm)["hash"]
+    app = alice.json.apps.create(name="typed", bundle=bundle)["appId"]
 
-    up = alice.upload_blob(app, b"hello " * 100)
-    listed = alice.list_blobs(app)
+    up = alice.json.apps.blob_upload(app=app, body=b"hello " * 100)
+    listed = alice.json.apps.blob_list(app=app)
     assert any(b["id"] == up["id"] for b in listed["blobs"]), listed
-    assert alice.blob_info(app, up["id"])["size"] == 600
-    alice.delete_blob(app, up["id"])
+    assert alice.json.apps.blob_info(app=app, id=up["id"])["size"] == 600
+    alice.json.apps.blob_delete(app=app, id=up["id"])
     with pytest.raises(CloudError) as e:
-        alice.blob_info(app, up["id"])
+        alice.json.apps.blob_info(app=app, id=up["id"])
     assert code(e.value) == "NOT_FOUND"
 
-    alice.publish_presence(app, 1, b"typing")
-    seen = alice.presence(app)
+    alice.json.apps.presence_publish(app=app, seq=1, state=(b"typing").hex())
+    seen = alice.json.apps.presence_get(app=app)
     assert seen, seen
-    alice.publish_presence(app, 2)
+    alice.json.apps.presence_publish(app=app, seq=2)
 
     with pytest.raises(CloudError) as e:
-        alice.upgrade_run(alice.create_org("Runs"), "no-such-run")
+        alice.json.orgs.upgrade_status(
+            org=alice.json.orgs.create(name="Runs")["orgId"], run="no-such-run"
+        )
     assert code(e.value) == "NOT_FOUND"
 
-    bob_id = bob.me()["accountId"]
-    alice.transfer_app(app, bob_id, pk)
+    bob_id = bob.json.auth.me()["accountId"]
+    alice.json.apps.transfer(app=app, to=bob_id, confirm=pk)
     assert bob.get(f"apps/{app}")["owner"] == bob_id
 
 
 def test_an_app_moves_with_its_people_into_another_org(cluster, wasm):
     alice, pk = person(cluster, 0, "alice-move")
     bob, bob_pk = person(cluster, 1, "bob-move")
-    bob_id = bob.me()["accountId"]
-    src = alice.create_org("MoveSource")
-    dst = alice.create_org("MoveTarget")
-    alice.set_member(src, bob_id, "member", pk)
-    app = alice.create_app("moving", alice.upload_bundle(wasm), {"org": src})
-    alice.call(app, "set", {"key": "a", "value": "1"})
+    bob_id = bob.json.auth.me()["accountId"]
+    src = alice.json.orgs.create(name="MoveSource")["orgId"]
+    dst = alice.json.orgs.create(name="MoveTarget")["orgId"]
+    alice.json.orgs.set_member(org=src, account=bob_id, role="member", confirm=pk)
+    app = alice.json.apps.create(
+        name="moving",
+        bundle=alice.json.packages.bundle_put(body=wasm)["hash"],
+        **{"org": src},
+    )["appId"]
+    alice.json.apps.call(app=app, method="set", args={"key": "a", "value": "1"})
     try:
-        moved = alice.move_app(app, dst, pk, bring_members=True)
+        moved = alice.json.apps.move(
+            app=app, to_org=dst, confirm=pk, bring_members=True
+        )
     except CloudError as e:
         # A node before core's `feat/move-app-to-org`: no `/apps/{app}/move`
         # (a bare `404`).
@@ -363,30 +409,40 @@ def test_an_app_moves_with_its_people_into_another_org(cluster, wasm):
     assert moved["org"] == dst and moved["added"] == [bob_id], moved
     assert moved["access"] == {"kind": "org"}, moved
     assert alice.get(f"apps/{app}")["org"] == dst
-    assert bob.view(app, "get", {"key": "a"})["result"] == "1"
+    assert bob.json.apps.view(app=app, method="get", args={"key": "a"})["result"] == "1"
     # Bob, a member of the target only, moves nothing.
     with pytest.raises(CloudError) as e:
-        bob.move_app(app, src, bob_pk)
+        bob.json.apps.move(app=app, to_org=src, confirm=bob_pk)
     assert e.value.args[1] == 403, e.value
 
 
 def test_one_account_joins_and_leaves_several_teams_with_one_approval(cluster):
     alice, pk = person(cluster, 0, "alice-rows")
     bob, bob_pk = person(cluster, 1, "bob-rows")
-    alice_id = alice.me()["accountId"]
-    bob_id = bob.me()["accountId"]
-    org = alice.create_org("Rows")
-    alice.set_member(org, bob_id, "member", pk)
+    alice_id = alice.json.auth.me()["accountId"]
+    bob_id = bob.json.auth.me()["accountId"]
+    org = alice.json.orgs.create(name="Rows")["orgId"]
+    alice.json.orgs.set_member(org=org, account=bob_id, role="member", confirm=pk)
     chat, blocks, notes = (
-        alice.create_team(org, n) for n in ("chat", "blocks", "notes")
+        alice.json.orgs.team_create(org=org, name=n, join="invite")["teamId"]
+        for n in ("chat", "blocks", "notes")
     )
 
     def rows(team):
-        return [m["account"] for m in alice.get_team(org, team)["members"]]
+        return [
+            m["account"]
+            for m in alice.json.orgs.team_get(org=org, team=team)["members"]
+        ]
 
     try:
-        alice.set_team_members(
-            org, bob_id, [chat, {"team": blocks, "role": "readOnly"}, notes], pk
+        alice.json.orgs.member_set_teams(
+            org=org,
+            account=bob_id,
+            teams=[
+                t if isinstance(t, dict) else {"team": t}
+                for t in [chat, {"team": blocks, "role": "readOnly"}, notes]
+            ],
+            confirm=pk,
         )
     except CloudError as e:
         # A node before core's `feat/batch-team-members`: no
@@ -397,24 +453,35 @@ def test_one_account_joins_and_leaves_several_teams_with_one_approval(cluster):
     for team in (chat, blocks, notes):
         assert bob_id in rows(team)
     time.sleep(0.3)
-    assert bob.get_team(org, blocks)["myRole"] == "readOnly"
+    assert bob.json.orgs.team_get(org=org, team=blocks)["myRole"] == "readOnly"
     # Bob manages none of them: refused, nothing set.
     with pytest.raises(CloudError):
-        bob.set_team_members(org, alice_id, [chat], bob_pk)
+        bob.json.orgs.member_set_teams(
+            org=org,
+            account=alice_id,
+            teams=[t if isinstance(t, dict) else {"team": t} for t in [chat]],
+            confirm=bob_pk,
+        )
 
     # Out of two with one approval; he leaves the third himself.
-    alice.remove_team_members(org, bob_id, [chat, blocks], pk)
+    alice.json.orgs.member_remove_teams(
+        org=org, account=bob_id, teams=[chat, blocks], confirm=pk
+    )
     assert bob_id not in rows(chat) and bob_id not in rows(blocks)
     assert bob_id in rows(notes)
-    bob.remove_team_members(org, bob_id, [notes], bob_pk)
+    bob.json.orgs.member_remove_teams(
+        org=org, account=bob_id, teams=[notes], confirm=bob_pk
+    )
     time.sleep(0.3)
     assert bob_id not in rows(notes)
 
 
 def test_receipts_verify_against_the_attested_cluster(cluster, wasm):
     alice, _pk = person(cluster, 0, "alice-receipts")
-    app = alice.create_app("receipted", alice.upload_bundle(wasm))
-    r = alice.call(app, "set", {"key": "k", "value": "v"})
+    app = alice.json.apps.create(
+        name="receipted", bundle=alice.json.packages.bundle_put(body=wasm)["hash"]
+    )["appId"]
+    r = alice.json.apps.call(app=app, method="set", args={"key": "k", "value": "v"})
     attested = alice.verify_app_cluster(app)
     assert sorted(attested["keys"]) == [1, 2, 3], attested
     assert attested["governance"] == {
@@ -429,52 +496,56 @@ def test_receipts_verify_against_the_attested_cluster(cluster, wasm):
 def test_session_aliases_metadata_and_usage(cluster, wasm):
     alice, pk = person(cluster, 0, "alice-more")
     session = alice.session()
-    assert session["accountId"] == alice.me()["accountId"]
+    assert session["accountId"] == alice.json.auth.me()["accountId"]
     agent = cluster.client(1)
     assert agent.session() is None
 
-    bundle = alice.upload_bundle(wasm)
-    app = alice.create_app("more", bundle)
-    alice.set_alias("notes", app)
-    assert alice.alias("notes")["appId"] == app
-    assert alice.aliases() == {"notes": app}
-    alice.delete_alias("notes")
-    assert alice.aliases() == {}
+    bundle = alice.json.packages.bundle_put(body=wasm)["hash"]
+    app = alice.json.apps.create(name="more", bundle=bundle)["appId"]
+    alice.json.auth.alias_set(alias="notes", app=app)
+    assert alice.json.auth.alias_get(alias="notes")["appId"] == app
+    assert alice.json.auth.alias_list()["aliases"] == {"notes": app}
+    alice.json.auth.alias_delete(alias="notes")
+    assert alice.json.auth.alias_list()["aliases"] == {}
 
-    alice.set_app_metadata(app, {"colour": "teal"})
-    assert alice.get_app(app)["metadata"] == {"colour": "teal"}
-    alice.set_app_metadata(app, None)
-    assert alice.get_app(app).get("metadata") is None
+    alice.json.apps.metadata(app=app, metadata={"colour": "teal"})
+    assert alice.json.apps.get(app=app)["metadata"] == {"colour": "teal"}
+    alice.json.apps.metadata(app=app, metadata=None)
+    assert alice.json.apps.get(app=app).get("metadata") is None
 
-    alice.call(app, "set", {"key": "k", "value": "v"})
-    assert alice.app_storage(app)["keys"] >= 1
-    assert "abi" in alice.app_abi(app)
-    assert "quotas" in alice.usage() or alice.usage()
-    assert isinstance(alice.packages(), list)
+    alice.json.apps.call(app=app, method="set", args={"key": "k", "value": "v"})
+    assert alice.json.apps.storage(app=app)["keys"] >= 1
+    assert "abi" in alice.json.apps.abi(app=app)
+    assert "quotas" in alice.json.auth.usage() or alice.json.auth.usage()
+    assert isinstance(alice.json.packages.list()["packages"], list)
 
-    alice.label_passkey(pk.credential_id, "laptop")
-    alice.label_passkey(pk.credential_id, "")
+    alice.json.auth.passkey_label(cred=pk.credential_id, label="laptop")
+    alice.json.auth.passkey_label(cred=pk.credential_id, label="")
 
-    org = alice.create_org("Meta")
-    alice.set_org_metadata(org, {"plan": "team"})
-    assert alice.get_org(org)["metadata"] == {"plan": "team"}
-    alice.set_member_metadata(org, alice.me()["accountId"], {"title": "owner"})
-    alice.delete_org(org, pk)
+    org = alice.json.orgs.create(name="Meta")["orgId"]
+    alice.json.orgs.metadata(org=org, metadata={"plan": "team"})
+    assert alice.json.orgs.get(org=org)["metadata"] == {"plan": "team"}
+    alice.json.orgs.member_metadata(
+        org=org, account=alice.json.auth.me()["accountId"], metadata={"title": "owner"}
+    )
+    alice.json.orgs.delete(org=org, confirm=pk)
     with pytest.raises(CloudError) as e:
-        alice.get_org(org)
+        alice.json.orgs.get(org=org)
     assert code(e.value) == "NOT_FOUND"
 
-    alice.delete_app(app)
+    alice.json.apps.delete(app=app)
     time.sleep(0.3)
     with pytest.raises(CloudError) as e:
-        alice.get_app(app)
+        alice.json.apps.get(app=app)
     assert code(e.value) == "NOT_FOUND"
 
 
 def test_presence_streams_a_snapshot_then_changes(cluster, wasm):
     alice, _pk = person(cluster, 0, "alice-presence")
-    app = alice.create_app("here", alice.upload_bundle(wasm))
-    alice.publish_presence(app, 1, b"typing")
+    app = alice.json.apps.create(
+        name="here", bundle=alice.json.packages.bundle_put(body=wasm)["hash"]
+    )["appId"]
+    alice.json.apps.presence_publish(app=app, seq=1, state=(b"typing").hex())
     frames = alice.presence_stream(app, limit=1, timeout=5)
     assert frames and frames[0]["kind"] == "snapshot", frames
 
@@ -552,7 +623,7 @@ def origins(cluster):
     `NOT_FOUND`."""
     probe, _ = person(cluster, 0, "origins-probe")
     try:
-        probe.list_package_origins("com.test.none")
+        probe.json.packages.origins_list(package="com.test.none")
     except CloudError as e:
         if code(e) != "NOT_FOUND":
             pytest.skip("the node has no per-package origins (core #4846)")
@@ -564,13 +635,15 @@ def test_a_packages_manager_registers_and_removes_its_web_origin(
     # The first installer manages a package: alice NOTES, bob OTHER.
     alice, alice_pk = person(cluster, 0, "alice-origins")
     bob, bob_pk = person(cluster, 1, "bob-origins")
-    alice.upload_package(mpk(NOTES, "1.0.0", wasm))
-    bob.upload_package(mpk(OTHER, "1.0.0", wasm))
+    alice.json.packages.upload(body=mpk(NOTES, "1.0.0", wasm))
+    bob.json.packages.upload(body=mpk(OTHER, "1.0.0", wasm))
 
     # Bob does not manage NOTES: he does not even see its origins.
     for refused in (
-        lambda: bob.list_package_origins(NOTES),
-        lambda: bob.add_package_origin(NOTES, SITE, bob_pk),
+        lambda: bob.json.packages.origins_list(package=NOTES),
+        lambda: bob.json.packages.origins_add(
+            package=NOTES, origin=SITE, confirm=bob_pk
+        ),
     ):
         with pytest.raises(CloudError) as e:
             refused()
@@ -590,41 +663,47 @@ def test_a_packages_manager_registers_and_removes_its_web_origin(
     asked = json.loads(e.value.args[3])
     assert {"challengeId", "challenge", "rpId", "allowCredentials"} <= set(asked)
     with pytest.raises(CloudError) as e:
-        alice.add_package_origin(NOTES, SITE, alice_pk, rp_id="example.org")
+        alice.json.packages.origins_add(
+            package=NOTES, origin=SITE, confirm=alice_pk, rp_id="example.org"
+        )
     assert code(e.value) == "BAD_RP_ID"
 
-    added = alice.add_package_origin(NOTES, SITE, alice_pk)
+    added = alice.json.packages.origins_add(
+        package=NOTES, origin=SITE, confirm=alice_pk
+    )
     assert (added["origin"], added["rpId"]) == (SITE, SITE_RP), added
-    listed = alice.list_package_origins(NOTES)
+    listed = alice.json.packages.origins_list(package=NOTES)
     assert [o["origin"] for o in listed["origins"]] == [SITE], listed
     # Another package cannot take it.
     with pytest.raises(CloudError) as e:
-        bob.add_package_origin(OTHER, SITE, bob_pk)
+        bob.json.packages.origins_add(package=OTHER, origin=SITE, confirm=bob_pk)
     assert code(e.value) == "ORIGIN_TAKEN"
 
     # Carol signs up on the site: a session bound to NOTES, naming the site.
     carol_pk = SoftPasskey(SITE_RP, SITE)
     carol = cluster.client(2)
     carol.sign_up(carol_pk, "carol-origins", origin=SITE)
-    me = carol.me()
+    me = carol.json.auth.me()
     assert (me["app"], me["origin"]) == (NOTES, SITE), me
     elsewhere = cluster.client(1)
     elsewhere.sign_in(carol_pk, origin=SITE)
-    assert elsewhere.me()["origin"] == SITE
+    assert elsewhere.json.auth.me()["origin"] == SITE
 
     # Removing the origin ends those sessions and their refresh, and the site
     # may not begin a ceremony any more.
-    removed = alice.remove_package_origin(NOTES, SITE, alice_pk)
+    removed = alice.json.packages.origins_remove(
+        package=NOTES, origin=SITE, confirm=alice_pk
+    )
     assert removed["removed"] is True, removed
     for session in (carol, elsewhere):
         with pytest.raises(LoginRequired):
-            session.me()
+            session.json.auth.me()
     with pytest.raises(CloudError) as e:
         cluster.client(0).sign_in(carol_pk, origin=SITE)
     assert code(e.value) == "ORIGIN_NOT_REGISTERED"
-    assert alice.list_package_origins(NOTES)["origins"] == []
+    assert alice.json.packages.origins_list(package=NOTES)["origins"] == []
     with pytest.raises(CloudError) as e:
-        alice.remove_package_origin(NOTES, SITE, alice_pk)
+        alice.json.packages.origins_remove(package=NOTES, origin=SITE, confirm=alice_pk)
     assert e.value.args[1] == 404, e.value
 
 
@@ -632,20 +711,27 @@ def test_an_admin_closes_and_opens_one_app_team(cluster, wasm):
     # core #4903: a package's own `join` (and `keep`) in POST /orgs/{org}/app-teams.
     alice, pk = person(cluster, 0, "alice-appteams")
     package = "com.test.appteams"
-    alice.upload_package(mpk(package, "1.0.0", wasm))
-    org = alice.create_org("Appteams")
-    assert alice.list_app_teams(org) == {"mode": "legacy", "appTeams": []}
+    alice.json.packages.upload(body=mpk(package, "1.0.0", wasm))
+    org = alice.json.orgs.create(name="Appteams")["orgId"]
+    assert alice.json.orgs.app_team_list(org=org) == {"mode": "legacy", "appTeams": []}
 
-    made = alice.scope_apps(org, pk, apps=[{"package": package, "instances": []}])
+    made = alice.json.orgs.app_teams_scope(
+        org=org, confirm=pk, apps=[{"package": package, "instances": []}]
+    )
     assert made["mode"] == "standalone" and made["teams"][0]["created"]
-    closed = alice.scope_apps(
-        org, pk, apps=[{"package": package, "join": "invite", "keep": []}]
+    closed = alice.json.orgs.app_teams_scope(
+        org=org, confirm=pk, apps=[{"package": package, "join": "invite", "keep": []}]
     )
     assert closed["mode"] == "shared" and closed["teams"][0]["join"] == "invite"
-    assert alice.list_app_teams(org)["appTeams"][0]["join"] == "invite"
-    opened = alice.scope_apps(org, pk, apps=[{"package": package, "join": "everyone"}])
+    assert alice.json.orgs.app_team_list(org=org)["appTeams"][0]["join"] == "invite"
+    opened = alice.json.orgs.app_teams_scope(
+        org=org, confirm=pk, apps=[{"package": package, "join": "everyone"}]
+    )
     assert opened["mode"] == "standalone"
     with pytest.raises(CloudError):
-        alice.scope_apps(
-            org, pk, apps=[{"package": package, "join": "everyone"}], shared=True
+        alice.json.orgs.app_teams_scope(
+            org=org,
+            confirm=pk,
+            apps=[{"package": package, "join": "everyone"}],
+            shared=True,
         )

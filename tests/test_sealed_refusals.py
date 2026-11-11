@@ -79,7 +79,7 @@ def node():
 def test_a_request_past_the_sealed_cap_is_413_too_large(node):
     client = CloudClient(node, allow_mock=True)
     with pytest.raises(CloudError) as e:
-        client.upload_blob("app", b"x" * 16)
+        client.json.apps.blob_upload(app="app", body=b"x" * 16)
     message, status, code, _details = e.value.args
     assert (status, code) == (413, "TOO_LARGE")
     assert message == f"413 TOO_LARGE: {TOO_LARGE}"

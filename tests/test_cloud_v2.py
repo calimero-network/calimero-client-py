@@ -145,7 +145,7 @@ def test_refuses_a_mock_quote_unless_allowed(cluster):
 
 def test_sign_up_deploy_call_view_confirm(cluster, wasm):
     alice, pk = person(cluster, 0, "alice")
-    me = alice.me()
+    me = alice.json.auth.me()
     assert me["via"] == "session"
 
     # The same passkey signs in on another node.
@@ -153,20 +153,34 @@ def test_sign_up_deploy_call_view_confirm(cluster, wasm):
     s = again.sign_in(pk)
     assert s["accountId"] == me["accountId"]
 
-    bundle = alice.upload_bundle(wasm)
-    app = alice.create_app("kv", bundle, {"confirmMethods": ["clear"]})
+    bundle = alice.json.packages.bundle_put(body=wasm)["hash"]
+    # `confirmMethods` is not in core's document for `POST /apps`, so the
+    # facade cannot send it: the generic path call does.
+    app = alice.post(
+        "apps", {"name": "kv", "bundle": bundle, "confirmMethods": ["clear"]}
+    )["appId"]
 
-    r = alice.call(app, "set", {"key": "a", "value": "1"}, idempotency_key="k1")
+    r = alice.json.apps.call(
+        app=app, method="set", args={"key": "a", "value": "1"}, idempotency_key="k1"
+    )
     assert r["index"] > 0
     assert len(r["events"]) == 1
-    replay = alice.call(
-        app, "set", {"key": "a", "value": "other"}, idempotency_key="k1"
+    replay = alice.json.apps.call(
+        app=app, method="set", args={"key": "a", "value": "other"}, idempotency_key="k1"
     )
     assert replay["index"] == r["index"]
 
-    assert again.view(app, "get", {"key": "a"})["result"] == "1"
     assert (
-        again.view(app, "get", {"key": "a"}, stale=True, min_index=r["index"])["result"]
+        again.json.apps.view(app=app, method="get", args={"key": "a"})["result"] == "1"
+    )
+    assert (
+        again.json.apps.view(
+            app=app,
+            method="get",
+            args={"key": "a"},
+            consistency="stale",
+            min_index=r["index"],
+        )["result"]
         == "1"
     )
 
@@ -175,15 +189,15 @@ def test_sign_up_deploy_call_view_confirm(cluster, wasm):
 
     # A confirm method needs a fresh passkey assertion over the exact call.
     with pytest.raises(CloudError) as e:
-        alice.call(app, "clear", {})
+        alice.json.apps.call(app=app, method="clear", args={})
     assert code(e.value) == "CONFIRM_REQUIRED"
-    alice.call_confirmed(app, "clear", {}, pk)
-    assert alice.view(app, "len")["result"] == 0
+    alice.json.apps.call(app=app, method="clear", args={}, confirm=pk)
+    assert alice.json.apps.view(app=app, method="len")["result"] == 0
 
     # Others cannot reach an owner-only app.
     bob, _ = person(cluster, 2, "bob")
     with pytest.raises(CloudError) as e:
-        bob.call(app, "set", {"key": "x", "value": "y"})
+        bob.json.apps.call(app=app, method="set", args={"key": "x", "value": "y"})
     assert code(e.value) == "NOT_FOUND"
 
     # A read-only API key reads, never writes.
@@ -191,12 +205,12 @@ def test_sign_up_deploy_call_view_confirm(cluster, wasm):
     with pytest.raises(CloudError) as e:
         alice.post("auth/apikeys", {"readOnly": True, "apps": [app]})
     assert code(e.value) == "CONFIRM_REQUIRED"
-    _key_id, key = alice.create_api_key({"readOnly": True, "apps": [app]}, pk)
+    key = alice.json.auth.apikey_create(read_only=True, apps=[app], confirm=pk)["key"]
     agent = cluster.client(2)
     agent.use_api_key(key)
-    agent.view(app, "len")
+    agent.json.apps.view(app=app, method="len")
     with pytest.raises(CloudError) as e:
-        agent.call(app, "set", {"key": "x", "value": "y"})
+        agent.json.apps.call(app=app, method="set", args={"key": "x", "value": "y"})
     assert code(e.value) == "FORBIDDEN"
 
     # Refresh rotates the session, and a saved session can be reused.
@@ -204,13 +218,13 @@ def test_sign_up_deploy_call_view_confirm(cluster, wasm):
     assert fresh["sessionToken"] != s["sessionToken"]
     later = cluster.client(1)
     later.use_session(fresh)
-    assert later.me()["accountId"] == me["accountId"]
+    assert later.json.auth.me()["accountId"] == me["accountId"]
 
 
 def test_organizations_gate_apps(cluster, wasm):
     alice, alice_pk = person(cluster, 0, "alice-org")
     bob, _ = person(cluster, 1, "bob-org")
-    bob_id = bob.me()["accountId"]
+    bob_id = bob.json.auth.me()["accountId"]
     org = alice.post("orgs", {"name": "Acme"})["orgId"]
     team = alice.post(f"orgs/{org}/teams", {"name": "eng", "join": "invite"})["teamId"]
     # An invite grants access: the node asks for the inviter's passkey first.
@@ -222,8 +236,12 @@ def test_organizations_gate_apps(cluster, wasm):
     )["token"]
     bob.post(f"invites/{token}/redeem")
 
-    app = alice.create_app("team-kv", alice.upload_bundle(wasm), {"org": org})
-    bob.call(app, "set", {"key": "from", "value": "bob"})
+    app = alice.json.apps.create(
+        name="team-kv",
+        bundle=alice.json.packages.bundle_put(body=wasm)["hash"],
+        **{"org": org},
+    )["appId"]
+    bob.json.apps.call(app=app, method="set", args={"key": "from", "value": "bob"})
 
     # A DELETE with no body is asked for the passkey; one carrying a proof
     # (here a stale one) is judged on that proof: the body reaches the node.
@@ -237,22 +255,22 @@ def test_organizations_gate_apps(cluster, wasm):
     alice.delete_confirmed(f"orgs/{org}/members/{bob_id}", alice_pk)
     time.sleep(0.3)
     with pytest.raises(CloudError) as e:
-        bob.call(app, "set", {"key": "x", "value": "y"})
+        bob.json.apps.call(app=app, method="set", args={"key": "x", "value": "y"})
     assert code(e.value) == "NOT_FOUND"
 
 
 def test_blobs_belong_to_their_app(cluster, wasm):
     alice, _pk = person(cluster, 0, "alice-blobs")
-    bundle = alice.upload_bundle(wasm)
-    app = alice.create_app("files", bundle)
-    other = alice.create_app("other", bundle)
+    bundle = alice.json.packages.bundle_put(body=wasm)["hash"]
+    app = alice.json.apps.create(name="files", bundle=bundle)["appId"]
+    other = alice.json.apps.create(name="other", bundle=bundle)["appId"]
     data = b"%PDF-1.7 " * 500
-    up = alice.upload_blob(app, data)
+    up = alice.json.apps.blob_upload(app=app, body=data)
     assert up["size"] == len(data)
-    assert alice.download_blob(app, up["blobId"]) == data
-    assert alice.download_blob(app, up["id"]) == data
+    assert alice.json.apps.blob_download(app=app, id=up["blobId"]) == data
+    assert alice.json.apps.blob_download(app=app, id=up["id"]) == data
     with pytest.raises(CloudError) as e:
-        alice.download_blob(other, up["blobId"])
+        alice.json.apps.blob_download(app=other, id=up["blobId"])
     assert code(e.value) == "NOT_FOUND"
 
 
@@ -265,24 +283,26 @@ def test_a_second_passkey_is_another_device(cluster):
     cred = laptop.add_passkey(phone_key, laptop_key)
     phone = cluster.client(1)
     phone.sign_in(phone_key)
-    a, b = laptop.me(), phone.me()
+    a, b = laptop.json.auth.me(), phone.json.auth.me()
     assert a["accountId"] == b["accountId"]
     assert b["passkeyId"] == cred != a["passkeyId"]
 
 
 def test_keeps_serving_after_a_node_dies(cluster, wasm):
     alice, pk = person(cluster, 1, "alice-failover")
-    app = alice.create_app("kv-ha", alice.upload_bundle(wasm))
-    alice.call(app, "set", {"key": "k", "value": "v"})
+    app = alice.json.apps.create(
+        name="kv-ha", bundle=alice.json.packages.bundle_put(body=wasm)["hash"]
+    )["appId"]
+    alice.json.apps.call(app=app, method="set", args={"key": "k", "value": "v"})
     cluster.stop(0)
     other = cluster.client(2)
     other.sign_in(pk)
     for _ in range(40):
         try:
-            other.call(
-                app,
-                "set",
-                {"key": "k2", "value": "v2"},
+            other.json.apps.call(
+                app=app,
+                method="set",
+                args={"key": "k2", "value": "v2"},
                 idempotency_key="after-failover",
             )
             break
@@ -290,4 +310,6 @@ def test_keeps_serving_after_a_node_dies(cluster, wasm):
             time.sleep(0.25)
     else:
         pytest.fail("no write after failover")
-    assert other.view(app, "get", {"key": "k"})["result"] == "v"
+    assert (
+        other.json.apps.view(app=app, method="get", args={"key": "k"})["result"] == "v"
+    )

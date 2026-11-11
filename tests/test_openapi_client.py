@@ -13,15 +13,13 @@ import asyncio
 import base64
 import hashlib
 import json
-import warnings
 from pathlib import Path
 
-import pytest
 
 from calimero_client_py import Client, CloudError, LoginRequired, SoftPasskey, WrongNode
 from calimero_client_py.openapi.api.apps import intents
 from calimero_client_py.openapi.api.organizations import org_create, org_set_member
-from calimero_client_py.openapi.api.ops import ops_set_replicas, ops_status
+from calimero_client_py.openapi.api.ops import ops_set_replicas
 from calimero_client_py.openapi.models import (
     IntentsBody,
     OrgCreateBody,
@@ -364,22 +362,18 @@ def test_the_generated_package_names_its_source():
     assert source["commit"] in (generated.__doc__ or "")
 
 
-# ------------------------------------------------------------ the compatibility layer
+# ------------------------------------------------------------ rc4: the routes are the facade's
 
 
-def test_a_deprecated_method_warns_and_names_its_replacement():
-    native = Native(answer(200, {"orgId": "o1"}))
-    with pytest.warns(DeprecationWarning, match=r"client\.orgs\.create"):
-        assert client_on(native).create_org("Acme") == "o1"
-    assert "client.orgs.create(...)" in Client.create_org.__doc__
+def test_the_route_methods_are_gone():
+    # 1.0.0rc4 removed rc3's method per route; the facade has each route.
+    for name in ("create_org", "call", "view", "ops_status", "packages"):
+        assert not callable(getattr(Client, name, None)) or isinstance(
+            getattr(Client, name), type
+        ), name
 
 
-def test_what_is_not_a_route_is_not_deprecated():
-    native = Native()
-    native.session = lambda: None
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")
-        assert client_on(native).session() is None
+def test_what_is_not_a_route_is_kept():
     for name in (
         "sign_up",
         "sign_in",
@@ -392,4 +386,4 @@ def test_what_is_not_a_route_is_not_deprecated():
         "use_api_key",
         "verify_app_cluster",
     ):
-        assert not hasattr(getattr(Client, name), "__deprecated__"), name
+        assert callable(getattr(Client, name)), name

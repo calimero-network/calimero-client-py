@@ -41,16 +41,17 @@ def test_an_api_keys_public_half_is_the_one_core_derives():
         assert CloudClient.api_key_public(key) == core_api_key_public(key)
 
 
-def test_create_api_key_and_upgrade_app_take_what_an_upgrade_key_needs():
+def test_apikey_create_and_upgrade_take_what_an_upgrade_key_needs():
     import inspect
 
-    from calimero_client_py import Client
+    from calimero_client_py.facade import Apps, Auth
 
-    params = inspect.signature(Client.create_api_key).parameters
-    assert list(params)[1:] == ["options", "passkey"]
-    upgrade = inspect.signature(Client.upgrade_app).parameters
-    assert upgrade["passkey"].default is None
-    assert upgrade["version"].default is None
+    params = inspect.signature(Auth.apikey_create).parameters
+    assert "upgrades" in params and "confirm" in params
+    upgrade = inspect.signature(Apps.upgrade).parameters
+    # An upgrade key upgrades with a `version` alone, no passkey.
+    assert upgrade["confirm"].default is None
+    assert upgrade["version"].default is not inspect.Parameter.empty
 
 
 @pytest.fixture(scope="module")
@@ -74,17 +75,24 @@ def test_an_upgrade_key_upgrades_its_app_and_nothing_else(cluster):
     alice, apk = person(cluster, 0, "alice-upgrade-key")
     package = "com.test.pyci"
     for version in ("1.0.0", "1.1.0"):
-        alice.upload_package(mpk(package, version, variant(kv, version)))
-    app = alice.create_app_from_package("ci-target", package, "1.0.0")
-    other = alice.create_app_from_package("not-the-target", package, "1.0.0")
+        alice.json.packages.upload(body=mpk(package, version, variant(kv, version)))
+    app = alice.json.apps.create(name="ci-target", package=package, version="1.0.0")[
+        "appId"
+    ]
+    other = alice.json.apps.create(
+        name="not-the-target", package=package, version="1.0.0"
+    )["appId"]
 
     # It takes no other scope field.
     with pytest.raises(CloudError) as e:
-        alice.create_api_key({"upgrades": {"app": app}, "methods": ["set"]}, apk)
+        alice.json.auth.apikey_create(
+            upgrades={"app": app}, methods=["set"], confirm=apk
+        )
     assert code(e.value) == "BAD_UPGRADE_KEY"
 
-    key_id, key = alice.create_api_key({"label": "ci", "upgrades": {"app": app}}, apk)
-    listed = {k["keyId"]: k for k in alice.list_api_keys()}[key_id]
+    made = alice.json.auth.apikey_create(label="ci", upgrades={"app": app}, confirm=apk)
+    key_id, key = made["keyId"], made["key"]
+    listed = {k["keyId"]: k for k in alice.json.auth.apikey_list()["keys"]}[key_id]
     assert listed["upgrades"]["app"] == app
     assert listed["upgrades"]["package"] == package
     assert listed["upgrades"]["proofKey"] == CloudClient.api_key_public(key)
@@ -92,20 +100,20 @@ def test_an_upgrade_key_upgrades_its_app_and_nothing_else(cluster):
     # CI: the key alone, on another node, no passkey.
     ci = cluster.client(1)
     ci.use_api_key(key)
-    before = alice.get_app(app)["bundle"]
-    ci.upgrade_app(app, version="1.1.0")
-    assert alice.get_app(app)["bundle"] != before
+    before = alice.json.apps.get(app=app)["bundle"]
+    ci.json.apps.upgrade(app=app, version="1.1.0")
+    assert alice.json.apps.get(app=app)["bundle"] != before
 
     # Nothing else, reads included.
-    for refused in (ci.me, ci.list_apps, lambda: ci.get_app(app)):
+    for refused in (ci.me, ci.list_apps, lambda: ci.json.apps.get(app=app)):
         with pytest.raises(CloudError) as e:
             refused()
         assert code(e.value) == "UPGRADE_KEY_ONLY"
     with pytest.raises(CloudError) as e:
-        ci.upgrade_app(other, version="1.1.0")
+        ci.json.apps.upgrade(app=other, version="1.1.0")
     assert e.value.args[1] == 403
 
     # Revoked, it upgrades nothing.
-    alice.revoke_api_key(key_id, apk)
+    alice.json.auth.apikey_revoke(key=key_id, confirm=apk)
     with pytest.raises(CloudError):
-        ci.upgrade_app(app, version="1.0.0")
+        ci.json.apps.upgrade(app=app, version="1.0.0")

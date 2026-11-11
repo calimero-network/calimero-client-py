@@ -1,5 +1,143 @@
 # Changelog
 
+## 1.0.0-rc.4
+
+**Breaking.** The method per route that 1.0.0rc3 and earlier had on `Client` is
+removed, before 1.0.0 is final rather than in a 2.0: every
+route is the facade's method, generated from core's OpenAPI document
+(`client.<group>.<operation>(...)`, keyword arguments, the generated model of
+the answer, `CloudError` on a refusal). 1.0.0rc3 deprecated them (its
+`DeprecationWarning` named each replacement). What is not a route stays on
+`Client`: `connect`, the credentials (`use_api_key`, `use_session`,
+`session`, `refresh`, `use_passkey`, `use_operator_key`,
+`use_operator_signer`), the passkey ceremonies (`sign_up`, `sign_in`,
+`add_passkey`, `start_account_recovery`, `finish_account_recovery`,
+`start_recovery`), the streams (`events`, `presence_stream`),
+`verify_app_cluster`, `attestation`, the key helpers, and the calls on any
+path (`get`, `get_text`, `post`, `put`, `delete`, `post_confirmed`,
+`delete_confirmed`, `post_operator_signed`, `delete_operator_signed`).
+
+Migrating a call:
+
+- Arguments are keyword-only, named as the route names them: the path's, the
+  query's and the body's fields (`readOnly` is `read_only`); a raw-byte body is
+  `body=`. A dict of options becomes keyword arguments
+  (`create_api_key({"readOnly": True}, pk)` is
+  `client.auth.apikey_create(read_only=True, confirm=pk)`).
+- A passkey that approved the call is `confirm=passkey`, or the client's own
+  (`use_passkey`) when none is given. The operator key answers by itself, as
+  before.
+- The answer is the generated model (`client.orgs.create(name=...).org_id`,
+  `.to_dict()` for the JSON). `client.json.<group>.<operation>(...)` answers
+  the node's JSON as it came, as rc3's route methods did, and suits a node older than the
+  document. rc3's route methods unwrapped some answers: `create_org` answered the id where
+  `orgs.create` answers `{orgId}`, and `list_apps` the list where `apps.list`
+  answers `{apps}`.
+- Fields rc3's route methods always sent are sent only when given (`call`'s `args`, `view`'s
+  `consistency`, `invite`'s `ttlSecs`). The node reads an absent field as its
+  default. Pass `consistency="stale", min_index=...` for rc3's
+  `stale=True`, and `approved=False` for `ops_approve_release(withdraw=True)`.
+- `POST /apps`' `confirmMethods` is not in core's document: send it with
+  `client.post("apps", {...})`.
+
+| 1.0.0rc3 method | 1.0.0rc4 |
+| --- | --- |
+| `activity(after)` | `client.auth.activity_list(...)` |
+| `add_package_origin(package, origin, passkey, rp_id, served)` | `client.packages.origins_add(...)` |
+| `alias(alias)` | `client.auth.alias_get(...)` |
+| `aliases()` | `client.auth.alias_list(...)` |
+| `app_abi(app)` | `client.apps.abi(...)` |
+| `app_storage(app)` | `client.apps.storage(...)` |
+| `approve_outbound(package, passkey, org, prefixes, replace)` | `client.auth.account_outbound_approval(...)` / `client.orgs.outbound_approval(...)` |
+| `approve_release(version, passkey, org)` | `client.auth.account_release_approval(...)` / `client.orgs.release_approval(...)` |
+| `blob_info(app, id)` | `client.apps.blob_info(...)` |
+| `call(app, method, args, idempotency_key)` | `client.apps.call(...)` |
+| `call_confirmed(app, method, args, passkey)` | `client.apps.call(...)` |
+| `cancel_account_recovery(passkey)` | `client.auth.account_recovery_cancel(...)` |
+| `cancel_recovery(org, passkey)` | `client.orgs.recovery_cancel(...)` |
+| `create_api_key(options, passkey)` | `client.auth.apikey_create(...)` |
+| `create_app(name, bundle, options)` | `client.apps.create(...)` |
+| `create_app_from_package(name, package, version, service, options)` | `client.apps.create(...)` |
+| `create_org(name, recovery_key)` | `client.orgs.create(...)` |
+| `create_recovery_code(passkey)` | `client.auth.recovery_create(...)` |
+| `create_team(org, name, join, parent)` | `client.orgs.team_create(...)` |
+| `delete_alias(alias)` | `client.auth.alias_delete(...)` |
+| `delete_app(app)` | `client.apps.delete(...)` |
+| `delete_blob(app, id)` | `client.apps.blob_delete(...)` |
+| `delete_org(org, passkey)` | `client.orgs.delete(...)` |
+| `delete_team(org, team, passkey)` | `client.orgs.team_delete(...)` |
+| `download_blob(app, id)` | `client.apps.blob_download(...)` |
+| `finish_recovery(org, passkey)` | `client.orgs.recovery_finish(...)` |
+| `get_app(app)` | `client.apps.get(...)` |
+| `get_org(org)` | `client.orgs.get(...)` |
+| `get_team(org, team)` | `client.orgs.team_get(...)` |
+| `install_package(package, version)` | `client.packages.install(...)` |
+| `invite(org, role, passkey, teams, ttl_secs, uses)` | `client.orgs.invite_create(...)` |
+| `label_passkey(credential_id, label)` | `client.auth.passkey_label(...)` |
+| `list_api_keys()` | `client.auth.apikey_list(...)` |
+| `list_app_teams(org)` | `client.orgs.app_team_list(...)` |
+| `list_apps()` | `client.apps.list(...)` |
+| `list_blobs(app)` | `client.apps.blob_list(...)` |
+| `list_package_origins(package)` | `client.packages.origins_list(...)` |
+| `me()` | `client.auth.me(...)` |
+| `move_app(app, to_org, passkey, bring_members)` | `client.apps.move(...)` |
+| `ops_approve_outbound(package, prefixes, replace)` | `client.ops.outbound(...)` |
+| `ops_approve_release(version, withdraw)` | `client.ops.release(...)` |
+| `ops_backup()` | `client.ops.backup(...)` |
+| `ops_install_package(package, version)` | `client.ops.package_install(...)` |
+| `ops_metrics()` | `client.ops.metrics(...)` |
+| `ops_packages()` | `client.ops.package_list(...)` |
+| `ops_quotas()` | `client.ops.quotas_get(...)` |
+| `ops_register_node(node_id, addr, zone)` | `client.ops.register_node(...)` |
+| `ops_remove_node(node_id)` | `client.ops.remove_node(...)` |
+| `ops_served_origins()` | `client.ops.served(...)` |
+| `ops_set_quotas(quotas)` | `client.ops.quotas_set(...)` |
+| `ops_set_replicas(app, replicas)` | `client.ops.set_replicas(...)` |
+| `ops_status()` | `client.ops.status(...)` |
+| `ops_uninstall_package(package, version)` | `client.ops.package_uninstall(...)` / `client.ops.package_version_uninstall(...)` |
+| `ops_upgrade_app(app, bundle, version, package, service, migrate)` | `client.ops.upgrade(...)` |
+| `ops_upgrade_org(org, package, version, team, cascade, migrate)` | `client.ops.org_upgrade(...)` |
+| `ops_upload_package(mpk)` | `client.ops.package_upload(...)` |
+| `org_members_security(org)` | `client.orgs.members(...)` |
+| `package(package)` | `client.packages.get(...)` |
+| `packages()` | `client.packages.list(...)` |
+| `presence(app)` | `client.apps.presence_get(...)` |
+| `publish_presence(app, seq, state)` | `client.apps.presence_publish(...)` |
+| `redeem_invite(token)` | `client.orgs.invite_redeem(...)` |
+| `remove_member(org, account, passkey)` | `client.orgs.remove_member(...)` |
+| `remove_package_origin(package, origin, passkey)` | `client.packages.origins_remove(...)` |
+| `remove_passkey(credential_id, passkey)` | `client.auth.passkey_remove(...)` |
+| `remove_recovery_code(passkey)` | `client.auth.recovery_remove(...)` |
+| `remove_team_member(org, team, account, passkey)` | `client.orgs.team_remove_member(...)` |
+| `remove_team_members(org, account, teams, passkey)` | `client.orgs.member_remove_teams(...)` |
+| `retry_upgrade_run(org, run, passkey)` | `client.orgs.upgrade_retry(...)` |
+| `revoke_api_key(key_id, passkey)` | `client.auth.apikey_revoke(...)` |
+| `revoke_session(session)` | `client.auth.session_revoke(...)` |
+| `scope_apps(org, passkey, apps, shared)` | `client.orgs.app_teams_scope(...)` |
+| `sessions()` | `client.auth.sessions_list(...)` |
+| `set_access(app, access)` | `client.apps.access(...)` |
+| `set_alias(alias, app)` | `client.auth.alias_set(...)` |
+| `set_app_metadata(app, metadata)` | `client.apps.metadata(...)` |
+| `set_capabilities(org, capabilities, passkey, account, team)` | `client.orgs.capabilities(...)` |
+| `set_member(org, account, role, passkey)` | `client.orgs.set_member(...)` |
+| `set_member_metadata(org, account, metadata)` | `client.orgs.member_metadata(...)` |
+| `set_org_metadata(org, metadata)` | `client.orgs.metadata(...)` |
+| `set_recovery_key(org, public_key, passkey)` | `client.orgs.recovery_set(...)` |
+| `set_team_member(org, team, account, passkey, role, capabilities)` | `client.orgs.team_set_member(...)` |
+| `set_team_members(org, account, teams, passkey)` | `client.orgs.member_set_teams(...)` |
+| `sign_out()` | `client.auth.logout(...)` |
+| `sign_out_everywhere()` | `client.auth.logout_all(...)` |
+| `transfer_app(app, to, passkey)` | `client.apps.transfer(...)` |
+| `uninstall_package(package, version)` | `client.packages.uninstall(...)` / `client.packages.version_uninstall(...)` |
+| `update_team(org, team, name, join, metadata, parent, to_top)` | `client.orgs.team_update(...)` |
+| `upgrade_app(app, bundle, migrate, version, passkey, package, service)` | `client.apps.upgrade(...)` |
+| `upgrade_org(org, package, version, passkey, team, cascade, migrate)` | `client.orgs.upgrade(...)` |
+| `upgrade_run(org, run)` | `client.orgs.upgrade_status(...)` |
+| `upload_blob(app, data)` | `client.apps.blob_upload(...)` |
+| `upload_bundle(wasm)` | `client.packages.bundle_put(...)` |
+| `upload_package(mpk)` | `client.packages.upload(...)` |
+| `usage()` | `client.auth.usage(...)` |
+| `view(app, method, args, stale, min_index)` | `client.apps.view(...)` |
 ## 1.0.0-rc.3
 
 - **feat: a client generated from core's OpenAPI document.** The routes are
