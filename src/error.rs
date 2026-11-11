@@ -1,6 +1,7 @@
 //! `CloudError`, the exception the bindings raise for a node's answer, and
-//! the two of its subclasses a caller acts on without reading the code:
-//! `LoginRequired` (`401 UNAUTHENTICATED`) and `WrongNode` (`421 WRONG_NODE`).
+//! the subclasses a caller acts on without reading the code: `LoginRequired`
+//! (`401 UNAUTHENTICATED`), `WrongNode` (`421 WRONG_NODE`) and
+//! `FeatureNotActive` (`409 FEATURE_NOT_ACTIVE`).
 
 use calimero_client::Error;
 use pyo3::PyErr;
@@ -29,8 +30,14 @@ mod exception {
         CloudError,
         "421 WRONG_NODE: the node's release may not serve this account, and the client knows no other node that took the request: use another node of the cluster."
     );
+    create_exception!(
+        calimero_client_py,
+        FeatureNotActive,
+        CloudError,
+        "409 FEATURE_NOT_ACTIVE: the command needs a cluster version not every node supports yet (a rollout from an older release is under way); nothing was done. details names the feature, the version it needs and the cluster's (null when not every node said). Retry once the old nodes have left."
+    );
 }
-pub use exception::{CloudError, LoginRequired, WrongNode};
+pub use exception::{CloudError, FeatureNotActive, LoginRequired, WrongNode};
 
 pub(crate) fn cloud_err(e: Error) -> PyErr {
     match e {
@@ -49,6 +56,7 @@ pub(crate) fn cloud_err(e: Error) -> PyErr {
             match (status, code.as_str()) {
                 (401, "UNAUTHENTICATED") => LoginRequired::new_err(args),
                 (421, "WRONG_NODE") => WrongNode::new_err(args),
+                (409, "FEATURE_NOT_ACTIVE") => FeatureNotActive::new_err(args),
                 _ => CloudError::new_err(args),
             }
         }

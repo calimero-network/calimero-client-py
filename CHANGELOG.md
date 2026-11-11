@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **feat: `FeatureNotActive`** (core's cluster version gate). A `CloudError`
+  subclass for `409 FEATURE_NOT_ACTIVE`: during a rollout, a node refuses a command (or a field)
+  that a node still on an older release could not apply, before anything is
+  logged or a passkey is asked for. `details` names the `feature`, the
+  version it `needs` and the cluster's `active` one. Raised by every call: the
+  generated facade's methods (`client.apps.move(...)`), `client.json.*`, the
+  calls on any path and the native ones (streams, passkey ceremonies).
+  Exported from `calimero_client_py` and `calimero`.
 - **docs: the docs site describes the generated client.** "Using the client"
   covers the groups and their method names, keyword arguments (left out is not
   sent, `None` is an explicit null), `confirm=` / `operator_proof=` and the
