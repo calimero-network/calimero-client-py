@@ -7,7 +7,9 @@ operation on `Client` (`client.orgs.get(org=...)`), is
 scripts/generate_facade.py's from the document and that output. Both are
 formatted with black and checked in, and nothing in them is edited by hand:
 change the document (in core), these scripts or openapi/generator.yaml, and
-run this again. CI runs it with `--check`.
+run this again. CI runs it with `--check`. It also writes the docs site's
+method reference (docs/src/content/docs/reference/methods.mdx, by
+scripts/generate_api_docs.py from the new facade and the document).
 
     pip install openapi-python-client==0.26.2 black==26.10.1
     python scripts/generate_openapi_client.py           # regenerate
@@ -34,6 +36,7 @@ SOURCE = ROOT / "openapi" / "source.json"
 CONFIG = ROOT / "openapi" / "generator.yaml"
 GENERATED = ROOT / "calimero_client_py" / "openapi"
 FACADE = ROOT / "calimero_client_py" / "facade.py"
+METHODS_DOC = ROOT / "docs" / "src" / "content" / "docs" / "reference" / "methods.mdx"
 
 # Exact: the output is checked in, so a generator release that changes it is
 # a change to review. 0.26.2 is the last release whose code supports Python
@@ -152,27 +155,50 @@ def main() -> int:
     with tempfile.TemporaryDirectory() as tmp:
         fresh = Path(tmp) / "tree" / "calimero_client_py"
         generate(fresh.parent)
+        methods_doc = Path(tmp) / "methods.mdx"
+        subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "scripts" / "generate_api_docs.py"),
+                "--facade",
+                str(fresh / "facade.py"),
+                "--document",
+                str(DOCUMENT),
+                "--source",
+                str(SOURCE),
+                "--out",
+                str(methods_doc),
+            ],
+            check=True,
+        )
         if not args.check:
             if GENERATED.exists():
                 shutil.rmtree(GENERATED)
             shutil.copytree(fresh / "openapi", GENERATED)
             shutil.copyfile(fresh / "facade.py", FACADE)
+            shutil.copyfile(methods_doc, METHODS_DOC)
             print(
-                f"generated {GENERATED.relative_to(ROOT)} and {FACADE.relative_to(ROOT)}"
+                f"generated {GENERATED.relative_to(ROOT)}, {FACADE.relative_to(ROOT)} "
+                f"and {METHODS_DOC.relative_to(ROOT)}"
             )
             return 0
-        if not same_tree(fresh / "openapi", GENERATED) or not filecmp.cmp(
-            fresh / "facade.py", FACADE, shallow=False
+        if (
+            not same_tree(fresh / "openapi", GENERATED)
+            or not filecmp.cmp(fresh / "facade.py", FACADE, shallow=False)
+            or not METHODS_DOC.exists()
+            or not filecmp.cmp(methods_doc, METHODS_DOC, shallow=False)
         ):
             print(
-                f"{GENERATED.relative_to(ROOT)} or {FACADE.relative_to(ROOT)} is not "
+                f"{GENERATED.relative_to(ROOT)}, {FACADE.relative_to(ROOT)} or "
+                f"{METHODS_DOC.relative_to(ROOT)} is not "
                 "what openapi/openapi.json generates: run "
                 "scripts/generate_openapi_client.py",
                 file=sys.stderr,
             )
             return 1
     print(
-        f"{GENERATED.relative_to(ROOT)} and {FACADE.relative_to(ROOT)} are up to date"
+        f"{GENERATED.relative_to(ROOT)}, {FACADE.relative_to(ROOT)} and "
+        f"{METHODS_DOC.relative_to(ROOT)} are up to date"
     )
     return 0
 
