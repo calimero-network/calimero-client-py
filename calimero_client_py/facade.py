@@ -2915,7 +2915,7 @@ class Ops(Group):
         """
         return self._run(_OPS_QUOTAS_GET, (), {}, None)
 
-    def quotas_set(self, *, org=UNSET, operator_proof=None):
+    def quotas_set(self, *, org=UNSET, operator_proof=None, **more):
         """Change quotas (`POST /ops/quotas`, `ops_quotas_set`).
 
         Changes the limits the body names, the others keep their value; signed over `cluster / __set_quotas / { quotas }` with every limit after the change. With `org`: one payer's `maxConcurrentRuns`, `computeFuel` (decimal string) and `maxFileBytes` (`null` clears one). A name that is no quota is refused.
@@ -2925,11 +2925,12 @@ class Ops(Group):
         Args:
             org: body `org`
             operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
+            more: further body fields, by their JSON names
 
         Returns: OpsQuotasSetResponse200
         """
         return self._run(
-            _OPS_QUOTAS_SET, (), {}, {"org": org}, operator_proof=operator_proof
+            _OPS_QUOTAS_SET, (), {}, {"org": org, **more}, operator_proof=operator_proof
         )
 
     def receipt_key(self, *, id):

@@ -212,6 +212,7 @@ def generate(document: dict) -> str:
                     query_exprs.append(f"{p.name!r}: {p.name}")
             body_kind = "none"
             model = None
+            more = False
             if body_param is not None:
                 ann = body_param.annotation
                 ann_name = getattr(ann, "__name__", str(ann))
@@ -253,6 +254,11 @@ def generate(document: dict) -> str:
                         ps = resolve(document, ps) if "$ref" in ps else ps
                         add(name, prop in required, f"body `{prop}`")
                         body_exprs.append(f"{prop!r}: {name}")
+                    if schema.get("additionalProperties") not in (None, False):
+                        # Fields the document does not name (`ops_quotas_set`:
+                        # each limit by its key), as given.
+                        body_exprs.append("**more")
+                        more = True
             responses = op["responses"]
             # `x-calimero-step-up` marks the routes that always ask; a call asks
             # only for a `confirm` method, and says so by its `412` alone.
@@ -272,6 +278,11 @@ def generate(document: dict) -> str:
                 args.append("operator_proof=None")
                 argdocs.append(
                     "            operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False"
+                )
+            if more:
+                args.append("**more")
+                argdocs.append(
+                    "            more: further body fields, by their JSON names"
                 )
             answer = "json"
             ok = responses.get("200", {}).get("content", {})
