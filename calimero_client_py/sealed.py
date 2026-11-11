@@ -33,7 +33,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import httpx
 
-from ._native import CloudError, LoginRequired, WrongNode
+from ._native import CloudError, FeatureNotActive, LoginRequired, WrongNode
 from .openapi import AuthenticatedClient
 
 __all__ = [
@@ -79,8 +79,9 @@ def _refusal(content: bytes) -> Tuple[str, str, Any]:
 def error_from(status: int, content: bytes) -> CloudError:
     """The exception a node's error answer stands for, with the arguments the
     client always raised: `(message, status, code, details)`, `details` as
-    JSON text. `LoginRequired` for `401 UNAUTHENTICATED` and `WrongNode` for
-    `421 WRONG_NODE`, both `CloudError`s."""
+    JSON text. `LoginRequired` for `401 UNAUTHENTICATED`, `WrongNode` for
+    `421 WRONG_NODE` and `FeatureNotActive` for `409 FEATURE_NOT_ACTIVE`, all
+    `CloudError`s."""
     code, message, details = _refusal(content)
     args = (
         f"{status} {code}: {message}",
@@ -92,6 +93,8 @@ def error_from(status: int, content: bytes) -> CloudError:
         return LoginRequired(*args)
     if (status, code) == (421, "WRONG_NODE"):
         return WrongNode(*args)
+    if (status, code) == (409, "FEATURE_NOT_ACTIVE"):
+        return FeatureNotActive(*args)
     return CloudError(*args)
 
 
