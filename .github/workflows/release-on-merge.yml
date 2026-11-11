@@ -1,0 +1,90 @@
+name: Release on merge
+
+# Every push to master (a merged pull request) runs semantic-release over the
+# conventional commits since the last release (.releaserc.json). When they
+# make one, it pushes the tag `v<version>` and creates the GitHub Release with
+# notes from those commits. The tag starts build-wheels.yml, which builds the
+# sdist and the five wheels with that version and publishes them to PyPI once
+# the `pypi` environment's reviewers approve.
+#
+# Versions: while 1.0 is not final, master is a pre-release branch, so every
+# release is 1.0.0-rc.N (PyPI `1.0.0rcN`). The stable line is the `stable`
+# branch: 1.0.0 is made by moving `stable` to the commit to ship and running
+# this workflow on it by hand (workflow_dispatch, branch `stable`).
+# RELEASING.md has the whole process.
+#
+# It authenticates as the organization's GitHub App (`vars.ACTIONS_APP_ID`,
+# `secrets.ACTIONS_APP_PRIVATE_KEY`), not GITHUB_TOKEN: a tag pushed with
+# GITHUB_TOKEN would not start build-wheels.yml.
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-on-merge
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Tag and release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Every tag and commit since the last release, for the analysis.
+          fetch-depth: 0
+          persist-credentials: false
+
+      # semantic-release finds the last release by its tag and the git note
+      # that names the tag's channel; with neither it starts again at
+      # 1.0.0-rc.1, a version PyPI already has. And it refuses to run at all
+      # without the `stable` branch. Both are made once (RELEASING.md); say
+      # so here rather than tag a version that cannot be published.
+      - name: Check the release history is in place
+        run: |
+          set -euo pipefail
+          if ! git ls-remote --exit-code --heads origin stable >/dev/null; then
+            echo "::error::no 'stable' branch: semantic-release needs it (RELEASING.md, 'Set up once')"
+            exit 1
+          fi
+          if ! git ls-remote --exit-code origin refs/notes/semantic-release >/dev/null; then
+            echo "::error::no semantic-release notes: tag the last release with its channel first (RELEASING.md, 'Set up once')"
+            exit 1
+          fi
+
+      - name: Mint a token for this repository
+        id: token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ vars.ACTIONS_APP_ID }}
+          private-key: ${{ secrets.ACTIONS_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          # The tag, its note and the GitHub Release.
+          permission-contents: write
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+
+      # Exact versions. conventional-changelog-conventionalcommits stays on 9.x:
+      # 10.x needs conventional-changelog-writer 9, which
+      # @semantic-release/release-notes-generator 14 does not use yet.
+      - name: Run semantic-release
+        env:
+          GITHUB_TOKEN: ${{ steps.token.outputs.token }}
+        run: >-
+          npx --yes
+          -p semantic-release@25.0.9
+          -p @semantic-release/commit-analyzer@13.0.1
+          -p @semantic-release/release-notes-generator@14.1.1
+          -p @semantic-release/github@12.0.10
+          -p conventional-changelog-conventionalcommits@9.3.1
+          semantic-release
