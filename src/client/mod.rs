@@ -570,7 +570,12 @@ impl PyCloudClient {
 
     /// The node's attestation document (unverified, for display).
     fn attestation(&self, py: Python<'_>) -> PyResult<PyObject> {
-        let v = self.run_repeatable(py, async |c| c.attestation().await)?;
+        // Unverified and for display only, so a fixed nonce is enough: the
+        // verifying paths (`verify_app_cluster`) pick their own.
+        let nonce = hex::encode([7_u8; 32]);
+        let v = self.run_repeatable(py, async |c| {
+            c.public().attestation(&nonce, None, None, None).await
+        })?;
         to_py(py, &v)
     }
 }
