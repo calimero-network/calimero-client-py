@@ -12,6 +12,8 @@ Calimero 1.0 deleted that node and this package deleted its client (1.0.0-rc.1
 is a breaking release); the [changelog](CHANGELOG.md) says what replaces each
 name.
 
+> **Before committing, titling a pull request, or releasing**, read [RELEASING.md](RELEASING.md): the PR title is the release commit, and the rules are shared by every Calimero repository that ships releases.
+
 ## Documentation
 
 Full documentation is published at
