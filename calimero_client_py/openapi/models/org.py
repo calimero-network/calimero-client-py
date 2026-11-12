@@ -41,7 +41,7 @@ class Org:
             capabilities (OrgCapabilities):
             approved_releases (list[str]):
             outbound_approvals (OrgOutboundApprovals):
-            metadata (Any):
+            metadata (Any): Free-form JSON: its shape is not this API's (see the description around it for whose it is).
             member_metadata (OrgMemberMetadata):
             upgrade_runs (OrgUpgradeRuns):
             recovery (Union[Unset, OrgRecovery]):

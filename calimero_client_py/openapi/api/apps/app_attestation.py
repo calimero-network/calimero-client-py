@@ -7,43 +7,27 @@ from ...client import AuthenticatedClient, Client
 from ...types import Response, UNSET
 from ... import errors
 
-from ...models.app_attestation_purpose import AppAttestationPurpose
 from ...models.app_attestation_response_200 import AppAttestationResponse200
 from ...models.error import Error
-from ...types import UNSET, Unset
 from typing import cast
-from typing import Union
 
 
 def _get_kwargs(
-    app_path: str,
+    app: str,
     *,
     nonce: str,
-    app_query: Union[Unset, str] = UNSET,
-    app_hash: Union[Unset, str] = UNSET,
-    purpose: Union[Unset, AppAttestationPurpose] = UNSET,
 ) -> dict[str, Any]:
 
     params: dict[str, Any] = {}
 
     params["nonce"] = nonce
 
-    params["app"] = app_query
-
-    params["appHash"] = app_hash
-
-    json_purpose: Union[Unset, str] = UNSET
-    if not isinstance(purpose, Unset):
-        json_purpose = purpose.value
-
-    params["purpose"] = json_purpose
-
     params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
 
     _kwargs: dict[str, Any] = {
         "method": "get",
-        "url": "/apps/{app_path}/attestation".format(
-            app_path=app_path,
+        "url": "/apps/{app}/attestation".format(
+            app=app,
         ),
         "params": params,
     }
@@ -87,27 +71,21 @@ def _build_response(
 
 
 def sync_detailed(
-    app_path: str,
+    app: str,
     *,
     client: AuthenticatedClient,
     nonce: str,
-    app_query: Union[Unset, str] = UNSET,
-    app_hash: Union[Unset, str] = UNSET,
-    purpose: Union[Unset, AppAttestationPurpose] = UNSET,
 ) -> Response[Union[AppAttestationResponse200, Error]]:
     """Every replica's receipt-key attestation
 
-     Each replica's `/attestation?purpose=receipts` for `nonce`. It reads the query `/attestation` does,
-    but only `nonce`: `app`, `appHash` and `purpose` are ignored here.
+     Each replica's `/attestation?purpose=receipts` for `nonce` (32 bytes, hex), or why it could not be
+    had (`error`). Any other query parameter is ignored.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 
     Args:
-        app_path (str):
+        app (str):
         nonce (str):
-        app_query (Union[Unset, str]):
-        app_hash (Union[Unset, str]):
-        purpose (Union[Unset, AppAttestationPurpose]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -118,11 +96,8 @@ def sync_detailed(
     """
 
     kwargs = _get_kwargs(
-        app_path=app_path,
+        app=app,
         nonce=nonce,
-        app_query=app_query,
-        app_hash=app_hash,
-        purpose=purpose,
     )
 
     response = client.get_httpx_client().request(
@@ -133,27 +108,21 @@ def sync_detailed(
 
 
 def sync(
-    app_path: str,
+    app: str,
     *,
     client: AuthenticatedClient,
     nonce: str,
-    app_query: Union[Unset, str] = UNSET,
-    app_hash: Union[Unset, str] = UNSET,
-    purpose: Union[Unset, AppAttestationPurpose] = UNSET,
 ) -> Optional[Union[AppAttestationResponse200, Error]]:
     """Every replica's receipt-key attestation
 
-     Each replica's `/attestation?purpose=receipts` for `nonce`. It reads the query `/attestation` does,
-    but only `nonce`: `app`, `appHash` and `purpose` are ignored here.
+     Each replica's `/attestation?purpose=receipts` for `nonce` (32 bytes, hex), or why it could not be
+    had (`error`). Any other query parameter is ignored.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 
     Args:
-        app_path (str):
+        app (str):
         nonce (str):
-        app_query (Union[Unset, str]):
-        app_hash (Union[Unset, str]):
-        purpose (Union[Unset, AppAttestationPurpose]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -164,37 +133,28 @@ def sync(
     """
 
     return sync_detailed(
-        app_path=app_path,
+        app=app,
         client=client,
         nonce=nonce,
-        app_query=app_query,
-        app_hash=app_hash,
-        purpose=purpose,
     ).parsed
 
 
 async def asyncio_detailed(
-    app_path: str,
+    app: str,
     *,
     client: AuthenticatedClient,
     nonce: str,
-    app_query: Union[Unset, str] = UNSET,
-    app_hash: Union[Unset, str] = UNSET,
-    purpose: Union[Unset, AppAttestationPurpose] = UNSET,
 ) -> Response[Union[AppAttestationResponse200, Error]]:
     """Every replica's receipt-key attestation
 
-     Each replica's `/attestation?purpose=receipts` for `nonce`. It reads the query `/attestation` does,
-    but only `nonce`: `app`, `appHash` and `purpose` are ignored here.
+     Each replica's `/attestation?purpose=receipts` for `nonce` (32 bytes, hex), or why it could not be
+    had (`error`). Any other query parameter is ignored.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 
     Args:
-        app_path (str):
+        app (str):
         nonce (str):
-        app_query (Union[Unset, str]):
-        app_hash (Union[Unset, str]):
-        purpose (Union[Unset, AppAttestationPurpose]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -205,11 +165,8 @@ async def asyncio_detailed(
     """
 
     kwargs = _get_kwargs(
-        app_path=app_path,
+        app=app,
         nonce=nonce,
-        app_query=app_query,
-        app_hash=app_hash,
-        purpose=purpose,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -218,27 +175,21 @@ async def asyncio_detailed(
 
 
 async def asyncio(
-    app_path: str,
+    app: str,
     *,
     client: AuthenticatedClient,
     nonce: str,
-    app_query: Union[Unset, str] = UNSET,
-    app_hash: Union[Unset, str] = UNSET,
-    purpose: Union[Unset, AppAttestationPurpose] = UNSET,
 ) -> Optional[Union[AppAttestationResponse200, Error]]:
     """Every replica's receipt-key attestation
 
-     Each replica's `/attestation?purpose=receipts` for `nonce`. It reads the query `/attestation` does,
-    but only `nonce`: `app`, `appHash` and `purpose` are ignored here.
+     Each replica's `/attestation?purpose=receipts` for `nonce` (32 bytes, hex), or why it could not be
+    had (`error`). Any other query parameter is ignored.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 
     Args:
-        app_path (str):
+        app (str):
         nonce (str):
-        app_query (Union[Unset, str]):
-        app_hash (Union[Unset, str]):
-        purpose (Union[Unset, AppAttestationPurpose]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -250,11 +201,8 @@ async def asyncio(
 
     return (
         await asyncio_detailed(
-            app_path=app_path,
+            app=app,
             client=client,
             nonce=nonce,
-            app_query=app_query,
-            app_hash=app_hash,
-            purpose=purpose,
         )
     ).parsed

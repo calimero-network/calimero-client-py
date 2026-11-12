@@ -21,7 +21,8 @@ class AppAttestationResponse200ReplicasItemType0:
     Attributes:
         node (int):
         attestation (AttestationDoc): A node's attestation: the TDX quote (base64), the key it binds (hex) and what it
-            was asked for.
+            was asked for. `receiptKey` and `governance` with `purpose=receipts`, `kms` with `purpose=kms` on a node with a
+            KMS record, `clusterIdentity` with `purpose=orchestrator`; `jobKey` only from a job node, never from this API.
     """
 
     node: int

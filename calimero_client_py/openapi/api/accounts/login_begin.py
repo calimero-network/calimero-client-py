@@ -70,7 +70,8 @@ def sync_detailed(
     """Start a sign-in
 
      A WebAuthn challenge for any passkey of the cluster. `origin` is an app frontend's registered
-    origin, whose rp-id the ceremony then uses.
+    origin, whose rp-id the ceremony then uses. `options` are the WebAuthn options to hand to the
+    browser as they are: free-form here, their shape is WebAuthn's.
 
     **Who:** anyone.
 
@@ -104,7 +105,8 @@ def sync(
     """Start a sign-in
 
      A WebAuthn challenge for any passkey of the cluster. `origin` is an app frontend's registered
-    origin, whose rp-id the ceremony then uses.
+    origin, whose rp-id the ceremony then uses. `options` are the WebAuthn options to hand to the
+    browser as they are: free-form here, their shape is WebAuthn's.
 
     **Who:** anyone.
 
@@ -133,7 +135,8 @@ async def asyncio_detailed(
     """Start a sign-in
 
      A WebAuthn challenge for any passkey of the cluster. `origin` is an app frontend's registered
-    origin, whose rp-id the ceremony then uses.
+    origin, whose rp-id the ceremony then uses. `options` are the WebAuthn options to hand to the
+    browser as they are: free-form here, their shape is WebAuthn's.
 
     **Who:** anyone.
 
@@ -165,7 +168,8 @@ async def asyncio(
     """Start a sign-in
 
      A WebAuthn challenge for any passkey of the cluster. `origin` is an app frontend's registered
-    origin, whose rp-id the ceremony then uses.
+    origin, whose rp-id the ceremony then uses. `options` are the WebAuthn options to hand to the
+    browser as they are: free-form here, their shape is WebAuthn's.
 
     **Who:** anyone.
 

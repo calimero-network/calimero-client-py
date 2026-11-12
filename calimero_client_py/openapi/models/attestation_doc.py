@@ -11,6 +11,8 @@ from typing import cast
 from typing import Union
 
 if TYPE_CHECKING:
+    from ..models.kms_keys import KmsKeys
+    from ..models.governance import Governance
     from ..models.release import Release
 
 
@@ -19,21 +21,27 @@ T = TypeVar("T", bound="AttestationDoc")
 
 @_attrs_define
 class AttestationDoc:
-    """A node's attestation: the TDX quote (base64), the key it binds (hex) and what it was asked for.
+    """A node's attestation: the TDX quote (base64), the key it binds (hex) and what it was asked for. `receiptKey` and
+    `governance` with `purpose=receipts`, `kms` with `purpose=kms` on a node with a KMS record, `clusterIdentity` with
+    `purpose=orchestrator`; `jobKey` only from a job node, never from this API.
 
-    Attributes:
-        quote (str):
-        transport_key (str):
-        app_hash (str):
-        nonce (str):
-        release (Release): A mero-tee release.
-        cluster (str):
-        node (int):
-        mock (bool):
-        receipt_key (Union[Unset, str]):
-        governance (Union[Unset, Any]):
-        kms (Union[Unset, Any]):
-        cluster_identity (Union[Unset, str]):
+        Attributes:
+            quote (str):
+            transport_key (str):
+            app_hash (str):
+            nonce (str):
+            release (Release): A mero-tee release.
+            cluster (str):
+            node (int):
+            mock (bool):
+            receipt_key (Union[Unset, str]):
+            governance (Union[Unset, Governance]): Who decides what on this cluster: release approvals, app upgrades and
+                outbound approvals (`owner`: each app's owner; `operator`: the operator), and, left out at their defaults,
+                `deployments` (`open`), `deployers` (`operator`) and `signUp` (`open`).
+            kms (Union[Unset, KmsKeys]): What a node verified of the mero-kms replicas it took its keys from: the storage
+                key `merod` fetched, and the data disk's key the boot script fetched; each absent without a record.
+            job_key (Union[Unset, str]):
+            cluster_identity (Union[Unset, str]):
     """
 
     quote: str
@@ -45,12 +53,15 @@ class AttestationDoc:
     node: int
     mock: bool
     receipt_key: Union[Unset, str] = UNSET
-    governance: Union[Unset, Any] = UNSET
-    kms: Union[Unset, Any] = UNSET
+    governance: Union[Unset, "Governance"] = UNSET
+    kms: Union[Unset, "KmsKeys"] = UNSET
+    job_key: Union[Unset, str] = UNSET
     cluster_identity: Union[Unset, str] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.kms_keys import KmsKeys
+        from ..models.governance import Governance
         from ..models.release import Release
 
         quote = self.quote
@@ -71,9 +82,15 @@ class AttestationDoc:
 
         receipt_key = self.receipt_key
 
-        governance = self.governance
+        governance: Union[Unset, dict[str, Any]] = UNSET
+        if not isinstance(self.governance, Unset):
+            governance = self.governance.to_dict()
 
-        kms = self.kms
+        kms: Union[Unset, dict[str, Any]] = UNSET
+        if not isinstance(self.kms, Unset):
+            kms = self.kms.to_dict()
+
+        job_key = self.job_key
 
         cluster_identity = self.cluster_identity
 
@@ -97,6 +114,8 @@ class AttestationDoc:
             field_dict["governance"] = governance
         if kms is not UNSET:
             field_dict["kms"] = kms
+        if job_key is not UNSET:
+            field_dict["jobKey"] = job_key
         if cluster_identity is not UNSET:
             field_dict["clusterIdentity"] = cluster_identity
 
@@ -104,6 +123,8 @@ class AttestationDoc:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.kms_keys import KmsKeys
+        from ..models.governance import Governance
         from ..models.release import Release
 
         d = dict(src_dict)
@@ -125,9 +146,21 @@ class AttestationDoc:
 
         receipt_key = d.pop("receiptKey", UNSET)
 
-        governance = d.pop("governance", UNSET)
+        _governance = d.pop("governance", UNSET)
+        governance: Union[Unset, Governance]
+        if isinstance(_governance, Unset):
+            governance = UNSET
+        else:
+            governance = Governance.from_dict(_governance)
 
-        kms = d.pop("kms", UNSET)
+        _kms = d.pop("kms", UNSET)
+        kms: Union[Unset, KmsKeys]
+        if isinstance(_kms, Unset):
+            kms = UNSET
+        else:
+            kms = KmsKeys.from_dict(_kms)
+
+        job_key = d.pop("jobKey", UNSET)
 
         cluster_identity = d.pop("clusterIdentity", UNSET)
 
@@ -143,6 +176,7 @@ class AttestationDoc:
             receipt_key=receipt_key,
             governance=governance,
             kms=kms,
+            job_key=job_key,
             cluster_identity=cluster_identity,
         )
 

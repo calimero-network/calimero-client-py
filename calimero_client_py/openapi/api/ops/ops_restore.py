@@ -100,7 +100,8 @@ def sync_detailed(
 
      Signed over `<app> / __restore_app / { backup, sha256 }`. The receiving node holds the backup
     (`backup`, else the newest, in `{backup-dir}/{app}/`) and seeds the restore; answers once every
-    replica holds the restored state.
+    replica holds the restored state: the rows restored, the backup (`format` 0, with `merod` and
+    `release` `null`, for one written before manifests) and the app group's Raft status.
 
     **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first;
     send it again with `operatorProof`, the operator key's signature over `details.message` and its
@@ -140,7 +141,8 @@ def sync(
 
      Signed over `<app> / __restore_app / { backup, sha256 }`. The receiving node holds the backup
     (`backup`, else the newest, in `{backup-dir}/{app}/`) and seeds the restore; answers once every
-    replica holds the restored state.
+    replica holds the restored state: the rows restored, the backup (`format` 0, with `merod` and
+    `release` `null`, for one written before manifests) and the app group's Raft status.
 
     **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first;
     send it again with `operatorProof`, the operator key's signature over `details.message` and its
@@ -175,7 +177,8 @@ async def asyncio_detailed(
 
      Signed over `<app> / __restore_app / { backup, sha256 }`. The receiving node holds the backup
     (`backup`, else the newest, in `{backup-dir}/{app}/`) and seeds the restore; answers once every
-    replica holds the restored state.
+    replica holds the restored state: the rows restored, the backup (`format` 0, with `merod` and
+    `release` `null`, for one written before manifests) and the app group's Raft status.
 
     **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first;
     send it again with `operatorProof`, the operator key's signature over `details.message` and its
@@ -213,7 +216,8 @@ async def asyncio(
 
      Signed over `<app> / __restore_app / { backup, sha256 }`. The receiving node holds the backup
     (`backup`, else the newest, in `{backup-dir}/{app}/`) and seeds the restore; answers once every
-    replica holds the restored state.
+    replica holds the restored state: the rows restored, the backup (`format` 0, with `merod` and
+    `release` `null`, for one written before manifests) and the app group's Raft status.
 
     **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first;
     send it again with `operatorProof`, the operator key's signature over `details.message` and its

@@ -14,7 +14,7 @@ class AppAbiResponse200:
     """
     Attributes:
         bundle (str):
-        abi (Any):
+        abi (Any): Free-form JSON: its shape is not this API's (see the description around it for whose it is).
     """
 
     bundle: str

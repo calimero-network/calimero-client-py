@@ -78,7 +78,7 @@ def sync_detailed(
 
      Into `--backup-dir`. With `all=true`, every group this node holds, leader or not: what a node of a
     cluster that lost a majority still has, to found the cluster again from (`merod --bootstrap
-    --restore-from`).
+    --restore-from`). `written`: how many snapshots it wrote.
 
     **Who:** the ops token.
 
@@ -113,7 +113,7 @@ def sync(
 
      Into `--backup-dir`. With `all=true`, every group this node holds, leader or not: what a node of a
     cluster that lost a majority still has, to found the cluster again from (`merod --bootstrap
-    --restore-from`).
+    --restore-from`). `written`: how many snapshots it wrote.
 
     **Who:** the ops token.
 
@@ -143,7 +143,7 @@ async def asyncio_detailed(
 
      Into `--backup-dir`. With `all=true`, every group this node holds, leader or not: what a node of a
     cluster that lost a majority still has, to found the cluster again from (`merod --bootstrap
-    --restore-from`).
+    --restore-from`). `written`: how many snapshots it wrote.
 
     **Who:** the ops token.
 
@@ -176,7 +176,7 @@ async def asyncio(
 
      Into `--backup-dir`. With `all=true`, every group this node holds, leader or not: what a node of a
     cluster that lost a majority still has, to found the cluster again from (`merod --bootstrap
-    --restore-from`).
+    --restore-from`). `written`: how many snapshots it wrote.
 
     **Who:** the ops token.
 

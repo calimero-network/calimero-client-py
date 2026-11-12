@@ -129,7 +129,8 @@ def sync_detailed(
      The body of `/intents` or `/views` without `method`, which the path names, as the app's OpenAPI
     document lists it: a view the running bundle's ABI declares (without `confirm`) is answered as
     `/views`, anything else as `/intents`, with that route's gate, step-up and limits. Retry-safe as a
-    view always, as a call with `idempotencyKey`.
+    view always, as a call with `idempotencyKey`. `args`, `result` and each event's `data` are the app's
+    own JSON, free-form here: the app's ABI (`GET /apps/{app}/abi`, or its OpenAPI document) types them.
 
     **Who:** whoever the app's access admits (a public app: anyone). **Step-up:** when the method is a
     `confirm` method of the app's ABI, answers `412 CONFIRM_REQUIRED` first; send the same request again
@@ -173,7 +174,8 @@ def sync(
      The body of `/intents` or `/views` without `method`, which the path names, as the app's OpenAPI
     document lists it: a view the running bundle's ABI declares (without `confirm`) is answered as
     `/views`, anything else as `/intents`, with that route's gate, step-up and limits. Retry-safe as a
-    view always, as a call with `idempotencyKey`.
+    view always, as a call with `idempotencyKey`. `args`, `result` and each event's `data` are the app's
+    own JSON, free-form here: the app's ABI (`GET /apps/{app}/abi`, or its OpenAPI document) types them.
 
     **Who:** whoever the app's access admits (a public app: anyone). **Step-up:** when the method is a
     `confirm` method of the app's ABI, answers `412 CONFIRM_REQUIRED` first; send the same request again
@@ -212,7 +214,8 @@ async def asyncio_detailed(
      The body of `/intents` or `/views` without `method`, which the path names, as the app's OpenAPI
     document lists it: a view the running bundle's ABI declares (without `confirm`) is answered as
     `/views`, anything else as `/intents`, with that route's gate, step-up and limits. Retry-safe as a
-    view always, as a call with `idempotencyKey`.
+    view always, as a call with `idempotencyKey`. `args`, `result` and each event's `data` are the app's
+    own JSON, free-form here: the app's ABI (`GET /apps/{app}/abi`, or its OpenAPI document) types them.
 
     **Who:** whoever the app's access admits (a public app: anyone). **Step-up:** when the method is a
     `confirm` method of the app's ABI, answers `412 CONFIRM_REQUIRED` first; send the same request again
@@ -254,7 +257,8 @@ async def asyncio(
      The body of `/intents` or `/views` without `method`, which the path names, as the app's OpenAPI
     document lists it: a view the running bundle's ABI declares (without `confirm`) is answered as
     `/views`, anything else as `/intents`, with that route's gate, step-up and limits. Retry-safe as a
-    view always, as a call with `idempotencyKey`.
+    view always, as a call with `idempotencyKey`. `args`, `result` and each event's `data` are the app's
+    own JSON, free-form here: the app's ABI (`GET /apps/{app}/abi`, or its OpenAPI document) types them.
 
     **Who:** whoever the app's access admits (a public app: anyone). **Step-up:** when the method is a
     `confirm` method of the app's ABI, answers `412 CONFIRM_REQUIRED` first; send the same request again

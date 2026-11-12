@@ -13,25 +13,20 @@ T = TypeVar("T", bound="OrgPublisherResponse200")
 class OrgPublisherResponse200:
     """
     Attributes:
-        signer (str):
-        approval (Any):
+        generation (int):
     """
 
-    signer: str
-    approval: Any
+    generation: int
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        signer = self.signer
-
-        approval = self.approval
+        generation = self.generation
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "signer": signer,
-                "approval": approval,
+                "generation": generation,
             }
         )
 
@@ -40,13 +35,10 @@ class OrgPublisherResponse200:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        signer = d.pop("signer")
-
-        approval = d.pop("approval")
+        generation = d.pop("generation")
 
         org_publisher_response_200 = cls(
-            signer=signer,
-            approval=approval,
+            generation=generation,
         )
 
         org_publisher_response_200.additional_properties = d

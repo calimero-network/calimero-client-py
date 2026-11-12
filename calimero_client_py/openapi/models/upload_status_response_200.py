@@ -17,6 +17,7 @@ class UploadStatusResponse200:
         part_bytes (int):
         parts (int):
         expires_at (int):
+        size (int):
         next_ (int):
     """
 
@@ -24,6 +25,7 @@ class UploadStatusResponse200:
     part_bytes: int
     parts: int
     expires_at: int
+    size: int
     next_: int
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -36,6 +38,8 @@ class UploadStatusResponse200:
 
         expires_at = self.expires_at
 
+        size = self.size
+
         next_ = self.next_
 
         field_dict: dict[str, Any] = {}
@@ -46,6 +50,7 @@ class UploadStatusResponse200:
                 "partBytes": part_bytes,
                 "parts": parts,
                 "expiresAt": expires_at,
+                "size": size,
                 "next": next_,
             }
         )
@@ -63,6 +68,8 @@ class UploadStatusResponse200:
 
         expires_at = d.pop("expiresAt")
 
+        size = d.pop("size")
+
         next_ = d.pop("next")
 
         upload_status_response_200 = cls(
@@ -70,6 +77,7 @@ class UploadStatusResponse200:
             part_bytes=part_bytes,
             parts=parts,
             expires_at=expires_at,
+            size=size,
             next_=next_,
         )
 

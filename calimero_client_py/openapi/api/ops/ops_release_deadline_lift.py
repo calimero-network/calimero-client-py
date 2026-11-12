@@ -7,9 +7,9 @@ from ...client import AuthenticatedClient, Client
 from ...types import Response, UNSET
 from ... import errors
 
+from ...models.deadlines import Deadlines
 from ...models.error import Error
 from ...models.proof_only import ProofOnly
-from ...models.written import Written
 from typing import cast
 
 
@@ -37,9 +37,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[Error, Written]]:
+) -> Optional[Union[Deadlines, Error]]:
     if response.status_code == 200:
-        response_200 = Written.from_dict(response.json())
+        response_200 = Deadlines.from_dict(response.json())
 
         return response_200
 
@@ -66,7 +66,7 @@ def _parse_response(
 
 def _build_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[Error, Written]]:
+) -> Response[Union[Deadlines, Error]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -80,7 +80,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient,
     body: ProofOnly,
-) -> Response[Union[Error, Written]]:
+) -> Response[Union[Deadlines, Error]]:
     """Lift a release deadline
 
      **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first;
@@ -97,7 +97,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Error, Written]]
+        Response[Union[Deadlines, Error]]
     """
 
     kwargs = _get_kwargs(
@@ -117,7 +117,7 @@ def sync(
     *,
     client: AuthenticatedClient,
     body: ProofOnly,
-) -> Optional[Union[Error, Written]]:
+) -> Optional[Union[Deadlines, Error]]:
     """Lift a release deadline
 
      **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first;
@@ -134,7 +134,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Error, Written]
+        Union[Deadlines, Error]
     """
 
     return sync_detailed(
@@ -149,7 +149,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient,
     body: ProofOnly,
-) -> Response[Union[Error, Written]]:
+) -> Response[Union[Deadlines, Error]]:
     """Lift a release deadline
 
      **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first;
@@ -166,7 +166,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Error, Written]]
+        Response[Union[Deadlines, Error]]
     """
 
     kwargs = _get_kwargs(
@@ -184,7 +184,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient,
     body: ProofOnly,
-) -> Optional[Union[Error, Written]]:
+) -> Optional[Union[Deadlines, Error]]:
     """Lift a release deadline
 
      **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first;
@@ -201,7 +201,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Error, Written]
+        Union[Deadlines, Error]
     """
 
     return (

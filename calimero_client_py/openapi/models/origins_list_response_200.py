@@ -9,9 +9,7 @@ from ..types import UNSET, Unset
 from typing import cast
 
 if TYPE_CHECKING:
-    from ..models.origins_list_response_200_origins_item import (
-        OriginsListResponse200OriginsItem,
-    )
+    from ..models.package_origin import PackageOrigin
 
 
 T = TypeVar("T", bound="OriginsListResponse200")
@@ -22,17 +20,15 @@ class OriginsListResponse200:
     """
     Attributes:
         package (str):
-        origins (list['OriginsListResponse200OriginsItem']):
+        origins (list['PackageOrigin']):
     """
 
     package: str
-    origins: list["OriginsListResponse200OriginsItem"]
+    origins: list["PackageOrigin"]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.origins_list_response_200_origins_item import (
-            OriginsListResponse200OriginsItem,
-        )
+        from ..models.package_origin import PackageOrigin
 
         package = self.package
 
@@ -54,9 +50,7 @@ class OriginsListResponse200:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.origins_list_response_200_origins_item import (
-            OriginsListResponse200OriginsItem,
-        )
+        from ..models.package_origin import PackageOrigin
 
         d = dict(src_dict)
         package = d.pop("package")
@@ -64,9 +58,7 @@ class OriginsListResponse200:
         origins = []
         _origins = d.pop("origins")
         for origins_item_data in _origins:
-            origins_item = OriginsListResponse200OriginsItem.from_dict(
-                origins_item_data
-            )
+            origins_item = PackageOrigin.from_dict(origins_item_data)
 
             origins.append(origins_item)
 

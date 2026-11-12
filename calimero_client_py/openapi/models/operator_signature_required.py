@@ -11,20 +11,21 @@ T = TypeVar("T", bound="OperatorSignatureRequired")
 
 @_attrs_define
 class OperatorSignatureRequired:
-    """`details` of a `428 OPERATOR_SIGNATURE_REQUIRED`: the statement to sign and the exact bytes (`message`, base64).
+    """`details` of a `428 OPERATOR_SIGNATURE_REQUIRED`: the statement to sign (`args` is the JSON text of its arguments,
+    as signed) and the exact bytes to sign (`message`, standard base64).
 
-    Attributes:
-        subject (str):
-        method (str):
-        args (Any):
-        nonce (str):
-        cluster (str):
-        message (str):
+        Attributes:
+            subject (str):
+            method (str):
+            args (str):
+            nonce (str):
+            cluster (str):
+            message (str):
     """
 
     subject: str
     method: str
-    args: Any
+    args: str
     nonce: str
     cluster: str
     message: str

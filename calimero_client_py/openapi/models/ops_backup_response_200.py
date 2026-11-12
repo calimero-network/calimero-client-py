@@ -13,10 +13,10 @@ T = TypeVar("T", bound="OpsBackupResponse200")
 class OpsBackupResponse200:
     """
     Attributes:
-        written (Any):
+        written (int):
     """
 
-    written: Any
+    written: int
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

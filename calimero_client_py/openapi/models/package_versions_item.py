@@ -25,7 +25,7 @@ class PackageVersionsItem:
         size (int):
         source (PackageVersionsItemSource):
         services (PackageVersionsItemServices):
-        metadata (Any):
+        metadata (Any): Free-form JSON: its shape is not this API's (see the description around it for whose it is).
         outbound (list[str]):
         installed_by (str):
         installed_at (int):

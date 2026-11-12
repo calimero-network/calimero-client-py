@@ -22,7 +22,7 @@ codes the document lists for the method beyond the ones every call can get
 (`UNAUTHENTICATED`, `FORBIDDEN`, `NOT_FOUND`, ...): see
 [errors](/reference/errors/).
 
-Generated from core `fb0ed2e0c`.
+Generated from core `92ac297a1`.
 
 ## `client.apps`
 
@@ -30,14 +30,14 @@ Generated from core `fb0ed2e0c`.
 | --- | --- | --- |
 | `abi(app)` | `GET /apps/{app}/abi` | An app's ABI |
 | `access(app, access)` | `POST /apps/{app}/access` | Set who may reach an app |
-| `attestation(app_path, nonce, app_query=…, app_hash=…, purpose=…)` | `GET /apps/{app}/attestation` | Every replica's receipt-key attestation |
+| `attestation(app, nonce)` | `GET /apps/{app}/attestation` | Every replica's receipt-key attestation |
 | `blob_delete(app, id)` | `DELETE /apps/{app}/blobs/{id}` | Forget a blob |
 | `blob_download(app, id, grant=…)` | `GET /apps/{app}/blobs/{id}` | Download a blob |
 | `blob_info(app, id)` | `GET /apps/{app}/blobs/{id}/info` | A blob's size. *Refusals:* `409 NOT_SUPPORTED` |
 | `blob_list(app)` | `GET /apps/{app}/blobs` | List an app's blobs |
 | `blob_revoke(app, id)` | `POST /apps/{app}/blobs/{id}/revoke` | Invalidate a blob's grants |
 | `blob_upload(app, sealed=…, body, content_type='application/octet-stream')` | `POST /apps/{app}/blobs` | Upload a blob. *Refusals:* `400 USE_FILES_API`, `429 QUOTA_EXCEEDED` |
-| `call(app, method, args=…, idempotency_key=…, confirm=None)` | `POST /apps/{app}/intents` | Call a method. **passkey** (the method is a `confirm` method of the app's ABI). *Refusals:* `409 RELEASE_DEADLINE`, `413 ARGS_TOO_LARGE`, `422 APP_ERROR`, `422 TRAP`, `429 QUOTA_EXCEEDED` |
+| `call(app, method, args=…, idempotency_key=…, confirm=None)` | `POST /apps/{app}/intents` | Call a method. **passkey** (the method is a `confirm` method of the app's ABI). *Refusals:* `409 RELEASE_DEADLINE`, `413 ARGS_TOO_LARGE`, `422 APP_ERROR`, `422 TRAP`, `429 QUOTA_EXCEEDED`, `503 TIMEOUT` |
 | `create(name=…, bundle=…, package=…, version=…, service=…, org=…, access=…, init_args=…, metadata=…, deployment=…)` | `POST /apps` | Create an app instance. *Refusals:* `400 AMBIGUOUS_COMPUTE`, `400 NOT_OFFERED`, `400 NO_SUCH_SERVICE`, `400 VERSION_REQUIRED`, `409 RELEASE_DEADLINE`, `409 RUNTIME_TOO_OLD`, `422 INIT_FAILED`, `429 QUOTA_EXCEEDED` |
 | `delete(app)` | `DELETE /apps/{app}` | Delete an app |
 | `file_info(app, id)` | `GET /apps/{app}/files/{id}` | One sealed file |
@@ -46,23 +46,23 @@ Generated from core `fb0ed2e0c`.
 | `get(app)` | `GET /apps/{app}` | One app |
 | `list(package=…, bundle=…)` | `GET /apps` | Apps the caller reaches |
 | `metadata(app, metadata)` | `POST /apps/{app}/metadata` | Set an app's metadata |
-| `method(app, method, args=…, idempotency_key=…, consistency=…, min_index=…, confirm=None)` | `POST /apps/{app}/methods/{method}` | Call a method by its path. **passkey** (the method is a `confirm` method of the app's ABI). *Refusals:* `400 RESERVED_METHOD`, `409 RELEASE_DEADLINE`, `413 ARGS_TOO_LARGE`, `422 APP_ERROR`, `422 TRAP`, `429 QUOTA_EXCEEDED`, `503 NOT_CAUGHT_UP` |
+| `method(app, method, args=…, idempotency_key=…, consistency=…, min_index=…, confirm=None)` | `POST /apps/{app}/methods/{method}` | Call a method by its path. **passkey** (the method is a `confirm` method of the app's ABI). *Refusals:* `400 RESERVED_METHOD`, `409 RELEASE_DEADLINE`, `413 ARGS_TOO_LARGE`, `422 APP_ERROR`, `422 TRAP`, `429 QUOTA_EXCEEDED`, `503 NOT_CAUGHT_UP`, `503 TIMEOUT` |
 | `move(app, to_org, bring_members=…, confirm=None)` | `POST /apps/{app}/move` | Move an app to another organization. **passkey**. *Refusals:* `409 FEATURE_NOT_ACTIVE` |
 | `openapi(app)` | `GET /apps/{app}/openapi.json` | An app's OpenAPI document. *Refusals:* `410 UNSUPPORTED_ENGINE`, `422 BAD_ABI` |
 | `presence_get(app)` | `GET /apps/{app}/presence` | Who is present |
 | `presence_publish(app, seq, state=…)` | `POST /apps/{app}/presence` | Publish presence. *Refusals:* `400 BAD_STATE` |
 | `run(app, run)` | `GET /apps/{app}/runs/{run}` | One compute run |
-| `runs(app, limit=…, before=…)` | `GET /apps/{app}/runs` | An app's compute runs. *Refusals:* `400 BAD_LIMIT` |
+| `runs(app, limit=…, before=…)` | `GET /apps/{app}/runs` | An app's compute runs. *Refusals:* `400 BAD_CURSOR`, `400 BAD_LIMIT` |
 | `storage(app)` | `GET /apps/{app}/storage` | What an app stores |
 | `transfer(app, to, confirm=None)` | `POST /apps/{app}/transfer` | Hand an app to another account. **passkey** |
 | `upgrade(app, bundle=…, package=…, version=…, service=…, migrate=…, confirm=None)` | `POST /apps/{app}/upgrade` | Upgrade an app instance. **passkey**. *Refusals:* `400 AMBIGUOUS_COMPUTE`, `400 BAD_BUNDLE`, `400 VERSION_REQUIRED`, `409 CONFLICT`, `409 RELEASE_DEADLINE`, `409 RUNTIME_TOO_OLD`, `422 UPGRADE_FAILED` |
 | `upload_abort(app, upload)` | `DELETE /apps/{app}/files/uploads/{upload}` | Abort an upload |
 | `upload_begin(app, size)` | `POST /apps/{app}/files/uploads` | Begin a file upload. *Refusals:* `429 QUOTA_EXCEEDED` |
-| `upload_complete(app, upload)` | `POST /apps/{app}/files/uploads/{upload}/complete` | Commit an upload |
-| `upload_part(app, upload, k, body)` | `PUT /apps/{app}/files/uploads/{upload}/parts/{k}` | Send one part. *Refusals:* `400 BAD_PART` |
+| `upload_complete(app, upload)` | `POST /apps/{app}/files/uploads/{upload}/complete` | Commit an upload. *Refusals:* `409 UPLOAD_INCOMPLETE` |
+| `upload_part(app, upload, k, body)` | `PUT /apps/{app}/files/uploads/{upload}/parts/{k}` | Send one part. *Refusals:* `400 BAD_PART`, `409 PART_CONFLICT`, `409 PART_OUT_OF_ORDER`, `503 FILES_UNAVAILABLE` |
 | `upload_status(app, upload)` | `GET /apps/{app}/files/uploads/{upload}` | Where an upload is |
 | `usage(app)` | `GET /apps/{app}/usage` | An app's runs per day |
-| `view(app, method, args=…, consistency=…, min_index=…)` | `POST /apps/{app}/views` | Read with a view method. *Refusals:* `422 APP_ERROR`, `422 TRAP`, `503 NOT_CAUGHT_UP` |
+| `view(app, method, args=…, consistency=…, min_index=…)` | `POST /apps/{app}/views` | Read with a view method. *Refusals:* `422 APP_ERROR`, `422 TRAP`, `503 NOT_CAUGHT_UP`, `503 TIMEOUT` |
 | `xcalls(app)` | `GET /apps/{app}/xcalls` | An app's cross-app calls |
 
 ## `client.auth`
@@ -146,16 +146,16 @@ Generated from core `fb0ed2e0c`.
 | `org_upgrade(org, package, version, team=…, cascade=…, migrate=…, operator_proof=None)` | `POST /ops/orgs/{org}/upgrade` | An operator's upgrade run. **operator** |
 | `orgs(after=…, limit=…)` | `GET /ops/orgs` | Each organization's approved releases |
 | `outbound(package, prefixes=…, replace=…, operator_proof=None)` | `POST /ops/outbound` | Approve outbound prefixes. **operator** |
-| `package_install(package, version)` | `POST /ops/packages/install` | Install a release from the registry as the operator |
+| `package_install(package, version)` | `POST /ops/packages/install` | Install a release from the registry as the operator. *Refusals:* `400 BAD_BUNDLE`, `400 COMPUTE_ABI_MISMATCH`, `400 UNSUPPORTED_BUNDLE` |
 | `package_list()` | `GET /ops/packages` | The releases the operator installed |
 | `package_uninstall(package)` | `DELETE /ops/packages/{package}` | Uninstall what the operator installed |
-| `package_upload(body)` | `POST /ops/packages` | Install an uploaded release as the operator. *Refusals:* `400 BAD_BUNDLE`, `400 BAD_PACKAGE` |
+| `package_upload(body)` | `POST /ops/packages` | Install an uploaded release as the operator. *Refusals:* `400 BAD_BUNDLE`, `400 BAD_PACKAGE`, `400 COMPUTE_ABI_MISMATCH`, `400 UNSUPPORTED_BUNDLE` |
 | `package_version_uninstall(package, version)` | `DELETE /ops/packages/{package}/{version}` | Uninstall one operator-installed version |
 | `placement()` | `GET /ops/placement` | Where every app's replicas are |
 | `pools_get()` | `GET /ops/pools` | Compute pools |
 | `pools_set(pools, operator_proof=None)` | `POST /ops/pools` | Set the compute pools. **operator**. *Refusals:* `409 POOL_IN_USE`, `409 UPGRADE_PENDING` |
 | `quotas_get()` | `GET /ops/quotas` | The quotas |
-| `quotas_set(org=…, operator_proof=None, **more)` | `POST /ops/quotas` | Change quotas. **operator**. *Refusals:* `400 UNKNOWN_QUOTA`, `409 UPGRADE_PENDING` |
+| `quotas_set(org=…, orgs=…, max_apps_per_account=…, max_bundle_bytes_per_account=…, max_api_keys_per_account=…, max_orgs_per_account=…, max_accounts=…, max_file_bytes_per_org=…, max_concurrent_runs_per_org=…, compute_fuel_per_org=…, max_fuel_per_developer_per_day=…, max_concurrent_runs=…, compute_fuel=…, max_file_bytes=…, operator_proof=None)` | `POST /ops/quotas` | Change quotas. **operator**. *Refusals:* `400 UNKNOWN_QUOTA`, `409 UPGRADE_PENDING` |
 | `receipt_key(id)` | `GET /ops/nodes/{id}/receipt-key` | A node's receipt key |
 | `register_node(id, addr, zone=…, role=…, pool=…, operator_proof=None)` | `POST /ops/nodes` | Register a node. **operator**. *Refusals:* `400 BAD_ADDRESS`, `400 BAD_POOL`, `400 NODE_HOLDS_CLUSTER`, `400 POOL_FOR_JOB_NODES`, `409 ADDRESS_TAKEN` |
 | `release(version, approved=…, operator_proof=None)` | `POST /ops/releases` | Approve a mero-tee release for every app. **operator** |
@@ -222,13 +222,13 @@ Generated from core `fb0ed2e0c`.
 | --- | --- | --- |
 | `bundle_put(body)` | `POST /bundles` | Upload a raw component. *Refusals:* `400 BAD_BUNDLE`, `400 UNSUPPORTED_BUNDLE`, `429 QUOTA_EXCEEDED` |
 | `get(package)` | `GET /packages/{package}` | One package |
-| `install(package, version)` | `POST /packages/install` | Install a release from the registry. *Refusals:* `400 BAD_PACKAGE`, `400 NO_REGISTRY`, `403 DEPLOY_NOT_GRANTED` |
+| `install(package, version)` | `POST /packages/install` | Install a release from the registry. *Refusals:* `400 BAD_BUNDLE`, `400 BAD_PACKAGE`, `400 COMPUTE_ABI_MISMATCH`, `400 NO_REGISTRY`, `400 UNSUPPORTED_BUNDLE`, `403 DEPLOY_NOT_GRANTED` |
 | `list()` | `GET /packages` | Installed packages |
 | `origins_add(package, origin, rp_id=…, served=…, confirm=None)` | `POST /package-origins/{package}` | Register a frontend origin. **passkey**. *Refusals:* `400 BAD_RP_ID`, `429 QUOTA_EXCEEDED` |
 | `origins_list(package)` | `GET /package-origins/{package}` | A package's frontend origins |
 | `origins_remove(package, origin, confirm=None)` | `DELETE /package-origins/{package}` | Remove a frontend origin. **passkey** |
 | `uninstall(package)` | `DELETE /packages/{package}` | Uninstall a package |
-| `upload(body)` | `POST /packages` | Upload a signed release. *Refusals:* `400 BAD_BUNDLE`, `400 BAD_PACKAGE`, `403 DEPLOY_NOT_GRANTED`, `403 UPLOADS_DISABLED` |
+| `upload(body)` | `POST /packages` | Upload a signed release. *Refusals:* `400 BAD_BUNDLE`, `400 BAD_PACKAGE`, `400 COMPUTE_ABI_MISMATCH`, `400 UNSUPPORTED_BUNDLE`, `403 DEPLOY_NOT_GRANTED`, `403 UPLOADS_DISABLED` |
 | `version_uninstall(package, version)` | `DELETE /packages/{package}/{version}` | Uninstall one version |
 
 ## `client.public`

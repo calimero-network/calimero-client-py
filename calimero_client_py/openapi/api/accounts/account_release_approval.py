@@ -8,8 +8,8 @@ from ...types import Response, UNSET
 from ... import errors
 
 from ...models.account_release_approval_body import AccountReleaseApprovalBody
+from ...models.approved_releases import ApprovedReleases
 from ...models.error import Error
-from ...models.written import Written
 from typing import cast
 
 
@@ -34,9 +34,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[Error, Written]]:
+) -> Optional[Union[ApprovedReleases, Error]]:
     if response.status_code == 200:
-        response_200 = Written.from_dict(response.json())
+        response_200 = ApprovedReleases.from_dict(response.json())
 
         return response_200
 
@@ -73,7 +73,7 @@ def _parse_response(
 
 def _build_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[Error, Written]]:
+) -> Response[Union[ApprovedReleases, Error]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -86,7 +86,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient,
     body: AccountReleaseApprovalBody,
-) -> Response[Union[Error, Written]]:
+) -> Response[Union[ApprovedReleases, Error]]:
     """Approve a mero-tee release for the account's apps
 
      Where the owner holds release approvals; `412` first.
@@ -103,7 +103,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Error, Written]]
+        Response[Union[ApprovedReleases, Error]]
     """
 
     kwargs = _get_kwargs(
@@ -121,7 +121,7 @@ def sync(
     *,
     client: AuthenticatedClient,
     body: AccountReleaseApprovalBody,
-) -> Optional[Union[Error, Written]]:
+) -> Optional[Union[ApprovedReleases, Error]]:
     """Approve a mero-tee release for the account's apps
 
      Where the owner holds release approvals; `412` first.
@@ -138,7 +138,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Error, Written]
+        Union[ApprovedReleases, Error]
     """
 
     return sync_detailed(
@@ -151,7 +151,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient,
     body: AccountReleaseApprovalBody,
-) -> Response[Union[Error, Written]]:
+) -> Response[Union[ApprovedReleases, Error]]:
     """Approve a mero-tee release for the account's apps
 
      Where the owner holds release approvals; `412` first.
@@ -168,7 +168,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Error, Written]]
+        Response[Union[ApprovedReleases, Error]]
     """
 
     kwargs = _get_kwargs(
@@ -184,7 +184,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient,
     body: AccountReleaseApprovalBody,
-) -> Optional[Union[Error, Written]]:
+) -> Optional[Union[ApprovedReleases, Error]]:
     """Approve a mero-tee release for the account's apps
 
      Where the owner holds release approvals; `412` first.
@@ -201,7 +201,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Error, Written]
+        Union[ApprovedReleases, Error]
     """
 
     return (

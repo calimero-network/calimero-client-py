@@ -30,7 +30,8 @@ class ReportUpgrade:
             ok (bool):
             actor_kind (ReportUpgradeActorKind):
             actor (Union[Unset, str]):
-            error (Union[Unset, Any]):
+            error (Union[Unset, Any]): Free-form JSON: its shape is not this API's (see the description around it for whose
+                it is).
             run (Union[Unset, str]):
             api_key (Union[Unset, str]):
     """

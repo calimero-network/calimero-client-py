@@ -6,29 +6,52 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
-T = TypeVar("T", bound="AccountProofProveResponse200")
+T = TypeVar("T", bound="InitFailed")
 
 
 @_attrs_define
-class AccountProofProveResponse200:
-    """ """
+class InitFailed:
+    """`details` of a `422 INIT_FAILED`: the app made, and the error its `init` ended with (the app log's, free-form).
 
+    Attributes:
+        app_id (str):
+        error (Any): Free-form JSON: its shape is not this API's (see the description around it for whose it is).
+    """
+
+    app_id: str
+    error: Any
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        app_id = self.app_id
+
+        error = self.error
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
+        field_dict.update(
+            {
+                "appId": app_id,
+                "error": error,
+            }
+        )
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        account_proof_prove_response_200 = cls()
+        app_id = d.pop("appId")
 
-        account_proof_prove_response_200.additional_properties = d
-        return account_proof_prove_response_200
+        error = d.pop("error")
+
+        init_failed = cls(
+            app_id=app_id,
+            error=error,
+        )
+
+        init_failed.additional_properties = d
+        return init_failed
 
     @property
     def additional_keys(self) -> list[str]:

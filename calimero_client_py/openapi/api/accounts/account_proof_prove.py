@@ -7,8 +7,8 @@ from ...client import AuthenticatedClient, Client
 from ...types import Response, UNSET
 from ... import errors
 
+from ...models.account_proof import AccountProof
 from ...models.account_proof_prove_body import AccountProofProveBody
-from ...models.account_proof_prove_response_200 import AccountProofProveResponse200
 from ...models.error import Error
 from typing import cast
 
@@ -34,9 +34,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[AccountProofProveResponse200, Error]]:
+) -> Optional[Union[AccountProof, Error]]:
     if response.status_code == 200:
-        response_200 = AccountProofProveResponse200.from_dict(response.json())
+        response_200 = AccountProof.from_dict(response.json())
 
         return response_200
 
@@ -68,7 +68,7 @@ def _parse_response(
 
 def _build_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[AccountProofProveResponse200, Error]]:
+) -> Response[Union[AccountProof, Error]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -81,7 +81,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient,
     body: AccountProofProveBody,
-) -> Response[Union[AccountProofProveResponse200, Error]]:
+) -> Response[Union[AccountProof, Error]]:
     """Prove the account to another party
 
      A statement signed with this node's receipt key that the caller's passkey session asked to bind
@@ -97,7 +97,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[AccountProofProveResponse200, Error]]
+        Response[Union[AccountProof, Error]]
     """
 
     kwargs = _get_kwargs(
@@ -115,7 +115,7 @@ def sync(
     *,
     client: AuthenticatedClient,
     body: AccountProofProveBody,
-) -> Optional[Union[AccountProofProveResponse200, Error]]:
+) -> Optional[Union[AccountProof, Error]]:
     """Prove the account to another party
 
      A statement signed with this node's receipt key that the caller's passkey session asked to bind
@@ -131,7 +131,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[AccountProofProveResponse200, Error]
+        Union[AccountProof, Error]
     """
 
     return sync_detailed(
@@ -144,7 +144,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient,
     body: AccountProofProveBody,
-) -> Response[Union[AccountProofProveResponse200, Error]]:
+) -> Response[Union[AccountProof, Error]]:
     """Prove the account to another party
 
      A statement signed with this node's receipt key that the caller's passkey session asked to bind
@@ -160,7 +160,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[AccountProofProveResponse200, Error]]
+        Response[Union[AccountProof, Error]]
     """
 
     kwargs = _get_kwargs(
@@ -176,7 +176,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient,
     body: AccountProofProveBody,
-) -> Optional[Union[AccountProofProveResponse200, Error]]:
+) -> Optional[Union[AccountProof, Error]]:
     """Prove the account to another party
 
      A statement signed with this node's receipt key that the caller's passkey session asked to bind
@@ -192,7 +192,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[AccountProofProveResponse200, Error]
+        Union[AccountProof, Error]
     """
 
     return (

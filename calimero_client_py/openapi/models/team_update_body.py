@@ -21,7 +21,8 @@ class TeamUpdateBody:
         name (Union[Unset, str]):
         join (Union[Unset, TeamJoin]): Open (`everyone` who reaches the parent) or restricted (`invite`) membership.
         parent (Union[None, Unset, str]):
-        metadata (Union[Unset, Any]):
+        metadata (Union[Unset, Any]): Free-form JSON: its shape is not this API's (see the description around it for
+            whose it is).
     """
 
     name: Union[Unset, str] = UNSET
