@@ -1,6 +1,8 @@
 """scripts/set_version.py: the release's version, written for the build."""
 
 import importlib.util
+import os
+import subprocess
 import shutil
 from pathlib import Path
 
@@ -52,3 +54,65 @@ def test_writes_the_crate_version_only(tmp_path):
     ]
     assert len(changed) == 1 and changed[0][1] == 'version = "9.8.7-rc.6"'
     assert lock.count('name = "calimero-client-py"\nversion = "9.8.7-rc.6"') == 1
+
+
+def _read_the_tag_script() -> str:
+    """build-wheels.yml's `Read the tag` step, as the shell runs it."""
+    lines = (ROOT / ".github" / "workflows" / "build-wheels.yml").read_text()
+    lines = lines.splitlines()
+    start = lines.index("    - name: Read the tag")
+    run = next(i for i in range(start, len(lines)) if lines[i] == "      run: |")
+    body = []
+    for line in lines[run + 1 :]:
+        if line and not line.startswith("        "):
+            break
+        body.append(line[8:])
+    return "\n".join(body)
+
+
+def _release_version(tag: str, tmp_path) -> subprocess.CompletedProcess:
+    out = tmp_path / "github_output"
+    out.write_text("")
+    env = {
+        "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+        "REF": f"refs/tags/{tag}",
+        "TAG": tag,
+        "GITHUB_OUTPUT": str(out),
+    }
+    result = subprocess.run(
+        ["bash", "-c", _read_the_tag_script()],
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    result.version = out.read_text()
+    return result
+
+
+@pytest.mark.skipif(shutil.which("bash") is None, reason="needs bash")
+@pytest.mark.parametrize(
+    "tag, version, pep440",
+    [
+        # What semantic-release tags from master: a plain MAJOR.MINOR.PATCH.
+        ("v1.0.0", "1.0.0", "1.0.0"),
+        ("v2.3.4", "2.3.4", "2.3.4"),
+        # A pre-release tag pushed by hand still builds.
+        ("v1.0.0-rc.5", "1.0.0-rc.5", "1.0.0rc5"),
+    ],
+)
+def test_a_release_tag_builds_its_version(tag, version, pep440, tmp_path):
+    result = _release_version(tag, tmp_path)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert result.version == f"version={version}\n"
+    shutil.copy(ROOT / "Cargo.toml", tmp_path / "Cargo.toml")
+    shutil.copy(ROOT / "Cargo.lock", tmp_path / "Cargo.lock")
+    assert set_version.set_version(tmp_path, version) == pep440
+    assert f'\nversion = "{version}"\n' in (tmp_path / "Cargo.toml").read_text()
+
+
+@pytest.mark.skipif(shutil.which("bash") is None, reason="needs bash")
+@pytest.mark.parametrize("tag", ["v1.0", "v1.0.0-rc5", "v1.0.0-next.1"])
+def test_a_tag_that_is_not_a_release_does_not_build(tag, tmp_path):
+    result = _release_version(tag, tmp_path)
+    assert result.returncode != 0
+    assert result.version == ""
