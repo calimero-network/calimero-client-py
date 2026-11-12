@@ -140,6 +140,13 @@ jobs:
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
+    # pyo3's build script reads the interpreter on PATH; the runner image's
+    # default can be newer than the pinned pyo3 supports, so pin it as `test` does.
+    - name: Set up Python
+      uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # v4
+      with:
+        python-version: "3.11"
+
     - name: Install Rust
       uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
       with:
