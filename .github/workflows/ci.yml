@@ -147,7 +147,7 @@ jobs:
 
     - name: Check against core master
       run: |
-        sed -i 's/tag = "[^"]*"/branch = "master"/' Cargo.toml
+        sed -i -E 's/(tag|rev|branch) = "[^"]*"/branch = "master"/' Cargo.toml
         grep -n 'branch = "master"' Cargo.toml
         cargo update -p calimero-client -p calimero-identity -p calimero-sealed
         cargo check --all-targets
