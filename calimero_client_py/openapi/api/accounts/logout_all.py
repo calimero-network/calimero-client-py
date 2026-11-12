@@ -8,7 +8,7 @@ from ...types import Response, UNSET
 from ... import errors
 
 from ...models.error import Error
-from ...models.written import Written
+from ...models.logout_all_response_200 import LogoutAllResponse200
 from typing import cast
 
 
@@ -24,9 +24,9 @@ def _get_kwargs() -> dict[str, Any]:
 
 def _parse_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[Error, Written]]:
+) -> Optional[Union[Error, LogoutAllResponse200]]:
     if response.status_code == 200:
-        response_200 = Written.from_dict(response.json())
+        response_200 = LogoutAllResponse200.from_dict(response.json())
 
         return response_200
 
@@ -53,7 +53,7 @@ def _parse_response(
 
 def _build_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[Error, Written]]:
+) -> Response[Union[Error, LogoutAllResponse200]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -65,17 +65,19 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient,
-) -> Response[Union[Error, Written]]:
+) -> Response[Union[Error, LogoutAllResponse200]]:
     """End every session of the account
 
-     **Who:** an account holder (a passkey session not bound to an app's frontend).
+     `revoked`: how many sessions ended.
+
+    **Who:** an account holder (a passkey session not bound to an app's frontend).
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Error, Written]]
+        Response[Union[Error, LogoutAllResponse200]]
     """
 
     kwargs = _get_kwargs()
@@ -90,17 +92,19 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient,
-) -> Optional[Union[Error, Written]]:
+) -> Optional[Union[Error, LogoutAllResponse200]]:
     """End every session of the account
 
-     **Who:** an account holder (a passkey session not bound to an app's frontend).
+     `revoked`: how many sessions ended.
+
+    **Who:** an account holder (a passkey session not bound to an app's frontend).
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Error, Written]
+        Union[Error, LogoutAllResponse200]
     """
 
     return sync_detailed(
@@ -111,17 +115,19 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient,
-) -> Response[Union[Error, Written]]:
+) -> Response[Union[Error, LogoutAllResponse200]]:
     """End every session of the account
 
-     **Who:** an account holder (a passkey session not bound to an app's frontend).
+     `revoked`: how many sessions ended.
+
+    **Who:** an account holder (a passkey session not bound to an app's frontend).
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Error, Written]]
+        Response[Union[Error, LogoutAllResponse200]]
     """
 
     kwargs = _get_kwargs()
@@ -134,17 +140,19 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient,
-) -> Optional[Union[Error, Written]]:
+) -> Optional[Union[Error, LogoutAllResponse200]]:
     """End every session of the account
 
-     **Who:** an account holder (a passkey session not bound to an app's frontend).
+     `revoked`: how many sessions ended.
+
+    **Who:** an account holder (a passkey session not bound to an app's frontend).
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Error, Written]
+        Union[Error, LogoutAllResponse200]
     """
 
     return (

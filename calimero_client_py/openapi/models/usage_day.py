@@ -6,20 +6,22 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
-T = TypeVar("T", bound="AppUsageResponse200DaysItem")
+T = TypeVar("T", bound="UsageDay")
 
 
 @_attrs_define
-class AppUsageResponse200DaysItem:
-    """
-    Attributes:
-        date (str):
-        runs (str): an unsigned 64-bit integer as a decimal string (D20)
-        fuel (str): an unsigned 64-bit integer as a decimal string (D20)
-        wall_ms (str): an unsigned 64-bit integer as a decimal string (D20)
-        writes (str): an unsigned 64-bit integer as a decimal string (D20)
-        bytes_written (str): an unsigned 64-bit integer as a decimal string (D20)
-        events (str): an unsigned 64-bit integer as a decimal string (D20)
+class UsageDay:
+    """What an app's runs used on one UTC day (`date`, `YYYY-MM-DD`), each figure a decimal string; `wallMs` is information
+    only.
+
+        Attributes:
+            date (str):
+            runs (str): an unsigned 64-bit integer as a decimal string (D20)
+            fuel (str): an unsigned 64-bit integer as a decimal string (D20)
+            wall_ms (str): an unsigned 64-bit integer as a decimal string (D20)
+            writes (str): an unsigned 64-bit integer as a decimal string (D20)
+            bytes_written (str): an unsigned 64-bit integer as a decimal string (D20)
+            events (str): an unsigned 64-bit integer as a decimal string (D20)
     """
 
     date: str
@@ -79,7 +81,7 @@ class AppUsageResponse200DaysItem:
 
         events = d.pop("events")
 
-        app_usage_response_200_days_item = cls(
+        usage_day = cls(
             date=date,
             runs=runs,
             fuel=fuel,
@@ -89,8 +91,8 @@ class AppUsageResponse200DaysItem:
             events=events,
         )
 
-        app_usage_response_200_days_item.additional_properties = d
-        return app_usage_response_200_days_item
+        usage_day.additional_properties = d
+        return usage_day
 
     @property
     def additional_keys(self) -> list[str]:

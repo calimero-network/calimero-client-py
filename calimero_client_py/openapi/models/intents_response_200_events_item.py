@@ -14,7 +14,7 @@ class IntentsResponse200EventsItem:
     """
     Attributes:
         kind (str):
-        data (Any):
+        data (Any): Free-form JSON: its shape is not this API's (see the description around it for whose it is).
     """
 
     kind: str

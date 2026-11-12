@@ -58,10 +58,20 @@ def _parse_response(
 
         return response_401
 
+    if response.status_code == 409:
+        response_409 = Error.from_dict(response.json())
+
+        return response_409
+
     if response.status_code == 421:
         response_421 = Error.from_dict(response.json())
 
         return response_421
+
+    if response.status_code == 503:
+        response_503 = Error.from_dict(response.json())
+
+        return response_503
 
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
@@ -90,7 +100,9 @@ def sync_detailed(
 ) -> Response[Union[Error, UploadPartResponse200]]:
     """Send one part
 
-     Part `k` (from 0), raw bytes; a part out of order answers the next one expected in `details.next`.
+     Part `k` (from 0), raw bytes; a part out of order (`409 PART_OUT_OF_ORDER`), or one that differs
+    from the part sent before as `k` (`409 PART_CONFLICT`), answers the next one expected in
+    `details.next`.
 
     **Who:** signed in (a session or an API key).
 
@@ -132,7 +144,9 @@ def sync(
 ) -> Optional[Union[Error, UploadPartResponse200]]:
     """Send one part
 
-     Part `k` (from 0), raw bytes; a part out of order answers the next one expected in `details.next`.
+     Part `k` (from 0), raw bytes; a part out of order (`409 PART_OUT_OF_ORDER`), or one that differs
+    from the part sent before as `k` (`409 PART_CONFLICT`), answers the next one expected in
+    `details.next`.
 
     **Who:** signed in (a session or an API key).
 
@@ -169,7 +183,9 @@ async def asyncio_detailed(
 ) -> Response[Union[Error, UploadPartResponse200]]:
     """Send one part
 
-     Part `k` (from 0), raw bytes; a part out of order answers the next one expected in `details.next`.
+     Part `k` (from 0), raw bytes; a part out of order (`409 PART_OUT_OF_ORDER`), or one that differs
+    from the part sent before as `k` (`409 PART_CONFLICT`), answers the next one expected in
+    `details.next`.
 
     **Who:** signed in (a session or an API key).
 
@@ -209,7 +225,9 @@ async def asyncio(
 ) -> Optional[Union[Error, UploadPartResponse200]]:
     """Send one part
 
-     Part `k` (from 0), raw bytes; a part out of order answers the next one expected in `details.next`.
+     Part `k` (from 0), raw bytes; a part out of order (`409 PART_OUT_OF_ORDER`), or one that differs
+    from the part sent before as `k` (`409 PART_CONFLICT`), answers the next one expected in
+    `details.next`.
 
     **Who:** signed in (a session or an API key).
 

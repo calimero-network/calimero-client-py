@@ -63,7 +63,9 @@ def sync_detailed(
 ) -> Response[Union[Error, OpsStatusResponse200]]:
     """The node and the cluster
 
-     Counts, Raft status and governance; never app state, names or credentials.
+     Counts, Raft status and governance; never app state, names or credentials. `groups`: the app groups
+    this node hosts; `apps` and `accounts` are counts; `rollback` is this node's rollback counter,
+    `null` on a node without one.
 
     **Who:** the ops token.
 
@@ -90,7 +92,9 @@ def sync(
 ) -> Optional[Union[Error, OpsStatusResponse200]]:
     """The node and the cluster
 
-     Counts, Raft status and governance; never app state, names or credentials.
+     Counts, Raft status and governance; never app state, names or credentials. `groups`: the app groups
+    this node hosts; `apps` and `accounts` are counts; `rollback` is this node's rollback counter,
+    `null` on a node without one.
 
     **Who:** the ops token.
 
@@ -113,7 +117,9 @@ async def asyncio_detailed(
 ) -> Response[Union[Error, OpsStatusResponse200]]:
     """The node and the cluster
 
-     Counts, Raft status and governance; never app state, names or credentials.
+     Counts, Raft status and governance; never app state, names or credentials. `groups`: the app groups
+    this node hosts; `apps` and `accounts` are counts; `rollback` is this node's rollback counter,
+    `null` on a node without one.
 
     **Who:** the ops token.
 
@@ -138,7 +144,9 @@ async def asyncio(
 ) -> Optional[Union[Error, OpsStatusResponse200]]:
     """The node and the cluster
 
-     Counts, Raft status and governance; never app state, names or credentials.
+     Counts, Raft status and governance; never app state, names or credentials. `groups`: the app groups
+    this node hosts; `apps` and `accounts` are counts; `rollback` is this node's rollback counter,
+    `null` on a node without one.
 
     **Who:** the ops token.
 

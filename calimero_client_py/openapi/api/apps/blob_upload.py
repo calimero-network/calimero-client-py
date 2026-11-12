@@ -19,7 +19,10 @@ from typing import Union
 def _get_kwargs(
     app: str,
     *,
-    body: File,
+    body: Union[
+        File,
+        File,
+    ],
     sealed: Union[Unset, bool] = UNSET,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
@@ -38,9 +41,14 @@ def _get_kwargs(
         "params": params,
     }
 
-    _kwargs["content"] = body.payload
+    if isinstance(body, File):
+        _kwargs["content"] = body.payload
 
-    headers["Content-Type"] = "*/*"
+        headers["Content-Type"] = "application/octet-stream"
+    if isinstance(body, File):
+        _kwargs["content"] = body.payload
+
+        headers["Content-Type"] = "*/*"
 
     _kwargs["headers"] = headers
     return _kwargs
@@ -100,13 +108,18 @@ def sync_detailed(
     app: str,
     *,
     client: AuthenticatedClient,
-    body: File,
+    body: Union[
+        File,
+        File,
+    ],
     sealed: Union[Unset, bool] = UNSET,
 ) -> Response[Union[BlobUploadResponse200, Error]]:
     """Upload a blob
 
-     A plain blob, stored with the request's `Content-Type` (default `application/octet-stream`), which a
-    component app's download answers with. Any `sealed` parameter, `true` or `false`, is refused `400
+     A plain blob, stored with the request's `Content-Type`, which a component app's download answers
+    with: any media type (printable ASCII, 127 bytes at most; another is `400 BAD_REQUEST`),
+    `application/octet-stream` when the request names none. Send the blob's own type, not `*/*`, which
+    would be stored as its type. Any `sealed` parameter, `true` or `false`, is refused `400
     USE_FILES_API`: sealed files go through `/files`.
 
     **Who:** whoever the app's access admits (a public app: anyone).
@@ -114,6 +127,7 @@ def sync_detailed(
     Args:
         app (str):
         sealed (Union[Unset, bool]):
+        body (File):
         body (File):
 
     Raises:
@@ -141,13 +155,18 @@ def sync(
     app: str,
     *,
     client: AuthenticatedClient,
-    body: File,
+    body: Union[
+        File,
+        File,
+    ],
     sealed: Union[Unset, bool] = UNSET,
 ) -> Optional[Union[BlobUploadResponse200, Error]]:
     """Upload a blob
 
-     A plain blob, stored with the request's `Content-Type` (default `application/octet-stream`), which a
-    component app's download answers with. Any `sealed` parameter, `true` or `false`, is refused `400
+     A plain blob, stored with the request's `Content-Type`, which a component app's download answers
+    with: any media type (printable ASCII, 127 bytes at most; another is `400 BAD_REQUEST`),
+    `application/octet-stream` when the request names none. Send the blob's own type, not `*/*`, which
+    would be stored as its type. Any `sealed` parameter, `true` or `false`, is refused `400
     USE_FILES_API`: sealed files go through `/files`.
 
     **Who:** whoever the app's access admits (a public app: anyone).
@@ -155,6 +174,7 @@ def sync(
     Args:
         app (str):
         sealed (Union[Unset, bool]):
+        body (File):
         body (File):
 
     Raises:
@@ -177,13 +197,18 @@ async def asyncio_detailed(
     app: str,
     *,
     client: AuthenticatedClient,
-    body: File,
+    body: Union[
+        File,
+        File,
+    ],
     sealed: Union[Unset, bool] = UNSET,
 ) -> Response[Union[BlobUploadResponse200, Error]]:
     """Upload a blob
 
-     A plain blob, stored with the request's `Content-Type` (default `application/octet-stream`), which a
-    component app's download answers with. Any `sealed` parameter, `true` or `false`, is refused `400
+     A plain blob, stored with the request's `Content-Type`, which a component app's download answers
+    with: any media type (printable ASCII, 127 bytes at most; another is `400 BAD_REQUEST`),
+    `application/octet-stream` when the request names none. Send the blob's own type, not `*/*`, which
+    would be stored as its type. Any `sealed` parameter, `true` or `false`, is refused `400
     USE_FILES_API`: sealed files go through `/files`.
 
     **Who:** whoever the app's access admits (a public app: anyone).
@@ -191,6 +216,7 @@ async def asyncio_detailed(
     Args:
         app (str):
         sealed (Union[Unset, bool]):
+        body (File):
         body (File):
 
     Raises:
@@ -216,13 +242,18 @@ async def asyncio(
     app: str,
     *,
     client: AuthenticatedClient,
-    body: File,
+    body: Union[
+        File,
+        File,
+    ],
     sealed: Union[Unset, bool] = UNSET,
 ) -> Optional[Union[BlobUploadResponse200, Error]]:
     """Upload a blob
 
-     A plain blob, stored with the request's `Content-Type` (default `application/octet-stream`), which a
-    component app's download answers with. Any `sealed` parameter, `true` or `false`, is refused `400
+     A plain blob, stored with the request's `Content-Type`, which a component app's download answers
+    with: any media type (printable ASCII, 127 bytes at most; another is `400 BAD_REQUEST`),
+    `application/octet-stream` when the request names none. Send the blob's own type, not `*/*`, which
+    would be stored as its type. Any `sealed` parameter, `true` or `false`, is refused `400
     USE_FILES_API`: sealed files go through `/files`.
 
     **Who:** whoever the app's access admits (a public app: anyone).
@@ -230,6 +261,7 @@ async def asyncio(
     Args:
         app (str):
         sealed (Union[Unset, bool]):
+        body (File):
         body (File):
 
     Raises:

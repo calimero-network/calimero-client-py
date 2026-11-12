@@ -6,9 +6,7 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
-from ..types import UNSET, Unset
 from typing import cast
-from typing import Union
 
 T = TypeVar("T", bound="AppCreateResponse200")
 
@@ -21,14 +19,14 @@ class AppCreateResponse200:
         context_id (str):
         group (int):
         replicas (list[int]):
-        compute (Union[Unset, Any]):
+        compute (bool):
     """
 
     app_id: str
     context_id: str
     group: int
     replicas: list[int]
-    compute: Union[Unset, Any] = UNSET
+    compute: bool
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -50,10 +48,9 @@ class AppCreateResponse200:
                 "contextId": context_id,
                 "group": group,
                 "replicas": replicas,
+                "compute": compute,
             }
         )
-        if compute is not UNSET:
-            field_dict["compute"] = compute
 
         return field_dict
 
@@ -68,7 +65,7 @@ class AppCreateResponse200:
 
         replicas = cast(list[int], d.pop("replicas"))
 
-        compute = d.pop("compute", UNSET)
+        compute = d.pop("compute")
 
         app_create_response_200 = cls(
             app_id=app_id,

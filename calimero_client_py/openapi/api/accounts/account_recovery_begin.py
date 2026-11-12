@@ -77,7 +77,8 @@ def sync_detailed(
     """Start an account recovery
 
      Signed out, with the recovery code: creation options for the passkey that will replace the lost
-    ones.
+    ones. `options` are the WebAuthn options to hand to the browser as they are: free-form here, their
+    shape is WebAuthn's.
 
     **Who:** anyone.
 
@@ -111,7 +112,8 @@ def sync(
     """Start an account recovery
 
      Signed out, with the recovery code: creation options for the passkey that will replace the lost
-    ones.
+    ones. `options` are the WebAuthn options to hand to the browser as they are: free-form here, their
+    shape is WebAuthn's.
 
     **Who:** anyone.
 
@@ -140,7 +142,8 @@ async def asyncio_detailed(
     """Start an account recovery
 
      Signed out, with the recovery code: creation options for the passkey that will replace the lost
-    ones.
+    ones. `options` are the WebAuthn options to hand to the browser as they are: free-form here, their
+    shape is WebAuthn's.
 
     **Who:** anyone.
 
@@ -172,7 +175,8 @@ async def asyncio(
     """Start an account recovery
 
      Signed out, with the recovery code: creation options for the passkey that will replace the lost
-    ones.
+    ones. `options` are the WebAuthn options to hand to the browser as they are: free-form here, their
+    shape is WebAuthn's.
 
     **Who:** anyone.
 

@@ -8,14 +8,14 @@ from ...types import Response, UNSET
 from ... import errors
 
 from ...models.error import Error
-from ...models.ops_quotas_set_body import OpsQuotasSetBody
 from ...models.ops_quotas_set_response_200 import OpsQuotasSetResponse200
+from ...models.quota_changes import QuotaChanges
 from typing import cast
 
 
 def _get_kwargs(
     *,
-    body: OpsQuotasSetBody,
+    body: QuotaChanges,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -85,22 +85,27 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient,
-    body: OpsQuotasSetBody,
+    body: QuotaChanges,
 ) -> Response[Union[Error, OpsQuotasSetResponse200]]:
     """Change quotas
 
      Changes the limits the body names, the others keep their value; signed over `cluster / __set_quotas
-    / { quotas }` with every limit after the change. With `org`: one payer's `maxConcurrentRuns`,
-    `computeFuel` (decimal string) and `maxFileBytes` (`null` clears one). A name that is no quota is
-    refused.
+    / { quotas }` with every limit after the change. Without `org`, the cluster's limits (`GET
+    /ops/quotas` names them); `orgs`, which that answer carries, is ignored, so its answer may be sent
+    back changed. With `org`: one payer's `maxConcurrentRuns`, `computeFuel` (decimal string) and
+    `maxFileBytes` (`null` clears one, back to the cluster's), and no other limit. A property that is no
+    limit (of the cluster's, or with `org` of a payer's) is refused `400 UNKNOWN_QUOTA`.
 
     **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first;
     send it again with `operatorProof`, the operator key's signature over `details.message` and its
     `nonce`.
 
     Args:
-        body (OpsQuotasSetBody): Other properties than those listed may be present: the ones
-            listed are those clients rely on.
+        body (QuotaChanges): The limits `POST /ops/quotas` changes, each optional: without `org`,
+            the cluster's (those `GET /ops/quotas` answers, `maxFuelPerDeveloperPerDay` a decimal
+            string); with `org`, one payer's (`maxConcurrentRuns`, `computeFuel` a decimal string,
+            `maxFileBytes`; `null` clears one). `orgs` is ignored. Any other property is refused `400
+            UNKNOWN_QUOTA`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -124,22 +129,27 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient,
-    body: OpsQuotasSetBody,
+    body: QuotaChanges,
 ) -> Optional[Union[Error, OpsQuotasSetResponse200]]:
     """Change quotas
 
      Changes the limits the body names, the others keep their value; signed over `cluster / __set_quotas
-    / { quotas }` with every limit after the change. With `org`: one payer's `maxConcurrentRuns`,
-    `computeFuel` (decimal string) and `maxFileBytes` (`null` clears one). A name that is no quota is
-    refused.
+    / { quotas }` with every limit after the change. Without `org`, the cluster's limits (`GET
+    /ops/quotas` names them); `orgs`, which that answer carries, is ignored, so its answer may be sent
+    back changed. With `org`: one payer's `maxConcurrentRuns`, `computeFuel` (decimal string) and
+    `maxFileBytes` (`null` clears one, back to the cluster's), and no other limit. A property that is no
+    limit (of the cluster's, or with `org` of a payer's) is refused `400 UNKNOWN_QUOTA`.
 
     **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first;
     send it again with `operatorProof`, the operator key's signature over `details.message` and its
     `nonce`.
 
     Args:
-        body (OpsQuotasSetBody): Other properties than those listed may be present: the ones
-            listed are those clients rely on.
+        body (QuotaChanges): The limits `POST /ops/quotas` changes, each optional: without `org`,
+            the cluster's (those `GET /ops/quotas` answers, `maxFuelPerDeveloperPerDay` a decimal
+            string); with `org`, one payer's (`maxConcurrentRuns`, `computeFuel` a decimal string,
+            `maxFileBytes`; `null` clears one). `orgs` is ignored. Any other property is refused `400
+            UNKNOWN_QUOTA`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -158,22 +168,27 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient,
-    body: OpsQuotasSetBody,
+    body: QuotaChanges,
 ) -> Response[Union[Error, OpsQuotasSetResponse200]]:
     """Change quotas
 
      Changes the limits the body names, the others keep their value; signed over `cluster / __set_quotas
-    / { quotas }` with every limit after the change. With `org`: one payer's `maxConcurrentRuns`,
-    `computeFuel` (decimal string) and `maxFileBytes` (`null` clears one). A name that is no quota is
-    refused.
+    / { quotas }` with every limit after the change. Without `org`, the cluster's limits (`GET
+    /ops/quotas` names them); `orgs`, which that answer carries, is ignored, so its answer may be sent
+    back changed. With `org`: one payer's `maxConcurrentRuns`, `computeFuel` (decimal string) and
+    `maxFileBytes` (`null` clears one, back to the cluster's), and no other limit. A property that is no
+    limit (of the cluster's, or with `org` of a payer's) is refused `400 UNKNOWN_QUOTA`.
 
     **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first;
     send it again with `operatorProof`, the operator key's signature over `details.message` and its
     `nonce`.
 
     Args:
-        body (OpsQuotasSetBody): Other properties than those listed may be present: the ones
-            listed are those clients rely on.
+        body (QuotaChanges): The limits `POST /ops/quotas` changes, each optional: without `org`,
+            the cluster's (those `GET /ops/quotas` answers, `maxFuelPerDeveloperPerDay` a decimal
+            string); with `org`, one payer's (`maxConcurrentRuns`, `computeFuel` a decimal string,
+            `maxFileBytes`; `null` clears one). `orgs` is ignored. Any other property is refused `400
+            UNKNOWN_QUOTA`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -195,22 +210,27 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient,
-    body: OpsQuotasSetBody,
+    body: QuotaChanges,
 ) -> Optional[Union[Error, OpsQuotasSetResponse200]]:
     """Change quotas
 
      Changes the limits the body names, the others keep their value; signed over `cluster / __set_quotas
-    / { quotas }` with every limit after the change. With `org`: one payer's `maxConcurrentRuns`,
-    `computeFuel` (decimal string) and `maxFileBytes` (`null` clears one). A name that is no quota is
-    refused.
+    / { quotas }` with every limit after the change. Without `org`, the cluster's limits (`GET
+    /ops/quotas` names them); `orgs`, which that answer carries, is ignored, so its answer may be sent
+    back changed. With `org`: one payer's `maxConcurrentRuns`, `computeFuel` (decimal string) and
+    `maxFileBytes` (`null` clears one, back to the cluster's), and no other limit. A property that is no
+    limit (of the cluster's, or with `org` of a payer's) is refused `400 UNKNOWN_QUOTA`.
 
     **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first;
     send it again with `operatorProof`, the operator key's signature over `details.message` and its
     `nonce`.
 
     Args:
-        body (OpsQuotasSetBody): Other properties than those listed may be present: the ones
-            listed are those clients rely on.
+        body (QuotaChanges): The limits `POST /ops/quotas` changes, each optional: without `org`,
+            the cluster's (those `GET /ops/quotas` answers, `maxFuelPerDeveloperPerDay` a decimal
+            string); with `org`, one payer's (`maxConcurrentRuns`, `computeFuel` a decimal string,
+            `maxFileBytes`; `null` clears one). `orgs` is ignored. Any other property is refused `400
+            UNKNOWN_QUOTA`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

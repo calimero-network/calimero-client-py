@@ -6,27 +6,21 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
-T = TypeVar("T", bound="OriginsListResponse200OriginsItem")
+T = TypeVar("T", bound="OriginsRemoveResponse200")
 
 
 @_attrs_define
-class OriginsListResponse200OriginsItem:
+class OriginsRemoveResponse200:
     """
     Attributes:
         package (str):
         origin (str):
-        rp_id (str):
-        added_by (str):
-        added_at (str):
-        served (bool):
+        removed (bool):
     """
 
     package: str
     origin: str
-    rp_id: str
-    added_by: str
-    added_at: str
-    served: bool
+    removed: bool
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -34,13 +28,7 @@ class OriginsListResponse200OriginsItem:
 
         origin = self.origin
 
-        rp_id = self.rp_id
-
-        added_by = self.added_by
-
-        added_at = self.added_at
-
-        served = self.served
+        removed = self.removed
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -48,10 +36,7 @@ class OriginsListResponse200OriginsItem:
             {
                 "package": package,
                 "origin": origin,
-                "rpId": rp_id,
-                "addedBy": added_by,
-                "addedAt": added_at,
-                "served": served,
+                "removed": removed,
             }
         )
 
@@ -64,25 +49,16 @@ class OriginsListResponse200OriginsItem:
 
         origin = d.pop("origin")
 
-        rp_id = d.pop("rpId")
+        removed = d.pop("removed")
 
-        added_by = d.pop("addedBy")
-
-        added_at = d.pop("addedAt")
-
-        served = d.pop("served")
-
-        origins_list_response_200_origins_item = cls(
+        origins_remove_response_200 = cls(
             package=package,
             origin=origin,
-            rp_id=rp_id,
-            added_by=added_by,
-            added_at=added_at,
-            served=served,
+            removed=removed,
         )
 
-        origins_list_response_200_origins_item.additional_properties = d
-        return origins_list_response_200_origins_item
+        origins_remove_response_200.additional_properties = d
+        return origins_remove_response_200
 
     @property
     def additional_keys(self) -> list[str]:

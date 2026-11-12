@@ -33,7 +33,7 @@ class Team:
             members (TeamMembers):
             read_only (list[str]):
             capabilities (TeamCapabilities):
-            metadata (Any):
+            metadata (Any): Free-form JSON: its shape is not this API's (see the description around it for whose it is).
             removed (list[str]):
             default_capabilities (Union[Unset, int]):
     """

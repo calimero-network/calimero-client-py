@@ -7,8 +7,8 @@ from ...client import AuthenticatedClient, Client
 from ...types import Response, UNSET
 from ... import errors
 
-from ...models.app_run_response_200 import AppRunResponse200
 from ...models.error import Error
+from ...models.run import Run
 from typing import cast
 
 
@@ -30,9 +30,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[AppRunResponse200, Error]]:
+) -> Optional[Union[Error, Run]]:
     if response.status_code == 200:
-        response_200 = AppRunResponse200.from_dict(response.json())
+        response_200 = Run.from_dict(response.json())
 
         return response_200
 
@@ -59,7 +59,7 @@ def _parse_response(
 
 def _build_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[AppRunResponse200, Error]]:
+) -> Response[Union[Error, Run]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -73,7 +73,7 @@ def sync_detailed(
     run: str,
     *,
     client: AuthenticatedClient,
-) -> Response[Union[AppRunResponse200, Error]]:
+) -> Response[Union[Error, Run]]:
     """One compute run
 
      Its record without arguments or keys: method, state, `cancelRequested`, `startTsMs`, attempts, input
@@ -91,7 +91,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[AppRunResponse200, Error]]
+        Response[Union[Error, Run]]
     """
 
     kwargs = _get_kwargs(
@@ -111,7 +111,7 @@ def sync(
     run: str,
     *,
     client: AuthenticatedClient,
-) -> Optional[Union[AppRunResponse200, Error]]:
+) -> Optional[Union[Error, Run]]:
     """One compute run
 
      Its record without arguments or keys: method, state, `cancelRequested`, `startTsMs`, attempts, input
@@ -129,7 +129,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[AppRunResponse200, Error]
+        Union[Error, Run]
     """
 
     return sync_detailed(
@@ -144,7 +144,7 @@ async def asyncio_detailed(
     run: str,
     *,
     client: AuthenticatedClient,
-) -> Response[Union[AppRunResponse200, Error]]:
+) -> Response[Union[Error, Run]]:
     """One compute run
 
      Its record without arguments or keys: method, state, `cancelRequested`, `startTsMs`, attempts, input
@@ -162,7 +162,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[AppRunResponse200, Error]]
+        Response[Union[Error, Run]]
     """
 
     kwargs = _get_kwargs(
@@ -180,7 +180,7 @@ async def asyncio(
     run: str,
     *,
     client: AuthenticatedClient,
-) -> Optional[Union[AppRunResponse200, Error]]:
+) -> Optional[Union[Error, Run]]:
     """One compute run
 
      Its record without arguments or keys: method, state, `cancelRequested`, `startTsMs`, attempts, input
@@ -198,7 +198,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[AppRunResponse200, Error]
+        Union[Error, Run]
     """
 
     return (

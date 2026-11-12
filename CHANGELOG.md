@@ -1,7 +1,14 @@
 # Changelog
 
-## Unreleased
+## 1.0.0
 
+The first stable release: 1.0.0-rc.4 and the changes below. From here on
+master releases stable versions on merge (RELEASING.md); there are no more
+release candidates.
+
+- **feat(api)!: the generated client follows core fb0ed2e0c** (the OpenAPI
+  sync, #191). `DELETE /ops/nodes/{id}` answers `status` as an object, no
+  longer a string; nine additions.
 - **feat: `FeatureNotActive`** (core's cluster version gate). A `CloudError`
   subclass for `409 FEATURE_NOT_ACTIVE`: during a rollout, a node refuses a command (or a field)
   that a node still on an older release could not apply, before anything is

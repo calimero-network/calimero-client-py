@@ -83,7 +83,8 @@ def sync_detailed(
 ) -> Response[Union[AppMetadataResponse200, Error]]:
     """Set an app's metadata
 
-     The owner or an organization admin; 16 KiB at most.
+     The owner or an organization admin; 16 KiB at most. `metadata` is the caller's own JSON, free-form,
+    kept as given.
 
     **Who:** signed in (a session or an API key).
 
@@ -119,7 +120,8 @@ def sync(
 ) -> Optional[Union[AppMetadataResponse200, Error]]:
     """Set an app's metadata
 
-     The owner or an organization admin; 16 KiB at most.
+     The owner or an organization admin; 16 KiB at most. `metadata` is the caller's own JSON, free-form,
+    kept as given.
 
     **Who:** signed in (a session or an API key).
 
@@ -150,7 +152,8 @@ async def asyncio_detailed(
 ) -> Response[Union[AppMetadataResponse200, Error]]:
     """Set an app's metadata
 
-     The owner or an organization admin; 16 KiB at most.
+     The owner or an organization admin; 16 KiB at most. `metadata` is the caller's own JSON, free-form,
+    kept as given.
 
     **Who:** signed in (a session or an API key).
 
@@ -184,7 +187,8 @@ async def asyncio(
 ) -> Optional[Union[AppMetadataResponse200, Error]]:
     """Set an app's metadata
 
-     The owner or an organization admin; 16 KiB at most.
+     The owner or an organization admin; 16 KiB at most. `metadata` is the caller's own JSON, free-form,
+    kept as given.
 
     **Who:** signed in (a session or an API key).
 

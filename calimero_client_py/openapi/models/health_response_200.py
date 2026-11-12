@@ -6,9 +6,7 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
-from ..types import UNSET, Unset
 from typing import cast, Union
-from typing import Union
 
 T = TypeVar("T", bound="HealthResponse200")
 
@@ -20,17 +18,17 @@ class HealthResponse200:
         ok (bool):
         node (int):
         system_leader (Union[None, int]):
-        release (Any):
+        release (str):
         cluster_version (str):
-        rollback_epoch (Union[None, Unset, int]):
+        rollback_epoch (Union[None, int]):
     """
 
     ok: bool
     node: int
     system_leader: Union[None, int]
-    release: Any
+    release: str
     cluster_version: str
-    rollback_epoch: Union[None, Unset, int] = UNSET
+    rollback_epoch: Union[None, int]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -45,11 +43,8 @@ class HealthResponse200:
 
         cluster_version = self.cluster_version
 
-        rollback_epoch: Union[None, Unset, int]
-        if isinstance(self.rollback_epoch, Unset):
-            rollback_epoch = UNSET
-        else:
-            rollback_epoch = self.rollback_epoch
+        rollback_epoch: Union[None, int]
+        rollback_epoch = self.rollback_epoch
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -60,10 +55,9 @@ class HealthResponse200:
                 "systemLeader": system_leader,
                 "release": release,
                 "clusterVersion": cluster_version,
+                "rollbackEpoch": rollback_epoch,
             }
         )
-        if rollback_epoch is not UNSET:
-            field_dict["rollbackEpoch"] = rollback_epoch
 
         return field_dict
 
@@ -85,14 +79,12 @@ class HealthResponse200:
 
         cluster_version = d.pop("clusterVersion")
 
-        def _parse_rollback_epoch(data: object) -> Union[None, Unset, int]:
+        def _parse_rollback_epoch(data: object) -> Union[None, int]:
             if data is None:
                 return data
-            if isinstance(data, Unset):
-                return data
-            return cast(Union[None, Unset, int], data)
+            return cast(Union[None, int], data)
 
-        rollback_epoch = _parse_rollback_epoch(d.pop("rollbackEpoch", UNSET))
+        rollback_epoch = _parse_rollback_epoch(d.pop("rollbackEpoch"))
 
         health_response_200 = cls(
             ok=ok,

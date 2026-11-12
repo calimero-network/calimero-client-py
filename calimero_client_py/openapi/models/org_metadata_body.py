@@ -13,7 +13,7 @@ T = TypeVar("T", bound="OrgMetadataBody")
 class OrgMetadataBody:
     """
     Attributes:
-        metadata (Any):
+        metadata (Any): Free-form JSON: its shape is not this API's (see the description around it for whose it is).
     """
 
     metadata: Any

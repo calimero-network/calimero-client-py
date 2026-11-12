@@ -217,7 +217,6 @@ from .openapi.models import AccountReleaseApprovalBody
 from .openapi.models import AliasSetBody
 from .openapi.models import ApikeyCreateBody
 from .openapi.models import AppAccessBody
-from .openapi.models import AppAttestationPurpose
 from .openapi.models import AppCreateBody
 from .openapi.models import AppMetadataBody
 from .openapi.models import AppMethodBody
@@ -246,7 +245,6 @@ from .openapi.models import OpsOrgUpgradeBody
 from .openapi.models import OpsOutboundBody
 from .openapi.models import OpsPackageInstallBody
 from .openapi.models import OpsPoolsSetBody
-from .openapi.models import OpsQuotasSetBody
 from .openapi.models import OpsRegisterNodeBody
 from .openapi.models import OpsReleaseBody
 from .openapi.models import OpsReleaseDeadlineBody
@@ -275,6 +273,7 @@ from .openapi.models import PasskeyLabelBody
 from .openapi.models import PresencePublishBody
 from .openapi.models import ProofOnly
 from .openapi.models import PublisherUpgradeBody
+from .openapi.models import QuotaChanges
 from .openapi.models import RecoverySetBody
 from .openapi.models import RecoveryStartBody
 from .openapi.models import RefreshBody
@@ -503,7 +502,7 @@ class Apps(Group):
     def abi(self, *, app):
         """An app's ABI (`GET /apps/{app}/abi`, `app_abi`).
 
-        The ABI its bundle embeds: methods, events, errors and state.
+        The ABI its bundle embeds: methods, events, errors and state. `abi` is the bundle's own document, free-form here: its format is the ABI's, not this API's.
 
         **Who:** whoever the app's access admits (a public app: anyone).
 
@@ -527,35 +526,20 @@ class Apps(Group):
         """
         return self._run(_APP_ACCESS, (app,), {}, {"access": access})
 
-    def attestation(
-        self, *, app_path, nonce, app_query=UNSET, app_hash=UNSET, purpose=UNSET
-    ):
+    def attestation(self, *, app, nonce):
         """Every replica's receipt-key attestation (`GET /apps/{app}/attestation`, `app_attestation`).
 
-        Each replica's `/attestation?purpose=receipts` for `nonce`. It reads the query `/attestation` does, but only `nonce`: `app`, `appHash` and `purpose` are ignored here.
+        Each replica's `/attestation?purpose=receipts` for `nonce` (32 bytes, hex), or why it could not be had (`error`). Any other query parameter is ignored.
 
         **Who:** whoever the app's access admits (a public app: anyone).
 
         Args:
-            app_path: path
+            app: path
             nonce: query
-            app_query: query
-            app_hash: query
-            purpose: query
 
         Returns: AppAttestationResponse200
         """
-        return self._run(
-            _APP_ATTESTATION,
-            (app_path,),
-            {
-                "nonce": nonce,
-                "app_query": app_query,
-                "app_hash": app_hash,
-                "purpose": Operation.enum(AppAttestationPurpose, purpose),
-            },
-            None,
-        )
+        return self._run(_APP_ATTESTATION, (app,), {"nonce": nonce}, None)
 
     def blob_delete(self, *, app, id):
         """Forget a blob (`DELETE /apps/{app}/blobs/{id}`, `blob_delete`).
@@ -667,7 +651,7 @@ class Apps(Group):
     ):
         """Upload a blob (`POST /apps/{app}/blobs`, `blob_upload`).
 
-        A plain blob, stored with the request's `Content-Type` (default `application/octet-stream`), which a component app's download answers with. Any `sealed` parameter, `true` or `false`, is refused `400 USE_FILES_API`: sealed files go through `/files`.
+        A plain blob, stored with the request's `Content-Type`, which a component app's download answers with: any media type (printable ASCII, 127 bytes at most; another is `400 BAD_REQUEST`), `application/octet-stream` when the request names none. Send the blob's own type, not `*/*`, which would be stored as its type. Any `sealed` parameter, `true` or `false`, is refused `400 USE_FILES_API`: sealed files go through `/files`.
 
         **Who:** whoever the app's access admits (a public app: anyone).
 
@@ -686,7 +670,7 @@ class Apps(Group):
     def call(self, *, app, method, args=UNSET, idempotency_key=UNSET, confirm=None):
         """Call a method (`POST /apps/{app}/intents`, `intents`).
 
-        A logged call: the result, the events of the call the caller receives, and the answering node's receipt. A `confirm` method answers `412` first. An app error is `422 APP_ERROR` with `details { index, code, fields }`; a trap `422 TRAP`.
+        A logged call: the result, the events of the call the caller receives, and the answering node's receipt. A `confirm` method answers `412` first. An app error is `422 APP_ERROR` with `details { index, code, fields }`; a trap `422 TRAP`. `args`, `result` and each event's `data` are the app's own JSON, free-form here: the app's ABI (`GET /apps/{app}/abi`, or its OpenAPI document) types them.
 
         **Who:** whoever the app's access admits (a public app: anyone). **Step-up:** when the method is a `confirm` method of the app's ABI, answers `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over `details.challenge`.
 
@@ -723,7 +707,7 @@ class Apps(Group):
     ):
         """Create an app instance (`POST /apps`, `app_create`).
 
-        From a release (`package`, `version`, `service`), a deployment's offer (`deployment`), or an uploaded `bundle`; in an organization (`org`) or the caller's own. `initArgs` go to the app's `init`.
+        From a release (`package`, `version`, `service`), a deployment's offer (`deployment`), or an uploaded `bundle`; in an organization (`org`) or the caller's own. `initArgs` go to the app's `init` and `metadata` is kept as given (both free-form JSON). Answers once `init` committed; `compute` says whether the app has a compute component.
 
         **Who:** an installer (an account holder, or an unscoped API key that is not read-only).
 
@@ -855,7 +839,7 @@ class Apps(Group):
     def metadata(self, *, app, metadata):
         """Set an app's metadata (`POST /apps/{app}/metadata`, `app_metadata`).
 
-        The owner or an organization admin; 16 KiB at most.
+        The owner or an organization admin; 16 KiB at most. `metadata` is the caller's own JSON, free-form, kept as given.
 
         **Who:** signed in (a session or an API key).
 
@@ -880,7 +864,7 @@ class Apps(Group):
     ):
         """Call a method by its path (`POST /apps/{app}/methods/{method}`, `app_method`).
 
-        The body of `/intents` or `/views` without `method`, which the path names, as the app's OpenAPI document lists it: a view the running bundle's ABI declares (without `confirm`) is answered as `/views`, anything else as `/intents`, with that route's gate, step-up and limits. Retry-safe as a view always, as a call with `idempotencyKey`.
+        The body of `/intents` or `/views` without `method`, which the path names, as the app's OpenAPI document lists it: a view the running bundle's ABI declares (without `confirm`) is answered as `/views`, anything else as `/intents`, with that route's gate, step-up and limits. Retry-safe as a view always, as a call with `idempotencyKey`. `args`, `result` and each event's `data` are the app's own JSON, free-form here: the app's ABI (`GET /apps/{app}/abi`, or its OpenAPI document) types them.
 
         **Who:** whoever the app's access admits (a public app: anyone). **Step-up:** when the method is a `confirm` method of the app's ABI, answers `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over `details.challenge`.
 
@@ -937,7 +921,7 @@ class Apps(Group):
     def openapi(self, *, app):
         """An app's OpenAPI document (`GET /apps/{app}/openapi.json`, `app_openapi`).
 
-        Generated from the ABI of the bundle the app runs, under the access `/abi` has: one `POST /apps/{app}/methods/{method}` per method, with its arguments, result and errors.
+        Generated from the ABI of the bundle the app runs, under the access `/abi` has: one `POST /apps/{app}/methods/{method}` per method, with its arguments, result and errors. Free-form here: it is a document of its own, which a client reads as OpenAPI.
 
         **Who:** whoever the app's access admits (a public app: anyone).
 
@@ -989,7 +973,7 @@ class Apps(Group):
             app: path
             run: path
 
-        Returns: AppRunResponse200
+        Returns: Run
         """
         return self._run(
             _APP_RUN,
@@ -1003,6 +987,8 @@ class Apps(Group):
 
     def runs(self, *, app, limit=UNSET, before=UNSET):
         """An app's compute runs (`GET /apps/{app}/runs`, `app_runs`).
+
+        Newest first, `limit` (1 to 100, default 20) at a time; `next` is the `before` of the next page, `null` on the last.
 
         **Who:** whoever the app's access admits (a public app: anyone).
 
@@ -1032,7 +1018,7 @@ class Apps(Group):
     def transfer(self, *, app, to, confirm=None):
         """Hand an app to another account (`POST /apps/{app}/transfer`, `app_transfer`).
 
-        The owner (for an organization's app, while a member and in the app's team), or an organization admin; an organization's app only to a member.
+        The owner (for an organization's app, while a member and in the app's team), or an organization admin; an organization's app only to a member. Answers `null`.
 
         **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over `details.challenge`.
 
@@ -1041,7 +1027,7 @@ class Apps(Group):
             to: body `to`
             confirm: a passkey for the step-up, a ready `confirm`, or False
 
-        Returns: Written
+        Returns: None
         """
         return self._run(_APP_TRANSFER, (app,), {}, {"to": to}, confirm=confirm)
 
@@ -1058,7 +1044,7 @@ class Apps(Group):
     ):
         """Upgrade an app instance (`POST /apps/{app}/upgrade`, `app_upgrade`).
 
-        To a release (`version`, of the app's own package unless `package` names another) or a `bundle`, code only: the state stays and is read by the new code. Whoever the package's manifest names (`upgrades`: the owner, or its publisher's `MANAGE_APPLICATION` holders), with a step-up over `{ bundle, migrate, manifest }`; an upgrade key signs in place of it. A refused or failed upgrade leaves the app on its release and answers `422 UPGRADE_FAILED` with the app log's error in `details` (`MigrationsNotSupported` when `migrate` is named: there are no migrations in this version).
+        To a release (`version`, of the app's own package unless `package` names another) or a `bundle`, code only: the state stays and is read by the new code. Whoever the package's manifest names (`upgrades`: the owner, or its publisher's `MANAGE_APPLICATION` holders), with a step-up over `{ bundle, migrate, manifest }`; an upgrade key signs in place of it. A refused or failed upgrade leaves the app on its release and answers `422 UPGRADE_FAILED` with the app log's error in `details` (`MigrationsNotSupported` when `migrate` is named: there are no migrations in this version). `error` is the app log's error value (`null` when it ran), free-form: the app's own.
 
         **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over `details.challenge`.
 
@@ -1126,7 +1112,7 @@ class Apps(Group):
     def upload_complete(self, *, app, upload):
         """Commit an upload (`POST /apps/{app}/files/uploads/{upload}/complete`, `upload_complete`).
 
-        Charges and commits the file; a retry answers the same file.
+        Charges and commits the file; a retry answers the same file. `409 UPLOAD_INCOMPLETE` names the part still missing.
 
         **Who:** signed in (a session or an API key).
 
@@ -1149,7 +1135,7 @@ class Apps(Group):
     def upload_part(self, *, app, upload, k, body):
         """Send one part (`PUT /apps/{app}/files/uploads/{upload}/parts/{k}`, `upload_part`).
 
-        Part `k` (from 0), raw bytes; a part out of order answers the next one expected in `details.next`.
+        Part `k` (from 0), raw bytes; a part out of order (`409 PART_OUT_OF_ORDER`), or one that differs from the part sent before as `k` (`409 PART_CONFLICT`), answers the next one expected in `details.next`.
 
         **Who:** signed in (a session or an API key).
 
@@ -1210,7 +1196,7 @@ class Apps(Group):
     def view(self, *, app, method, args=UNSET, consistency=UNSET, min_index=UNSET):
         """Read with a view method (`POST /apps/{app}/views`, `views`).
 
-        Read on a caught-up replica (`consistency: "strong"`, the default; any value but `"stale"` reads as it), or (`"stale"`) on the one answering; `minIndex` waits until the replica applied it (`503 NOT_CAUGHT_UP`).
+        Read on a caught-up replica (`consistency: "strong"`, the default; any value but `"stale"` reads as it), or (`"stale"`) on the one answering; `minIndex` waits until the replica applied it (`503 NOT_CAUGHT_UP`). `args`, `result` and each event's `data` are the app's own JSON, free-form here: the app's ABI (`GET /apps/{app}/abi`, or its OpenAPI document) types them.
 
         **Who:** whoever the app's access admits (a public app: anyone).
 
@@ -1467,7 +1453,7 @@ class Auth(Group):
             replace: body `replace`
             confirm: a passkey for the step-up, a ready `confirm`, or False
 
-        Returns: Written
+        Returns: OutboundApproved
         """
         return self._run(
             _ACCOUNT_OUTBOUND_APPROVAL,
@@ -1488,7 +1474,7 @@ class Auth(Group):
             nonce: body `nonce`
             audience: body `audience`
 
-        Returns: AccountProofProveResponse200
+        Returns: AccountProof
         """
         return self._run(
             _ACCOUNT_PROOF_PROVE, (), {}, {"nonce": nonce, "audience": audience}
@@ -1497,7 +1483,7 @@ class Auth(Group):
     def account_recovery_begin(self, *, code):
         """Start an account recovery (`POST /auth/recovery/begin`, `account_recovery_begin`).
 
-        Signed out, with the recovery code: creation options for the passkey that will replace the lost ones.
+        Signed out, with the recovery code: creation options for the passkey that will replace the lost ones. `options` are the WebAuthn options to hand to the browser as they are: free-form here, their shape is WebAuthn's.
 
         **Who:** anyone.
 
@@ -1572,7 +1558,7 @@ class Auth(Group):
             approved: body `approved`
             confirm: a passkey for the step-up, a ready `confirm`, or False
 
-        Returns: Written
+        Returns: ApprovedReleases
         """
         return self._run(
             _ACCOUNT_RELEASE_APPROVAL,
@@ -1713,7 +1699,7 @@ class Auth(Group):
     def login_begin(self, *, origin=UNSET):
         """Start a sign-in (`POST /auth/passkey/login/begin`, `login_begin`).
 
-        A WebAuthn challenge for any passkey of the cluster. `origin` is an app frontend's registered origin, whose rp-id the ceremony then uses.
+        A WebAuthn challenge for any passkey of the cluster. `origin` is an app frontend's registered origin, whose rp-id the ceremony then uses. `options` are the WebAuthn options to hand to the browser as they are: free-form here, their shape is WebAuthn's.
 
         **Who:** anyone.
 
@@ -1751,9 +1737,11 @@ class Auth(Group):
     def logout_all(self):
         """End every session of the account (`POST /auth/logout-all`, `logout_all`).
 
+        `revoked`: how many sessions ended.
+
         **Who:** an account holder (a passkey session not bound to an app's frontend).
 
-        Returns: Written
+        Returns: LogoutAllResponse200
         """
         return self._run(_LOGOUT_ALL, (), {}, None)
 
@@ -1771,7 +1759,7 @@ class Auth(Group):
     def passkey_add_begin(self):
         """Start adding a passkey (`POST /auth/passkeys/add/begin`, `passkey_add_begin`).
 
-        Creation options for another passkey (a device) on the caller's account.
+        Creation options for another passkey (a device) on the caller's account. `options` are the WebAuthn options to hand to the browser as they are: free-form here, their shape is WebAuthn's.
 
         **Who:** an account holder (a passkey session not bound to an app's frontend).
 
@@ -1872,7 +1860,7 @@ class Auth(Group):
     def register_begin(self, *, name=UNSET, origin=UNSET, invite=UNSET):
         """Start a sign-up (`POST /auth/passkey/register/begin`, `register_begin`).
 
-        Creation options for a new passkey. `invite` is an organization or cluster sign-up invite token, which the policy may require; `403 SIGN_UP_REFUSED` when the policy would refuse the sign-up.
+        Creation options for a new passkey. `invite` is an organization or cluster sign-up invite token, which the policy may require; `403 SIGN_UP_REFUSED` when the policy would refuse the sign-up. `options` are the WebAuthn options to hand to the browser as they are: free-form here, their shape is WebAuthn's.
 
         **Who:** anyone.
 
@@ -1944,7 +1932,7 @@ class Auth(Group):
     def usage(self):
         """The account's usage against its quotas (`GET /auth/usage`, `usage`).
 
-        Apps, bundle bytes, API keys and owned organizations; what today's runs of the apps the account develops used (decimal strings).
+        The apps the account owns, its bundle bytes (a decimal string), API keys and owned organizations; the file bytes held by each payer it belongs to (each organization it is in, and `account:<id>` for its own apps); the cluster's quotas; and what today's runs of the apps the account develops used (decimal strings).
 
         **Who:** signed in (a session or an API key).
 
@@ -2275,7 +2263,7 @@ class Deployments(Group):
             key: path
             confirm: a passkey for the step-up, a ready `confirm`, or False
 
-        Returns: Written
+        Returns: InviteKey
         """
         return self._run(_SIGN_UP_INVITE_REVOKE, (key,), {}, {}, confirm=confirm)
 
@@ -2301,7 +2289,7 @@ class Deployments(Group):
             policy: body `policy`
             confirm: a passkey for the step-up, a ready `confirm`, or False
 
-        Returns: Written
+        Returns: SignUpSet
         """
         return self._run(_SIGN_UP_SET, (), {}, {"policy": policy}, confirm=confirm)
 
@@ -2315,7 +2303,7 @@ class Deployments(Group):
             app: path
             confirm: a passkey for the step-up, a ready `confirm`, or False
 
-        Returns: Written
+        Returns: DeploymentWithdrawResponse200
         """
         return self._run(
             _DEPLOYMENT_WITHDRAW,
@@ -2456,11 +2444,7 @@ _OPS_QUOTAS_GET = Operation(
     answer="json",
 )
 _OPS_QUOTAS_SET = Operation(
-    _ops_quotas_set,
-    "ops_quotas_set",
-    body=OpsQuotasSetBody,
-    answer="json",
-    operator=True,
+    _ops_quotas_set, "ops_quotas_set", body=QuotaChanges, answer="json", operator=True
 )
 _OPS_RECEIPT_KEY = Operation(
     _ops_receipt_key,
@@ -2583,7 +2567,7 @@ class Ops(Group):
     def backup(self, *, all_=UNSET):
         """Snapshot the apps this node leads (`POST /ops/backup`, `ops_backup`).
 
-        Into `--backup-dir`. With `all=true`, every group this node holds, leader or not: what a node of a cluster that lost a majority still has, to found the cluster again from (`merod --bootstrap --restore-from`).
+        Into `--backup-dir`. With `all=true`, every group this node holds, leader or not: what a node of a cluster that lost a majority still has, to found the cluster again from (`merod --bootstrap --restore-from`). `written`: how many snapshots it wrote.
 
         **Who:** the ops token.
 
@@ -2596,6 +2580,8 @@ class Ops(Group):
 
     def cluster(self):
         """The cluster's identity (`GET /ops/cluster`, `ops_cluster`).
+
+        The cluster's name and the identity this replica holds (hex).
 
         **Who:** the ops token.
 
@@ -2767,7 +2753,7 @@ class Ops(Group):
             replace: body `replace`
             operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
 
-        Returns: Written
+        Returns: OutboundApproved
         """
         return self._run(
             _OPS_OUTBOUND,
@@ -2809,7 +2795,7 @@ class Ops(Group):
         Args:
             package: path
 
-        Returns: Written
+        Returns: Uninstalled
         """
         return self._run(_OPS_PACKAGE_UNINSTALL, (package,), {}, None)
 
@@ -2834,7 +2820,7 @@ class Ops(Group):
             package: path
             version: path
 
-        Returns: Written
+        Returns: Uninstalled
         """
         return self._run(
             _OPS_PACKAGE_VERSION_UNINSTALL,
@@ -2892,26 +2878,75 @@ class Ops(Group):
 
         **Who:** the ops token.
 
-        Returns: OpsQuotasGetResponse200
+        Returns: QuotaSettings
         """
         return self._run(_OPS_QUOTAS_GET, (), {}, None)
 
-    def quotas_set(self, *, org=UNSET, operator_proof=None, **more):
+    def quotas_set(
+        self,
+        *,
+        org=UNSET,
+        orgs=UNSET,
+        max_apps_per_account=UNSET,
+        max_bundle_bytes_per_account=UNSET,
+        max_api_keys_per_account=UNSET,
+        max_orgs_per_account=UNSET,
+        max_accounts=UNSET,
+        max_file_bytes_per_org=UNSET,
+        max_concurrent_runs_per_org=UNSET,
+        compute_fuel_per_org=UNSET,
+        max_fuel_per_developer_per_day=UNSET,
+        max_concurrent_runs=UNSET,
+        compute_fuel=UNSET,
+        max_file_bytes=UNSET,
+        operator_proof=None,
+    ):
         """Change quotas (`POST /ops/quotas`, `ops_quotas_set`).
 
-        Changes the limits the body names, the others keep their value; signed over `cluster / __set_quotas / { quotas }` with every limit after the change. With `org`: one payer's `maxConcurrentRuns`, `computeFuel` (decimal string) and `maxFileBytes` (`null` clears one). A name that is no quota is refused.
+        Changes the limits the body names, the others keep their value; signed over `cluster / __set_quotas / { quotas }` with every limit after the change. Without `org`, the cluster's limits (`GET /ops/quotas` names them); `orgs`, which that answer carries, is ignored, so its answer may be sent back changed. With `org`: one payer's `maxConcurrentRuns`, `computeFuel` (decimal string) and `maxFileBytes` (`null` clears one, back to the cluster's), and no other limit. A property that is no limit (of the cluster's, or with `org` of a payer's) is refused `400 UNKNOWN_QUOTA`.
 
         **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first; send it again with `operatorProof`, the operator key's signature over `details.message` and its `nonce`.
 
         Args:
             org: body `org`
+            orgs: body `orgs`
+            max_apps_per_account: body `maxAppsPerAccount`
+            max_bundle_bytes_per_account: body `maxBundleBytesPerAccount`
+            max_api_keys_per_account: body `maxApiKeysPerAccount`
+            max_orgs_per_account: body `maxOrgsPerAccount`
+            max_accounts: body `maxAccounts`
+            max_file_bytes_per_org: body `maxFileBytesPerOrg`
+            max_concurrent_runs_per_org: body `maxConcurrentRunsPerOrg`
+            compute_fuel_per_org: body `computeFuelPerOrg`
+            max_fuel_per_developer_per_day: body `maxFuelPerDeveloperPerDay`
+            max_concurrent_runs: body `maxConcurrentRuns`
+            compute_fuel: body `computeFuel`
+            max_file_bytes: body `maxFileBytes`
             operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
-            more: further body fields, by their JSON names
 
         Returns: OpsQuotasSetResponse200
         """
         return self._run(
-            _OPS_QUOTAS_SET, (), {}, {"org": org, **more}, operator_proof=operator_proof
+            _OPS_QUOTAS_SET,
+            (),
+            {},
+            {
+                "org": org,
+                "orgs": orgs,
+                "maxAppsPerAccount": max_apps_per_account,
+                "maxBundleBytesPerAccount": max_bundle_bytes_per_account,
+                "maxApiKeysPerAccount": max_api_keys_per_account,
+                "maxOrgsPerAccount": max_orgs_per_account,
+                "maxAccounts": max_accounts,
+                "maxFileBytesPerOrg": max_file_bytes_per_org,
+                "maxConcurrentRunsPerOrg": max_concurrent_runs_per_org,
+                "computeFuelPerOrg": compute_fuel_per_org,
+                "maxFuelPerDeveloperPerDay": max_fuel_per_developer_per_day,
+                "maxConcurrentRuns": max_concurrent_runs,
+                "computeFuel": compute_fuel,
+                "maxFileBytes": max_file_bytes,
+            },
+            operator_proof=operator_proof,
         )
 
     def receipt_key(self, *, id):
@@ -2965,7 +3000,7 @@ class Ops(Group):
             approved: body `approved`
             operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
 
-        Returns: Written
+        Returns: ApprovedReleases
         """
         return self._run(
             _OPS_RELEASE,
@@ -2987,7 +3022,7 @@ class Ops(Group):
             after: body `after`
             operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
 
-        Returns: Written
+        Returns: Deadlines
         """
         return self._run(
             _OPS_RELEASE_DEADLINE,
@@ -3006,7 +3041,7 @@ class Ops(Group):
             version: path
             operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
 
-        Returns: Written
+        Returns: Deadlines
         """
         return self._run(
             _OPS_RELEASE_DEADLINE_LIFT,
@@ -3034,7 +3069,7 @@ class Ops(Group):
     def restore(self, *, app, backup=UNSET, operator_proof=None):
         """Restore an app from its sealed backup (`POST /ops/apps/{app}/restore`, `ops_restore`).
 
-        Signed over `<app> / __restore_app / { backup, sha256 }`. The receiving node holds the backup (`backup`, else the newest, in `{backup-dir}/{app}/`) and seeds the restore; answers once every replica holds the restored state.
+        Signed over `<app> / __restore_app / { backup, sha256 }`. The receiving node holds the backup (`backup`, else the newest, in `{backup-dir}/{app}/`) and seeds the restore; answers once every replica holds the restored state: the rows restored, the backup (`format` 0, with `merod` and `release` `null`, for one written before manifests) and the app group's Raft status.
 
         **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first; send it again with `operatorProof`, the operator key's signature over `details.message` and its `nonce`.
 
@@ -3123,7 +3158,7 @@ class Ops(Group):
             key: path
             operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
 
-        Returns: Written
+        Returns: InviteKey
         """
         return self._run(
             _OPS_SIGN_UP_INVITE_REVOKE_DELETE,
@@ -3144,7 +3179,7 @@ class Ops(Group):
             key: path
             operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
 
-        Returns: Written
+        Returns: InviteKey
         """
         return self._run(
             _OPS_SIGN_UP_INVITE_REVOKE_POST,
@@ -3165,7 +3200,7 @@ class Ops(Group):
             policy: body `policy`
             operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
 
-        Returns: Written
+        Returns: SignUpSet
         """
         return self._run(
             _OPS_SIGN_UP_SET, (), {}, {"policy": policy}, operator_proof=operator_proof
@@ -3174,7 +3209,7 @@ class Ops(Group):
     def status(self):
         """The node and the cluster (`GET /ops/status`, `ops_status`).
 
-        Counts, Raft status and governance; never app state, names or credentials.
+        Counts, Raft status and governance; never app state, names or credentials. `groups`: the app groups this node hosts; `apps` and `accounts` are counts; `rollback` is this node's rollback counter, `null` on a node without one.
 
         **Who:** the ops token.
 
@@ -3195,7 +3230,7 @@ class Ops(Group):
     ):
         """Upgrade an app as the operator (`POST /ops/apps/{app}/upgrade`, `ops_upgrade`).
 
-        To a release the operator installed, where the operator holds app upgrades.
+        To a release the operator installed, where the operator holds app upgrades. `error` is the app log's error value (`null` when it ran), free-form: the app's own.
 
         **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first; send it again with `operatorProof`, the operator key's signature over `details.message` and its `nonce`.
 
@@ -3478,7 +3513,7 @@ class Orgs(Group):
     def app_teams_scope(self, *, org, apps=UNSET, shared=UNSET, confirm=None):
         """Give apps app teams, or open or close one (`POST /orgs/{org}/app-teams`, `app_teams_scope`).
 
-        The owner or an admin; `keep` names who stays when a team closes. `412` first.
+        The owner or an admin; `keep` names who stays when a team closes; `childTeams` says whether the app team's members make restricted teams below it (private channels), adding or removing `CREATE_CHILD_TEAM` (absent: as they are). Naming `join` or `childTeams` on any package leaves `shared` unset to mean no other team. `412` first.
 
         **Who:** a passkey session (an API key is refused). **Step-up:** answers `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over `details.challenge`.
 
@@ -3560,7 +3595,7 @@ class Orgs(Group):
     def delete(self, *, org, confirm=None):
         """Delete an organization (`DELETE /orgs/{org}`, `org_delete`).
 
-        With its teams, invites and apps; the owner.
+        With its teams, invites and apps; the owner. `apps`: the apps deleted with it.
 
         **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over `details.challenge`.
 
@@ -3568,7 +3603,7 @@ class Orgs(Group):
             org: path
             confirm: a passkey for the step-up, a ready `confirm`, or False
 
-        Returns: Written
+        Returns: OrgDeleteResponse200
         """
         return self._run(_ORG_DELETE, (org,), {}, {}, confirm=confirm)
 
@@ -3645,7 +3680,7 @@ class Orgs(Group):
     def invite_redeem(self, *, token):
         """Join with an invite (`POST /invites/{token}/redeem`, `invite_redeem`).
 
-        No passkey prompt: the node signs the redemption with the token's key.
+        No passkey prompt: the node signs the redemption with the token's key. Answers the organization joined.
 
         **Who:** a passkey session (an API key is refused).
 
@@ -3681,6 +3716,8 @@ class Orgs(Group):
 
     def member_metadata(self, *, org, account, metadata):
         """Set a member's metadata (`POST /orgs/{org}/members/{account}/metadata`, `member_metadata`).
+
+        `metadata` is the caller's own JSON, free-form, kept as given.
 
         **Who:** signed in (a session or an API key).
 
@@ -3776,6 +3813,8 @@ class Orgs(Group):
     def metadata(self, *, org, metadata):
         """Set an organization's metadata (`POST /orgs/{org}/metadata`, `org_metadata`).
 
+        `metadata` is the caller's own JSON, free-form, kept as given.
+
         **Who:** signed in (a session or an API key).
 
         Args:
@@ -3802,7 +3841,7 @@ class Orgs(Group):
             replace: body `replace`
             confirm: a passkey for the step-up, a ready `confirm`, or False
 
-        Returns: Written
+        Returns: OutboundApproved
         """
         return self._run(
             _ORG_OUTBOUND_APPROVAL,
@@ -3815,7 +3854,7 @@ class Orgs(Group):
     def publisher(self, *, org, signer_id, public_key, signature, confirm=None):
         """Bind a package signing key (`POST /orgs/{org}/publishers`, `org_publisher`).
 
-        The key's signature over the binding proves the organization holds it; then its `MANAGE_APPLICATION` holders upgrade the apps of packages that name `publisher`.
+        The key's signature over the binding proves the organization holds it; then its `MANAGE_APPLICATION` holders upgrade the apps of packages that name `publisher`. Answers the key's binding generation now.
 
         **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over `details.challenge`.
 
@@ -3942,7 +3981,7 @@ class Orgs(Group):
             approved: body `approved`
             confirm: a passkey for the step-up, a ready `confirm`, or False
 
-        Returns: Written
+        Returns: ApprovedReleases
         """
         return self._run(
             _ORG_RELEASE_APPROVAL,
@@ -4153,7 +4192,7 @@ class Orgs(Group):
     ):
         """Update a team (`POST /orgs/{org}/teams/{team}`, `team_update`).
 
-        Rename, open or restrict, move under another parent, or set its metadata. `parent` absent leaves the team where it is; `parent: null` (an explicit null) moves it to the top; a team id moves it under that team.
+        Rename, open or restrict, move under another parent, or set its metadata (the caller's own JSON, free-form, kept as given). `parent` absent leaves the team where it is; `parent: null` (an explicit null) moves it to the top; a team id moves it under that team.
 
         **Who:** a passkey session (an API key is refused).
 
@@ -4272,7 +4311,7 @@ class Orgs(Group):
     def usage(self, *, org):
         """An organization's usage (`GET /orgs/{org}/usage`, `org_usage`).
 
-        An admin: what today's runs of the apps the organization develops used (decimal strings) and its quotas; a member gets `403`.
+        An admin: how many apps the organization develops, what their runs used today (decimal strings) and the cluster's quotas; a member gets `403`.
 
         **Who:** signed in (a session or an API key).
 
@@ -4404,7 +4443,7 @@ class Packages(Group):
     def origins_add(self, *, package, origin, rp_id=UNSET, served=UNSET, confirm=None):
         """Register a frontend origin (`POST /package-origins/{package}`, `origins_add`).
 
-        By whoever manages the package, with a passkey step-up over the change.
+        By whoever manages the package, with a passkey step-up over the change. Answers the origin as registered (the one already there, when the same origin is registered again).
 
         **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over `details.challenge`.
 
@@ -4415,7 +4454,7 @@ class Packages(Group):
             served: body `served`
             confirm: a passkey for the step-up, a ready `confirm`, or False
 
-        Returns: Written
+        Returns: PackageOrigin
         """
         return self._run(
             _ORIGINS_ADD,
@@ -4449,7 +4488,7 @@ class Packages(Group):
             origin: body `origin`
             confirm: a passkey for the step-up, a ready `confirm`, or False
 
-        Returns: Written
+        Returns: OriginsRemoveResponse200
         """
         return self._run(
             _ORIGINS_REMOVE, (package,), {}, {"origin": origin}, confirm=confirm
@@ -4465,7 +4504,7 @@ class Packages(Group):
         Args:
             package: path
 
-        Returns: Written
+        Returns: Uninstalled
         """
         return self._run(_PACKAGE_UNINSTALL, (package,), {}, None)
 
@@ -4492,7 +4531,7 @@ class Packages(Group):
             package: path
             version: path
 
-        Returns: Written
+        Returns: Uninstalled
         """
         return self._run(
             _PACKAGE_VERSION_UNINSTALL,
@@ -4564,7 +4603,7 @@ class Public(Group):
     def health(self):
         """Node health (`GET /health`, `health`).
 
-        In the clear. The node's id, the system group's leader, its release, the newest cluster version it supports (`clusterVersion`) and the cluster's rollback epoch.
+        In the clear. The node's id, the system group's leader (`null`: none known), its `merod` release, the newest cluster version it supports (`clusterVersion`) and the cluster's rollback epoch (`null` on a node without a rollback counter).
 
         **Who:** anyone.
 

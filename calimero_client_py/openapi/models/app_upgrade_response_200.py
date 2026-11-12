@@ -15,7 +15,7 @@ class AppUpgradeResponse200:
     Attributes:
         index (int):
         status (str):
-        error (Any):
+        error (Any): Free-form JSON: its shape is not this API's (see the description around it for whose it is).
         compute (bool):
     """
 

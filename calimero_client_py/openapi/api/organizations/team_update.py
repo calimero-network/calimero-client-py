@@ -86,9 +86,9 @@ def sync_detailed(
 ) -> Response[Union[Error, TeamUpdateResponse200]]:
     """Update a team
 
-     Rename, open or restrict, move under another parent, or set its metadata. `parent` absent leaves the
-    team where it is; `parent: null` (an explicit null) moves it to the top; a team id moves it under
-    that team.
+     Rename, open or restrict, move under another parent, or set its metadata (the caller's own JSON,
+    free-form, kept as given). `parent` absent leaves the team where it is; `parent: null` (an explicit
+    null) moves it to the top; a team id moves it under that team.
 
     **Who:** a passkey session (an API key is refused).
 
@@ -127,9 +127,9 @@ def sync(
 ) -> Optional[Union[Error, TeamUpdateResponse200]]:
     """Update a team
 
-     Rename, open or restrict, move under another parent, or set its metadata. `parent` absent leaves the
-    team where it is; `parent: null` (an explicit null) moves it to the top; a team id moves it under
-    that team.
+     Rename, open or restrict, move under another parent, or set its metadata (the caller's own JSON,
+    free-form, kept as given). `parent` absent leaves the team where it is; `parent: null` (an explicit
+    null) moves it to the top; a team id moves it under that team.
 
     **Who:** a passkey session (an API key is refused).
 
@@ -163,9 +163,9 @@ async def asyncio_detailed(
 ) -> Response[Union[Error, TeamUpdateResponse200]]:
     """Update a team
 
-     Rename, open or restrict, move under another parent, or set its metadata. `parent` absent leaves the
-    team where it is; `parent: null` (an explicit null) moves it to the top; a team id moves it under
-    that team.
+     Rename, open or restrict, move under another parent, or set its metadata (the caller's own JSON,
+    free-form, kept as given). `parent` absent leaves the team where it is; `parent: null` (an explicit
+    null) moves it to the top; a team id moves it under that team.
 
     **Who:** a passkey session (an API key is refused).
 
@@ -202,9 +202,9 @@ async def asyncio(
 ) -> Optional[Union[Error, TeamUpdateResponse200]]:
     """Update a team
 
-     Rename, open or restrict, move under another parent, or set its metadata. `parent` absent leaves the
-    team where it is; `parent: null` (an explicit null) moves it to the top; a team id moves it under
-    that team.
+     Rename, open or restrict, move under another parent, or set its metadata (the caller's own JSON,
+    free-form, kept as given). `parent` absent leaves the team where it is; `parent: null` (an explicit
+    null) moves it to the top; a team id moves it under that team.
 
     **Who:** a passkey session (an API key is refused).
 

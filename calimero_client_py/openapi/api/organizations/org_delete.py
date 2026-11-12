@@ -9,7 +9,7 @@ from ... import errors
 
 from ...models.confirm_only import ConfirmOnly
 from ...models.error import Error
-from ...models.written import Written
+from ...models.org_delete_response_200 import OrgDeleteResponse200
 from typing import cast
 
 
@@ -37,9 +37,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[Error, Written]]:
+) -> Optional[Union[Error, OrgDeleteResponse200]]:
     if response.status_code == 200:
-        response_200 = Written.from_dict(response.json())
+        response_200 = OrgDeleteResponse200.from_dict(response.json())
 
         return response_200
 
@@ -76,7 +76,7 @@ def _parse_response(
 
 def _build_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[Error, Written]]:
+) -> Response[Union[Error, OrgDeleteResponse200]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -90,10 +90,10 @@ def sync_detailed(
     *,
     client: AuthenticatedClient,
     body: ConfirmOnly,
-) -> Response[Union[Error, Written]]:
+) -> Response[Union[Error, OrgDeleteResponse200]]:
     """Delete an organization
 
-     With its teams, invites and apps; the owner.
+     With its teams, invites and apps; the owner. `apps`: the apps deleted with it.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
     `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
@@ -109,7 +109,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Error, Written]]
+        Response[Union[Error, OrgDeleteResponse200]]
     """
 
     kwargs = _get_kwargs(
@@ -129,10 +129,10 @@ def sync(
     *,
     client: AuthenticatedClient,
     body: ConfirmOnly,
-) -> Optional[Union[Error, Written]]:
+) -> Optional[Union[Error, OrgDeleteResponse200]]:
     """Delete an organization
 
-     With its teams, invites and apps; the owner.
+     With its teams, invites and apps; the owner. `apps`: the apps deleted with it.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
     `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
@@ -148,7 +148,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Error, Written]
+        Union[Error, OrgDeleteResponse200]
     """
 
     return sync_detailed(
@@ -163,10 +163,10 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient,
     body: ConfirmOnly,
-) -> Response[Union[Error, Written]]:
+) -> Response[Union[Error, OrgDeleteResponse200]]:
     """Delete an organization
 
-     With its teams, invites and apps; the owner.
+     With its teams, invites and apps; the owner. `apps`: the apps deleted with it.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
     `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
@@ -182,7 +182,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Error, Written]]
+        Response[Union[Error, OrgDeleteResponse200]]
     """
 
     kwargs = _get_kwargs(
@@ -200,10 +200,10 @@ async def asyncio(
     *,
     client: AuthenticatedClient,
     body: ConfirmOnly,
-) -> Optional[Union[Error, Written]]:
+) -> Optional[Union[Error, OrgDeleteResponse200]]:
     """Delete an organization
 
-     With its teams, invites and apps; the owner.
+     With its teams, invites and apps; the owner. `apps`: the apps deleted with it.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
     `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
@@ -219,7 +219,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Error, Written]
+        Union[Error, OrgDeleteResponse200]
     """
 
     return (

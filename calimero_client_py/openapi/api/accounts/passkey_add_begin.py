@@ -68,7 +68,8 @@ def sync_detailed(
 ) -> Response[Union[Error, PasskeyAddBeginResponse200]]:
     """Start adding a passkey
 
-     Creation options for another passkey (a device) on the caller's account.
+     Creation options for another passkey (a device) on the caller's account. `options` are the WebAuthn
+    options to hand to the browser as they are: free-form here, their shape is WebAuthn's.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend).
 
@@ -95,7 +96,8 @@ def sync(
 ) -> Optional[Union[Error, PasskeyAddBeginResponse200]]:
     """Start adding a passkey
 
-     Creation options for another passkey (a device) on the caller's account.
+     Creation options for another passkey (a device) on the caller's account. `options` are the WebAuthn
+    options to hand to the browser as they are: free-form here, their shape is WebAuthn's.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend).
 
@@ -118,7 +120,8 @@ async def asyncio_detailed(
 ) -> Response[Union[Error, PasskeyAddBeginResponse200]]:
     """Start adding a passkey
 
-     Creation options for another passkey (a device) on the caller's account.
+     Creation options for another passkey (a device) on the caller's account. `options` are the WebAuthn
+    options to hand to the browser as they are: free-form here, their shape is WebAuthn's.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend).
 
@@ -143,7 +146,8 @@ async def asyncio(
 ) -> Optional[Union[Error, PasskeyAddBeginResponse200]]:
     """Start adding a passkey
 
-     Creation options for another passkey (a device) on the caller's account.
+     Creation options for another passkey (a device) on the caller's account. `options` are the WebAuthn
+    options to hand to the browser as they are: free-form here, their shape is WebAuthn's.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend).
 

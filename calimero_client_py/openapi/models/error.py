@@ -14,13 +14,16 @@ T = TypeVar("T", bound="Error")
 
 @_attrs_define
 class Error:
-    """An error answer.
+    """An error answer: `error` is the code. `details`, absent for most codes, has the schema `x-calimero-details` names
+    for the code on the operation's response (every code's: `x-calimero-error-details` at the document's root); a code
+    it names no schema for carries none, or a value clients need not read.
 
-    Attributes:
-        status (int):
-        error (str):
-        message (str):
-        details (Union[Unset, Any]):
+        Attributes:
+            status (int):
+            error (str):
+            message (str):
+            details (Union[Unset, Any]): Free-form JSON: its shape is not this API's (see the description around it for
+                whose it is).
     """
 
     status: int

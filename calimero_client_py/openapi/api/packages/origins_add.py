@@ -9,7 +9,7 @@ from ... import errors
 
 from ...models.error import Error
 from ...models.origins_add_body import OriginsAddBody
-from ...models.written import Written
+from ...models.package_origin import PackageOrigin
 from typing import cast
 
 
@@ -37,9 +37,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[Error, Written]]:
+) -> Optional[Union[Error, PackageOrigin]]:
     if response.status_code == 200:
-        response_200 = Written.from_dict(response.json())
+        response_200 = PackageOrigin.from_dict(response.json())
 
         return response_200
 
@@ -81,7 +81,7 @@ def _parse_response(
 
 def _build_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[Error, Written]]:
+) -> Response[Union[Error, PackageOrigin]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -95,10 +95,11 @@ def sync_detailed(
     *,
     client: AuthenticatedClient,
     body: OriginsAddBody,
-) -> Response[Union[Error, Written]]:
+) -> Response[Union[Error, PackageOrigin]]:
     """Register a frontend origin
 
-     By whoever manages the package, with a passkey step-up over the change.
+     By whoever manages the package, with a passkey step-up over the change. Answers the origin as
+    registered (the one already there, when the same origin is registered again).
 
     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
     `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
@@ -113,7 +114,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Error, Written]]
+        Response[Union[Error, PackageOrigin]]
     """
 
     kwargs = _get_kwargs(
@@ -133,10 +134,11 @@ def sync(
     *,
     client: AuthenticatedClient,
     body: OriginsAddBody,
-) -> Optional[Union[Error, Written]]:
+) -> Optional[Union[Error, PackageOrigin]]:
     """Register a frontend origin
 
-     By whoever manages the package, with a passkey step-up over the change.
+     By whoever manages the package, with a passkey step-up over the change. Answers the origin as
+    registered (the one already there, when the same origin is registered again).
 
     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
     `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
@@ -151,7 +153,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Error, Written]
+        Union[Error, PackageOrigin]
     """
 
     return sync_detailed(
@@ -166,10 +168,11 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient,
     body: OriginsAddBody,
-) -> Response[Union[Error, Written]]:
+) -> Response[Union[Error, PackageOrigin]]:
     """Register a frontend origin
 
-     By whoever manages the package, with a passkey step-up over the change.
+     By whoever manages the package, with a passkey step-up over the change. Answers the origin as
+    registered (the one already there, when the same origin is registered again).
 
     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
     `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
@@ -184,7 +187,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Error, Written]]
+        Response[Union[Error, PackageOrigin]]
     """
 
     kwargs = _get_kwargs(
@@ -202,10 +205,11 @@ async def asyncio(
     *,
     client: AuthenticatedClient,
     body: OriginsAddBody,
-) -> Optional[Union[Error, Written]]:
+) -> Optional[Union[Error, PackageOrigin]]:
     """Register a frontend origin
 
-     By whoever manages the package, with a passkey step-up over the change.
+     By whoever manages the package, with a passkey step-up over the change. Answers the origin as
+    registered (the one already there, when the same origin is registered again).
 
     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
     `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
@@ -220,7 +224,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Error, Written]
+        Union[Error, PackageOrigin]
     """
 
     return (

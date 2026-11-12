@@ -1,9 +1,8 @@
 from enum import Enum
 
 
-class AppAttestationPurpose(str, Enum):
-    KMS = "kms"
-    RECEIPTS = "receipts"
+class RunFinalType0OutcomeType1Kind(str, Enum):
+    FAILED = "failed"
 
     def __str__(self) -> str:
         return str(self.value)

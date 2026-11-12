@@ -9,7 +9,7 @@ from ... import errors
 
 from ...models.error import Error
 from ...models.ops_sign_up_set_body import OpsSignUpSetBody
-from ...models.written import Written
+from ...models.sign_up_set import SignUpSet
 from typing import cast
 
 
@@ -34,9 +34,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[Error, Written]]:
+) -> Optional[Union[Error, SignUpSet]]:
     if response.status_code == 200:
-        response_200 = Written.from_dict(response.json())
+        response_200 = SignUpSet.from_dict(response.json())
 
         return response_200
 
@@ -63,7 +63,7 @@ def _parse_response(
 
 def _build_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[Error, Written]]:
+) -> Response[Union[Error, SignUpSet]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -76,7 +76,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient,
     body: OpsSignUpSetBody,
-) -> Response[Union[Error, Written]]:
+) -> Response[Union[Error, SignUpSet]]:
     """Set the sign-up policy
 
      Refused once the cluster's owner runs sign-up.
@@ -93,7 +93,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Error, Written]]
+        Response[Union[Error, SignUpSet]]
     """
 
     kwargs = _get_kwargs(
@@ -111,7 +111,7 @@ def sync(
     *,
     client: AuthenticatedClient,
     body: OpsSignUpSetBody,
-) -> Optional[Union[Error, Written]]:
+) -> Optional[Union[Error, SignUpSet]]:
     """Set the sign-up policy
 
      Refused once the cluster's owner runs sign-up.
@@ -128,7 +128,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Error, Written]
+        Union[Error, SignUpSet]
     """
 
     return sync_detailed(
@@ -141,7 +141,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient,
     body: OpsSignUpSetBody,
-) -> Response[Union[Error, Written]]:
+) -> Response[Union[Error, SignUpSet]]:
     """Set the sign-up policy
 
      Refused once the cluster's owner runs sign-up.
@@ -158,7 +158,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Error, Written]]
+        Response[Union[Error, SignUpSet]]
     """
 
     kwargs = _get_kwargs(
@@ -174,7 +174,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient,
     body: OpsSignUpSetBody,
-) -> Optional[Union[Error, Written]]:
+) -> Optional[Union[Error, SignUpSet]]:
     """Set the sign-up policy
 
      Refused once the cluster's owner runs sign-up.
@@ -191,7 +191,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Error, Written]
+        Union[Error, SignUpSet]
     """
 
     return (

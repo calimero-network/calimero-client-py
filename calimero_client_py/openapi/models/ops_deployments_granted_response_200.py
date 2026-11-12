@@ -6,6 +6,12 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
+from typing import cast
+
+if TYPE_CHECKING:
+    from ..models.governance import Governance
+
+
 T = TypeVar("T", bound="OpsDeploymentsGrantedResponse200")
 
 
@@ -13,14 +19,18 @@ T = TypeVar("T", bound="OpsDeploymentsGrantedResponse200")
 class OpsDeploymentsGrantedResponse200:
     """
     Attributes:
-        governance (Any):
+        governance (Governance): Who decides what on this cluster: release approvals, app upgrades and outbound
+            approvals (`owner`: each app's owner; `operator`: the operator), and, left out at their defaults, `deployments`
+            (`open`), `deployers` (`operator`) and `signUp` (`open`).
     """
 
-    governance: Any
+    governance: "Governance"
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        governance = self.governance
+        from ..models.governance import Governance
+
+        governance = self.governance.to_dict()
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -34,8 +44,10 @@ class OpsDeploymentsGrantedResponse200:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.governance import Governance
+
         d = dict(src_dict)
-        governance = d.pop("governance")
+        governance = Governance.from_dict(d.pop("governance"))
 
         ops_deployments_granted_response_200 = cls(
             governance=governance,

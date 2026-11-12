@@ -6,6 +6,8 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
+from typing import cast
+
 T = TypeVar("T", bound="RecoveryFinishResponse200")
 
 
@@ -14,11 +16,11 @@ class RecoveryFinishResponse200:
     """
     Attributes:
         org (str):
-        previous_owners (Any):
+        previous_owners (list[str]):
     """
 
     org: str
-    previous_owners: Any
+    previous_owners: list[str]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -42,7 +44,7 @@ class RecoveryFinishResponse200:
         d = dict(src_dict)
         org = d.pop("org")
 
-        previous_owners = d.pop("previousOwners")
+        previous_owners = cast(list[str], d.pop("previousOwners"))
 
         recovery_finish_response_200 = cls(
             org=org,

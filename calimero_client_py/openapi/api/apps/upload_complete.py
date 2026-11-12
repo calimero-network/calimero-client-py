@@ -41,6 +41,11 @@ def _parse_response(
 
         return response_401
 
+    if response.status_code == 409:
+        response_409 = Error.from_dict(response.json())
+
+        return response_409
+
     if response.status_code == 421:
         response_421 = Error.from_dict(response.json())
 
@@ -71,7 +76,8 @@ def sync_detailed(
 ) -> Response[Union[Error, UploadCompleteResponse200]]:
     """Commit an upload
 
-     Charges and commits the file; a retry answers the same file.
+     Charges and commits the file; a retry answers the same file. `409 UPLOAD_INCOMPLETE` names the part
+    still missing.
 
     **Who:** signed in (a session or an API key).
 
@@ -107,7 +113,8 @@ def sync(
 ) -> Optional[Union[Error, UploadCompleteResponse200]]:
     """Commit an upload
 
-     Charges and commits the file; a retry answers the same file.
+     Charges and commits the file; a retry answers the same file. `409 UPLOAD_INCOMPLETE` names the part
+    still missing.
 
     **Who:** signed in (a session or an API key).
 
@@ -138,7 +145,8 @@ async def asyncio_detailed(
 ) -> Response[Union[Error, UploadCompleteResponse200]]:
     """Commit an upload
 
-     Charges and commits the file; a retry answers the same file.
+     Charges and commits the file; a retry answers the same file. `409 UPLOAD_INCOMPLETE` names the part
+    still missing.
 
     **Who:** signed in (a session or an API key).
 
@@ -172,7 +180,8 @@ async def asyncio(
 ) -> Optional[Union[Error, UploadCompleteResponse200]]:
     """Commit an upload
 
-     Charges and commits the file; a retry answers the same file.
+     Charges and commits the file; a retry answers the same file. `409 UPLOAD_INCOMPLETE` names the part
+    still missing.
 
     **Who:** signed in (a session or an API key).
 

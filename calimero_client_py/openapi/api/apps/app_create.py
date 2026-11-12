@@ -105,8 +105,9 @@ def sync_detailed(
     """Create an app instance
 
      From a release (`package`, `version`, `service`), a deployment's offer (`deployment`), or an
-    uploaded `bundle`; in an organization (`org`) or the caller's own. `initArgs` go to the app's
-    `init`.
+    uploaded `bundle`; in an organization (`org`) or the caller's own. `initArgs` go to the app's `init`
+    and `metadata` is kept as given (both free-form JSON). Answers once `init` committed; `compute` says
+    whether the app has a compute component.
 
     **Who:** an installer (an account holder, or an unscoped API key that is not read-only).
 
@@ -140,8 +141,9 @@ def sync(
     """Create an app instance
 
      From a release (`package`, `version`, `service`), a deployment's offer (`deployment`), or an
-    uploaded `bundle`; in an organization (`org`) or the caller's own. `initArgs` go to the app's
-    `init`.
+    uploaded `bundle`; in an organization (`org`) or the caller's own. `initArgs` go to the app's `init`
+    and `metadata` is kept as given (both free-form JSON). Answers once `init` committed; `compute` says
+    whether the app has a compute component.
 
     **Who:** an installer (an account holder, or an unscoped API key that is not read-only).
 
@@ -170,8 +172,9 @@ async def asyncio_detailed(
     """Create an app instance
 
      From a release (`package`, `version`, `service`), a deployment's offer (`deployment`), or an
-    uploaded `bundle`; in an organization (`org`) or the caller's own. `initArgs` go to the app's
-    `init`.
+    uploaded `bundle`; in an organization (`org`) or the caller's own. `initArgs` go to the app's `init`
+    and `metadata` is kept as given (both free-form JSON). Answers once `init` committed; `compute` says
+    whether the app has a compute component.
 
     **Who:** an installer (an account holder, or an unscoped API key that is not read-only).
 
@@ -203,8 +206,9 @@ async def asyncio(
     """Create an app instance
 
      From a release (`package`, `version`, `service`), a deployment's offer (`deployment`), or an
-    uploaded `bundle`; in an organization (`org`) or the caller's own. `initArgs` go to the app's
-    `init`.
+    uploaded `bundle`; in an organization (`org`) or the caller's own. `initArgs` go to the app's `init`
+    and `metadata` is kept as given (both free-form JSON). Answers once `init` committed; `compute` says
+    whether the app has a compute component.
 
     **Who:** an installer (an account holder, or an unscoped API key that is not read-only).
 

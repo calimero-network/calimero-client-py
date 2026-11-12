@@ -6,6 +6,7 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
+from ..models.node_role import NodeRole
 from typing import cast, Union
 
 T = TypeVar("T", bound="OpsPlacementResponse200NodesItem")
@@ -17,14 +18,14 @@ class OpsPlacementResponse200NodesItem:
     Attributes:
         id (int):
         zone (str):
-        role (Any):
+        role (NodeRole): What a node does: hold app replicas, or run compute jobs.
         release (Union[None, str]):
         apps (int):
     """
 
     id: int
     zone: str
-    role: Any
+    role: NodeRole
     release: Union[None, str]
     apps: int
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -34,7 +35,7 @@ class OpsPlacementResponse200NodesItem:
 
         zone = self.zone
 
-        role = self.role
+        role = self.role.value
 
         release: Union[None, str]
         release = self.release
@@ -62,7 +63,7 @@ class OpsPlacementResponse200NodesItem:
 
         zone = d.pop("zone")
 
-        role = d.pop("role")
+        role = NodeRole(d.pop("role"))
 
         def _parse_release(data: object) -> Union[None, str]:
             if data is None:

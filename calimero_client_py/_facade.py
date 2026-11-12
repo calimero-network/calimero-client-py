@@ -5,7 +5,8 @@ transport treats it) and hands over the path's arguments, the query's and
 the JSON body's fields as given; `Group._run` builds the generated request,
 sends it through the client's sealed transport with the step-ups the client
 answers, raises a refusal as `CloudError`, and answers the generated model
-of the success (or, for the deprecated methods, the JSON as it came).
+of the success (or, for `client.json.*` and the client's own `_op`, the
+JSON as it came).
 """
 
 import io
@@ -72,7 +73,7 @@ def _enum_of(annotation: Any) -> Any:
 
 def _query_enums(module: Any, query: Dict[str, Any]) -> Dict[str, Any]:
     """The query with each value a generated call takes as an enum given as
-    one (the deprecated methods pass the plain value)."""
+    one (a `client.json.*` call may pass the plain value)."""
     hints = typing.get_type_hints(module._get_kwargs)
     out = dict(query)
     for name, value in query.items():
@@ -121,8 +122,8 @@ def _is_passkey(value: Any) -> bool:
 
 class Group:
     """The operations of one tag, on a client. With `as_json`, a method answers
-    the node's JSON as it came rather than the generated model (what the
-    deprecated methods return)."""
+    the node's JSON as it came rather than the generated model (what
+    `client.json.*` answers)."""
 
     def __init__(self, client: Any, as_json: bool = False):
         self._client = client
@@ -194,9 +195,9 @@ class Group:
             try:
                 op.body.from_dict(dict(fields or {}))
             except (KeyError, ValueError, TypeError, AttributeError):
-                # The deprecated methods send what they always sent (a `null`
+                # A `client.json.*` call sends the fields as given (a `null`
                 # where the document names an enum, say), which the node
-                # takes; a facade call is held to the document.
+                # may take; a facade call is held to the document.
                 if not self._as_json:
                     raise
             kwargs["body"] = _Raw(fields or {})

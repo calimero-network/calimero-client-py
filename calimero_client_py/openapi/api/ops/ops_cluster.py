@@ -63,7 +63,9 @@ def sync_detailed(
 ) -> Response[Union[Error, OpsClusterResponse200]]:
     """The cluster's identity
 
-     **Who:** the ops token.
+     The cluster's name and the identity this replica holds (hex).
+
+    **Who:** the ops token.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -88,7 +90,9 @@ def sync(
 ) -> Optional[Union[Error, OpsClusterResponse200]]:
     """The cluster's identity
 
-     **Who:** the ops token.
+     The cluster's name and the identity this replica holds (hex).
+
+    **Who:** the ops token.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -109,7 +113,9 @@ async def asyncio_detailed(
 ) -> Response[Union[Error, OpsClusterResponse200]]:
     """The cluster's identity
 
-     **Who:** the ops token.
+     The cluster's name and the identity this replica holds (hex).
+
+    **Who:** the ops token.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -132,7 +138,9 @@ async def asyncio(
 ) -> Optional[Union[Error, OpsClusterResponse200]]:
     """The cluster's identity
 
-     **Who:** the ops token.
+     The cluster's name and the identity this replica holds (hex).
+
+    **Who:** the ops token.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

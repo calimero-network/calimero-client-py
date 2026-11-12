@@ -1,7 +1,7 @@
 {
   "repository": "https://github.com/calimero-network/core",
   "ref": "master",
-  "commit": "1ce553a5881cf49b46359bed510cd90650333aea",
+  "commit": "92ac297a1b3547aa039dac63825625fa8d7024ce",
   "path": "docs/public/openapi.json",
-  "sha256": "a29d08c59e0d54812ae21830309a183d76b067abd994797514337b54149627af"
+  "sha256": "6b6ba492dbb7599ef35fa759c30a30a90fed5fe287a2aebc56ef4bcb7ef55770"
 }
