@@ -61,21 +61,30 @@ BINDING = json.loads(
 
 
 def test_the_nonce_and_binding_are_the_ones_core_computes():
-    assert recovery.recovery_attestation_nonce("c", 1) == BINDING["nonce"]
+    cluster, node = BINDING["cluster"], BINDING["node"]
+    assert recovery.recovery_attestation_nonce(cluster, node) == BINDING["nonce"]
     key = bytes.fromhex(BINDING["signingKey"])
+    governance = BINDING["governance"]
     assert (
-        recovery.receipt_key_binding(key, BINDING["governance"]) == BINDING["binding"]
+        recovery.receipt_key_binding(key, governance, cluster, node)
+        == BINDING["binding"]
+    )
+    # Another node's quote binds other bytes.
+    assert (
+        recovery.receipt_key_binding(key, governance, cluster, node + 1)
+        != BINDING["binding"]
     )
 
 
 def test_the_quote_verifier_is_asked_for_that_nonce_and_binding():
     header = dict(recovery.verify_header(FIXTURE["header"], FIXTURE["signature"]))
     header["signingKey"] = BINDING["signingKey"]
+    header["cluster"], header["node"] = BINDING["cluster"], BINDING["node"]
     header["attestation"] = {
         "quote": "cXVvdGU=",
         "nonce": BINDING["nonce"],
-        "cluster": "c",
-        "node": 1,
+        "cluster": BINDING["cluster"],
+        "node": BINDING["node"],
         "receiptKey": BINDING["signingKey"],
         "governance": BINDING["governance"],
     }

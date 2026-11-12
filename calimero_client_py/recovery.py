@@ -30,6 +30,7 @@ import hashlib
 import hmac
 import json
 import os
+import struct
 from typing import Any, Callable, Dict, Iterable, List, Optional
 
 RECOVERY_FORMAT = 1
@@ -177,11 +178,22 @@ def recovery_attestation_nonce(cluster: str, node: int) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def receipt_key_binding(receipt_key: bytes, governance: Any) -> str:
-    """What a receipt-key quote binds after its nonce (core's ``receipt_key_binding``), hex."""
+def receipt_key_binding(
+    receipt_key: bytes, governance: Any, cluster: str, node: int
+) -> str:
+    """What a receipt-key quote binds after its nonce (core's ``receipt_key_binding``,
+    ``receipt-key.v3``), hex: the key, the governance as the node serialized it,
+    and the cluster (u32-BE length-prefixed) and node id (u64 BE), so one node's
+    quote never stands for another node's or another cluster's."""
     g = hashlib.sha256(json.dumps(governance, separators=(",", ":")).encode()).digest()
+    name = cluster.encode()
     return hashlib.sha256(
-        b"calimero.tee-attest.receipt-key.v2" + receipt_key + g
+        b"calimero.tee-attest.receipt-key.v3"
+        + receipt_key
+        + g
+        + struct.pack(">I", len(name))
+        + name
+        + struct.pack(">Q", node)
     ).hexdigest()
 
 
@@ -205,7 +217,10 @@ def verify_attestation(
     if doc.get("nonce") != nonce:
         raise ValueError("the attestation is not over the recovery nonce")
     suffix = receipt_key_binding(
-        bytes.fromhex(header["signingKey"]), doc.get("governance")
+        bytes.fromhex(header["signingKey"]),
+        doc.get("governance"),
+        header["cluster"],
+        header["node"],
     )
     if not verify_quote(doc["quote"], nonce, suffix):
         raise ValueError("the quote was not accepted")
