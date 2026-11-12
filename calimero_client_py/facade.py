@@ -16,15 +16,11 @@ call, `confirm=` takes a passkey, a ready `confirm` value or `False`, and
 
 from .openapi.api.accounts import account_apps as _account_apps
 from .openapi.api.accounts import account_backup_key as _account_backup_key
-from .openapi.api.accounts import (
-    account_outbound_approval as _account_outbound_approval,
-)
 from .openapi.api.accounts import account_proof_prove as _account_proof_prove
 from .openapi.api.accounts import account_recovery_begin as _account_recovery_begin
 from .openapi.api.accounts import account_recovery_cancel as _account_recovery_cancel
 from .openapi.api.accounts import account_recovery_finish as _account_recovery_finish
 from .openapi.api.accounts import account_recovery_start as _account_recovery_start
-from .openapi.api.accounts import account_release_approval as _account_release_approval
 from .openapi.api.accounts import account_set_backup_key as _account_set_backup_key
 from .openapi.api.accounts import activity_list as _activity_list
 from .openapi.api.accounts import alias_delete as _alias_delete
@@ -230,12 +226,10 @@ from .openapi.api.sign_up_and_deployments import (
 )
 from .openapi.api.sign_up_and_deployments import sign_up_public as _sign_up_public
 from .openapi.api.sign_up_and_deployments import sign_up_set as _sign_up_set
-from .openapi.models import AccountOutboundApprovalBody
 from .openapi.models import AccountProofProveBody
 from .openapi.models import AccountRecoveryBeginBody
 from .openapi.models import AccountRecoveryFinishBody
 from .openapi.models import AccountRecoveryStartBody
-from .openapi.models import AccountReleaseApprovalBody
 from .openapi.models import AccountSetBackupKeyBody
 from .openapi.models import AliasSetBody
 from .openapi.models import ApikeyCreateBody
@@ -815,7 +809,7 @@ class Apps(Group):
     ):
         """Create an app instance (`POST /apps`, `app_create`).
 
-        From a release (`package`, `version`, `service`), a deployment's offer (`deployment`), or an uploaded `bundle`; in an organization (`org`) or the caller's own. `initArgs` go to the app's `init` and `metadata` is kept as given (both free-form JSON). Answers once `init` committed; `compute` says whether the app has a compute component.
+        From a release (`package`, `version`, `service`), a deployment's offer (`deployment`), or an uploaded `bundle`; in an organization (`org`), or, naming none, the caller's personal organization. Every app is in an organization. `initArgs` go to the app's `init` and `metadata` is kept as given (both free-form JSON). Answers once `init` committed; `compute` says whether the app has a compute component.
 
         **Who:** an installer (an account holder, or an unscoped API key that is not read-only).
 
@@ -1589,13 +1583,6 @@ _ACCOUNT_BACKUP_KEY = Operation(
     body="none",
     answer="json",
 )
-_ACCOUNT_OUTBOUND_APPROVAL = Operation(
-    _account_outbound_approval,
-    "account_outbound_approval",
-    body=AccountOutboundApprovalBody,
-    answer="json",
-    confirm=True,
-)
 _ACCOUNT_PROOF_PROVE = Operation(
     _account_proof_prove,
     "account_proof_prove",
@@ -1630,13 +1617,6 @@ _ACCOUNT_RECOVERY_START = Operation(
     body=AccountRecoveryStartBody,
     answer="json",
     once=True,
-)
-_ACCOUNT_RELEASE_APPROVAL = Operation(
-    _account_release_approval,
-    "account_release_approval",
-    body=AccountReleaseApprovalBody,
-    answer="json",
-    confirm=True,
 )
 _ACCOUNT_SET_BACKUP_KEY = Operation(
     _account_set_backup_key,
@@ -1782,7 +1762,7 @@ class Auth(Group):
     def account_apps(self, *, after=UNSET, limit=UNSET):
         """The account's own apps (`GET /auth/apps`, `account_apps`).
 
-        Outside any organization (a package-bound session: its package's): each app's release, the newer releases it may upgrade to, its last upgrade, its replicas' releases and `lastWriteAt`.
+        The apps the account owns, in any organization (a package-bound session: its package's), with its personal organization's `approvedReleases`: each app's release, the newer releases it may upgrade to, its last upgrade, its replicas' releases and `lastWriteAt`.
 
         **Who:** signed in (a session or an API key).
 
@@ -1804,29 +1784,6 @@ class Auth(Group):
         Returns: BackupKeyAnswer
         """
         return self._run(_ACCOUNT_BACKUP_KEY, (), {}, None)
-
-    def account_outbound_approval(
-        self, *, package, prefixes=UNSET, replace=UNSET, confirm=None
-    ):
-        """Approve outbound prefixes for the account's apps (`POST /auth/outbound`, `account_outbound_approval`).
-
-        **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over `details.challenge`.
-
-        Args:
-            package: body `package`
-            prefixes: body `prefixes`
-            replace: body `replace`
-            confirm: a passkey for the step-up, a ready `confirm`, or False
-
-        Returns: OutboundApproved
-        """
-        return self._run(
-            _ACCOUNT_OUTBOUND_APPROVAL,
-            (),
-            {},
-            {"package": package, "prefixes": prefixes, "replace": replace},
-            confirm=confirm,
-        )
 
     def account_proof_prove(self, *, nonce, audience):
         """Prove the account to another party (`POST /auth/account-proof`, `account_proof_prove`).
@@ -1909,28 +1866,6 @@ class Auth(Group):
             (),
             {},
             {"challengeId": challenge_id, "code": code, "registration": registration},
-        )
-
-    def account_release_approval(self, *, version, approved=UNSET, confirm=None):
-        """Approve a mero-tee release for the account's apps (`POST /auth/releases`, `account_release_approval`).
-
-        Where the owner holds release approvals; `412` first.
-
-        **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over `details.challenge`.
-
-        Args:
-            version: body `version`
-            approved: body `approved`
-            confirm: a passkey for the step-up, a ready `confirm`, or False
-
-        Returns: ApprovedReleases
-        """
-        return self._run(
-            _ACCOUNT_RELEASE_APPROVAL,
-            (),
-            {},
-            {"version": version, "approved": approved},
-            confirm=confirm,
         )
 
     def account_set_backup_key(self, *, public_key, confirm=None):
@@ -2130,7 +2065,7 @@ class Auth(Group):
     def me(self):
         """The caller's account (`GET /auth/me`, `me`).
 
-        The account, its passkeys (with `addedAt` and `lastSignInAt`), organizations, approvals and recovery state, and how the caller came (`via`).
+        The account, its passkeys (with `addedAt` and `lastSignInAt`), organizations (`personal`: the one made at sign-up, where its instances go unless they name another; its approvals are that organization's), recovery state, and how the caller came (`via`).
 
         **Who:** signed in (a session or an API key).
 
@@ -2609,7 +2544,7 @@ class Deployments(Group):
     def orgs(self, *, id):
         """The organizations a deployment serves (`GET /deployments/{id}/orgs`, `deployment_orgs`).
 
-        For its managers: each organization with instances from it, its name (`null` when unknown), member counts (`activeMembers30d`: active in the last 30 days), its instances and the releases they run, and when its first was created (RFC 3339); instances outside an organization are only counted (`outsideOrgs`). Never who the members are.
+        For its managers: each organization with instances from it, its name (`null` when unknown), member counts (`activeMembers30d`: active in the last 30 days), its instances and the releases they run, and when its first was created (RFC 3339); instances outside an organization, or in a personal organization, are only counted (`outsideOrgs`). Never who the members are.
 
         **Who:** signed in (a session or an API key).
 
@@ -4132,7 +4067,7 @@ class Orgs(Group):
     def create(self, *, name, recovery_key=UNSET):
         """Create an organization (`POST /orgs`, `org_create`).
 
-        `recoveryKey` is the public half of an organization recovery key.
+        `recoveryKey` is the public half of an organization recovery key. Every account also has a personal organization from sign-up (`personal` in `/auth/me`), which this does not make.
 
         **Who:** a passkey session (an API key is refused).
 

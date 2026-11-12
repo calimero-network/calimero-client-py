@@ -18,9 +18,6 @@ if TYPE_CHECKING:
     from ..models.me_response_200_recovery_pending_type_0 import (
         MeResponse200RecoveryPendingType0,
     )
-    from ..models.me_response_200_outbound_approvals import (
-        MeResponse200OutboundApprovals,
-    )
 
 
 T = TypeVar("T", bound="MeResponse200")
@@ -36,8 +33,6 @@ class MeResponse200:
         orgs (list['MeResponse200OrgsItem']):
         via (MeResponse200Via):
         passkey_id (Union[None, str]):
-        approved_releases (list[str]):
-        outbound_approvals (MeResponse200OutboundApprovals):
         app (Union[None, Unset, str]):
         origin (Union[None, Unset, str]):
         recovery_code (Union[Unset, bool]):
@@ -50,8 +45,6 @@ class MeResponse200:
     orgs: list["MeResponse200OrgsItem"]
     via: MeResponse200Via
     passkey_id: Union[None, str]
-    approved_releases: list[str]
-    outbound_approvals: "MeResponse200OutboundApprovals"
     app: Union[None, Unset, str] = UNSET
     origin: Union[None, Unset, str] = UNSET
     recovery_code: Union[Unset, bool] = UNSET
@@ -63,9 +56,6 @@ class MeResponse200:
         from ..models.me_response_200_passkeys_item import MeResponse200PasskeysItem
         from ..models.me_response_200_recovery_pending_type_0 import (
             MeResponse200RecoveryPendingType0,
-        )
-        from ..models.me_response_200_outbound_approvals import (
-            MeResponse200OutboundApprovals,
         )
 
         account_id = self.account_id
@@ -86,10 +76,6 @@ class MeResponse200:
 
         passkey_id: Union[None, str]
         passkey_id = self.passkey_id
-
-        approved_releases = self.approved_releases
-
-        outbound_approvals = self.outbound_approvals.to_dict()
 
         app: Union[None, Unset, str]
         if isinstance(self.app, Unset):
@@ -123,8 +109,6 @@ class MeResponse200:
                 "orgs": orgs,
                 "via": via,
                 "passkeyId": passkey_id,
-                "approvedReleases": approved_releases,
-                "outboundApprovals": outbound_approvals,
             }
         )
         if app is not UNSET:
@@ -144,9 +128,6 @@ class MeResponse200:
         from ..models.me_response_200_passkeys_item import MeResponse200PasskeysItem
         from ..models.me_response_200_recovery_pending_type_0 import (
             MeResponse200RecoveryPendingType0,
-        )
-        from ..models.me_response_200_outbound_approvals import (
-            MeResponse200OutboundApprovals,
         )
 
         d = dict(src_dict)
@@ -176,12 +157,6 @@ class MeResponse200:
             return cast(Union[None, str], data)
 
         passkey_id = _parse_passkey_id(d.pop("passkeyId"))
-
-        approved_releases = cast(list[str], d.pop("approvedReleases"))
-
-        outbound_approvals = MeResponse200OutboundApprovals.from_dict(
-            d.pop("outboundApprovals")
-        )
 
         def _parse_app(data: object) -> Union[None, Unset, str]:
             if data is None:
@@ -231,8 +206,6 @@ class MeResponse200:
             orgs=orgs,
             via=via,
             passkey_id=passkey_id,
-            approved_releases=approved_releases,
-            outbound_approvals=outbound_approvals,
             app=app,
             origin=origin,
             recovery_code=recovery_code,

@@ -11,7 +11,6 @@ from .access_type_3_kind import AccessType3Kind
 from .access_type_4 import AccessType4
 from .access_type_4_kind import AccessType4Kind
 from .account_apps_response_200 import AccountAppsResponse200
-from .account_outbound_approval_body import AccountOutboundApprovalBody
 from .account_proof import AccountProof
 from .account_proof_prove_body import AccountProofProveBody
 from .account_recovery_begin_body import AccountRecoveryBeginBody
@@ -20,7 +19,6 @@ from .account_recovery_cancel_response_200 import AccountRecoveryCancelResponse2
 from .account_recovery_finish_body import AccountRecoveryFinishBody
 from .account_recovery_start_body import AccountRecoveryStartBody
 from .account_recovery_start_response_200 import AccountRecoveryStartResponse200
-from .account_release_approval_body import AccountReleaseApprovalBody
 from .account_set_backup_key_body import AccountSetBackupKeyBody
 from .account_statement import AccountStatement
 from .activity_list_response_200 import ActivityListResponse200
@@ -268,7 +266,6 @@ from .logout_all_response_200 import LogoutAllResponse200
 from .logout_response_200 import LogoutResponse200
 from .me_response_200 import MeResponse200
 from .me_response_200_orgs_item import MeResponse200OrgsItem
-from .me_response_200_outbound_approvals import MeResponse200OutboundApprovals
 from .me_response_200_passkeys_item import MeResponse200PasskeysItem
 from .me_response_200_recovery_pending_type_0 import MeResponse200RecoveryPendingType0
 from .me_response_200_via import MeResponse200Via
@@ -615,7 +612,6 @@ __all__ = (
     "AccessType4",
     "AccessType4Kind",
     "AccountAppsResponse200",
-    "AccountOutboundApprovalBody",
     "AccountProof",
     "AccountProofProveBody",
     "AccountRecoveryBeginBody",
@@ -624,7 +620,6 @@ __all__ = (
     "AccountRecoveryFinishBody",
     "AccountRecoveryStartBody",
     "AccountRecoveryStartResponse200",
-    "AccountReleaseApprovalBody",
     "AccountSetBackupKeyBody",
     "AccountStatement",
     "ActivityListResponse200",
@@ -847,7 +842,6 @@ __all__ = (
     "MemberSetTeamsResponse200",
     "MeResponse200",
     "MeResponse200OrgsItem",
-    "MeResponse200OutboundApprovals",
     "MeResponse200PasskeysItem",
     "MeResponse200RecoveryPendingType0",
     "MeResponse200Via",
