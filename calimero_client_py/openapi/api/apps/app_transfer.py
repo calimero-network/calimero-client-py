@@ -9,7 +9,6 @@ from ... import errors
 
 from ...models.app_transfer_body import AppTransferBody
 from ...models.error import Error
-from ...models.written import Written
 from typing import cast
 
 
@@ -37,10 +36,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[Error, Written]]:
+) -> Optional[Union[Error, None]]:
     if response.status_code == 200:
-        response_200 = Written.from_dict(response.json())
-
+        response_200 = cast(None, response.json())
         return response_200
 
     if response.status_code == 400:
@@ -76,7 +74,7 @@ def _parse_response(
 
 def _build_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[Error, Written]]:
+) -> Response[Union[Error, None]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -90,11 +88,11 @@ def sync_detailed(
     *,
     client: AuthenticatedClient,
     body: AppTransferBody,
-) -> Response[Union[Error, Written]]:
+) -> Response[Union[Error, None]]:
     """Hand an app to another account
 
      The owner (for an organization's app, while a member and in the app's team), or an organization
-    admin; an organization's app only to a member.
+    admin; an organization's app only to a member. Answers `null`.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
     `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
@@ -109,7 +107,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Error, Written]]
+        Response[Union[Error, None]]
     """
 
     kwargs = _get_kwargs(
@@ -129,11 +127,11 @@ def sync(
     *,
     client: AuthenticatedClient,
     body: AppTransferBody,
-) -> Optional[Union[Error, Written]]:
+) -> Optional[Union[Error, None]]:
     """Hand an app to another account
 
      The owner (for an organization's app, while a member and in the app's team), or an organization
-    admin; an organization's app only to a member.
+    admin; an organization's app only to a member. Answers `null`.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
     `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
@@ -148,7 +146,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Error, Written]
+        Union[Error, None]
     """
 
     return sync_detailed(
@@ -163,11 +161,11 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient,
     body: AppTransferBody,
-) -> Response[Union[Error, Written]]:
+) -> Response[Union[Error, None]]:
     """Hand an app to another account
 
      The owner (for an organization's app, while a member and in the app's team), or an organization
-    admin; an organization's app only to a member.
+    admin; an organization's app only to a member. Answers `null`.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
     `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
@@ -182,7 +180,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Error, Written]]
+        Response[Union[Error, None]]
     """
 
     kwargs = _get_kwargs(
@@ -200,11 +198,11 @@ async def asyncio(
     *,
     client: AuthenticatedClient,
     body: AppTransferBody,
-) -> Optional[Union[Error, Written]]:
+) -> Optional[Union[Error, None]]:
     """Hand an app to another account
 
      The owner (for an organization's app, while a member and in the app's team), or an organization
-    admin; an organization's app only to a member.
+    admin; an organization's app only to a member. Answers `null`.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
     `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
@@ -219,7 +217,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Error, Written]
+        Union[Error, None]
     """
 
     return (

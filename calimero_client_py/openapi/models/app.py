@@ -44,8 +44,8 @@ class App:
             confirm_methods (list[str]):
             replicas (list[int]):
             created_at (int):
-            init_args (Any):
-            metadata (Any):
+            init_args (Any): Free-form JSON: its shape is not this API's (see the description around it for whose it is).
+            metadata (Any): Free-form JSON: its shape is not this API's (see the description around it for whose it is).
             executor (Union[Unset, AppExecutor]):
             compute_bundle (Union[Unset, str]):
             last_upgrade (Union[Unset, Upgrade]): The last upgrade tried on an app, done or failed: `from` and `to` are

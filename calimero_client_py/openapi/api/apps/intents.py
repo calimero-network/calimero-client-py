@@ -125,7 +125,8 @@ def sync_detailed(
 
      A logged call: the result, the events of the call the caller receives, and the answering node's
     receipt. A `confirm` method answers `412` first. An app error is `422 APP_ERROR` with `details {
-    index, code, fields }`; a trap `422 TRAP`.
+    index, code, fields }`; a trap `422 TRAP`. `args`, `result` and each event's `data` are the app's
+    own JSON, free-form here: the app's ABI (`GET /apps/{app}/abi`, or its OpenAPI document) types them.
 
     **Who:** whoever the app's access admits (a public app: anyone). **Step-up:** when the method is a
     `confirm` method of the app's ABI, answers `412 CONFIRM_REQUIRED` first; send the same request again
@@ -165,7 +166,8 @@ def sync(
 
      A logged call: the result, the events of the call the caller receives, and the answering node's
     receipt. A `confirm` method answers `412` first. An app error is `422 APP_ERROR` with `details {
-    index, code, fields }`; a trap `422 TRAP`.
+    index, code, fields }`; a trap `422 TRAP`. `args`, `result` and each event's `data` are the app's
+    own JSON, free-form here: the app's ABI (`GET /apps/{app}/abi`, or its OpenAPI document) types them.
 
     **Who:** whoever the app's access admits (a public app: anyone). **Step-up:** when the method is a
     `confirm` method of the app's ABI, answers `412 CONFIRM_REQUIRED` first; send the same request again
@@ -200,7 +202,8 @@ async def asyncio_detailed(
 
      A logged call: the result, the events of the call the caller receives, and the answering node's
     receipt. A `confirm` method answers `412` first. An app error is `422 APP_ERROR` with `details {
-    index, code, fields }`; a trap `422 TRAP`.
+    index, code, fields }`; a trap `422 TRAP`. `args`, `result` and each event's `data` are the app's
+    own JSON, free-form here: the app's ABI (`GET /apps/{app}/abi`, or its OpenAPI document) types them.
 
     **Who:** whoever the app's access admits (a public app: anyone). **Step-up:** when the method is a
     `confirm` method of the app's ABI, answers `412 CONFIRM_REQUIRED` first; send the same request again
@@ -238,7 +241,8 @@ async def asyncio(
 
      A logged call: the result, the events of the call the caller receives, and the answering node's
     receipt. A `confirm` method answers `412` first. An app error is `422 APP_ERROR` with `details {
-    index, code, fields }`; a trap `422 TRAP`.
+    index, code, fields }`; a trap `422 TRAP`. `args`, `result` and each event's `data` are the app's
+    own JSON, free-form here: the app's ABI (`GET /apps/{app}/abi`, or its OpenAPI document) types them.
 
     **Who:** whoever the app's access admits (a public app: anyone). **Step-up:** when the method is a
     `confirm` method of the app's ABI, answers `412 CONFIRM_REQUIRED` first; send the same request again

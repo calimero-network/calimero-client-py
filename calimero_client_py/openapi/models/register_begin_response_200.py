@@ -14,7 +14,7 @@ class RegisterBeginResponse200:
     """
     Attributes:
         challenge_id (str):
-        options (Any):
+        options (Any): Free-form JSON: its shape is not this API's (see the description around it for whose it is).
     """
 
     challenge_id: str

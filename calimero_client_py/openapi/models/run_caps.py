@@ -6,29 +6,59 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
-T = TypeVar("T", bound="Written")
+T = TypeVar("T", bound="RunCaps")
 
 
 @_attrs_define
-class Written:
-    """What the system log answered for the command this request wrote (for example the id it made)."""
+class RunCaps:
+    """
+    Attributes:
+        fuel (int):
+        memory_mib (int):
+        wall_secs (int):
+    """
 
+    fuel: int
+    memory_mib: int
+    wall_secs: int
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        fuel = self.fuel
+
+        memory_mib = self.memory_mib
+
+        wall_secs = self.wall_secs
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
+        field_dict.update(
+            {
+                "fuel": fuel,
+                "memoryMib": memory_mib,
+                "wallSecs": wall_secs,
+            }
+        )
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        written = cls()
+        fuel = d.pop("fuel")
 
-        written.additional_properties = d
-        return written
+        memory_mib = d.pop("memoryMib")
+
+        wall_secs = d.pop("wallSecs")
+
+        run_caps = cls(
+            fuel=fuel,
+            memory_mib=memory_mib,
+            wall_secs=wall_secs,
+        )
+
+        run_caps.additional_properties = d
+        return run_caps
 
     @property
     def additional_keys(self) -> list[str]:

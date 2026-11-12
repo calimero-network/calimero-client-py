@@ -99,7 +99,8 @@ def sync_detailed(
     """Bind a package signing key
 
      The key's signature over the binding proves the organization holds it; then its `MANAGE_APPLICATION`
-    holders upgrade the apps of packages that name `publisher`.
+    holders upgrade the apps of packages that name `publisher`. Answers the key's binding generation
+    now.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
     `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
@@ -138,7 +139,8 @@ def sync(
     """Bind a package signing key
 
      The key's signature over the binding proves the organization holds it; then its `MANAGE_APPLICATION`
-    holders upgrade the apps of packages that name `publisher`.
+    holders upgrade the apps of packages that name `publisher`. Answers the key's binding generation
+    now.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
     `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
@@ -172,7 +174,8 @@ async def asyncio_detailed(
     """Bind a package signing key
 
      The key's signature over the binding proves the organization holds it; then its `MANAGE_APPLICATION`
-    holders upgrade the apps of packages that name `publisher`.
+    holders upgrade the apps of packages that name `publisher`. Answers the key's binding generation
+    now.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
     `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
@@ -209,7 +212,8 @@ async def asyncio(
     """Bind a package signing key
 
      The key's signature over the binding proves the organization holds it; then its `MANAGE_APPLICATION`
-    holders upgrade the apps of packages that name `publisher`.
+    holders upgrade the apps of packages that name `publisher`. Answers the key's binding generation
+    now.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
     `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over

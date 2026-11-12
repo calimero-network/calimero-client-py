@@ -34,8 +34,10 @@ class AppCreateBody:
         org (Union[Unset, str]):
         access (Union['AccessType0', 'AccessType1', 'AccessType2', 'AccessType3', 'AccessType4', Unset]): Who may reach
             an app at all.
-        init_args (Union[Unset, Any]):
-        metadata (Union[Unset, Any]):
+        init_args (Union[Unset, Any]): Free-form JSON: its shape is not this API's (see the description around it for
+            whose it is).
+        metadata (Union[Unset, Any]): Free-form JSON: its shape is not this API's (see the description around it for
+            whose it is).
         deployment (Union[Unset, str]):
     """
 

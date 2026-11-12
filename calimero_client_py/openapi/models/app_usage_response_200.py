@@ -9,7 +9,7 @@ from ..types import UNSET, Unset
 from typing import cast
 
 if TYPE_CHECKING:
-    from ..models.app_usage_response_200_days_item import AppUsageResponse200DaysItem
+    from ..models.usage_day import UsageDay
 
 
 T = TypeVar("T", bound="AppUsageResponse200")
@@ -19,20 +19,19 @@ T = TypeVar("T", bound="AppUsageResponse200")
 class AppUsageResponse200:
     """
     Attributes:
-        today (Any):
-        days (list['AppUsageResponse200DaysItem']):
+        today (UsageDay): What an app's runs used on one UTC day (`date`, `YYYY-MM-DD`), each figure a decimal string;
+            `wallMs` is information only.
+        days (list['UsageDay']):
     """
 
-    today: Any
-    days: list["AppUsageResponse200DaysItem"]
+    today: "UsageDay"
+    days: list["UsageDay"]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.app_usage_response_200_days_item import (
-            AppUsageResponse200DaysItem,
-        )
+        from ..models.usage_day import UsageDay
 
-        today = self.today
+        today = self.today.to_dict()
 
         days = []
         for days_item_data in self.days:
@@ -52,17 +51,15 @@ class AppUsageResponse200:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.app_usage_response_200_days_item import (
-            AppUsageResponse200DaysItem,
-        )
+        from ..models.usage_day import UsageDay
 
         d = dict(src_dict)
-        today = d.pop("today")
+        today = UsageDay.from_dict(d.pop("today"))
 
         days = []
         _days = d.pop("days")
         for days_item_data in _days:
-            days_item = AppUsageResponse200DaysItem.from_dict(days_item_data)
+            days_item = UsageDay.from_dict(days_item_data)
 
             days.append(days_item)
 

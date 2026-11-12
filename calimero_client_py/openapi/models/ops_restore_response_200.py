@@ -6,6 +6,13 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
+from typing import cast
+
+if TYPE_CHECKING:
+    from ..models.group_status import GroupStatus
+    from ..models.ops_restore_response_200_backup import OpsRestoreResponse200Backup
+
+
 T = TypeVar("T", bound="OpsRestoreResponse200")
 
 
@@ -16,27 +23,31 @@ class OpsRestoreResponse200:
         app (str):
         group (int):
         rows (int):
-        backup (Any):
-        status (str):
+        backup (OpsRestoreResponse200Backup):
+        status (GroupStatus): A Raft group's status as one node sees it: the leader (`null`: none known), whether this
+            node is it, the term, the last log index (`null`: an empty log), the applied index, and the voters and learners.
     """
 
     app: str
     group: int
     rows: int
-    backup: Any
-    status: str
+    backup: "OpsRestoreResponse200Backup"
+    status: "GroupStatus"
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.group_status import GroupStatus
+        from ..models.ops_restore_response_200_backup import OpsRestoreResponse200Backup
+
         app = self.app
 
         group = self.group
 
         rows = self.rows
 
-        backup = self.backup
+        backup = self.backup.to_dict()
 
-        status = self.status
+        status = self.status.to_dict()
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -54,6 +65,9 @@ class OpsRestoreResponse200:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.group_status import GroupStatus
+        from ..models.ops_restore_response_200_backup import OpsRestoreResponse200Backup
+
         d = dict(src_dict)
         app = d.pop("app")
 
@@ -61,9 +75,9 @@ class OpsRestoreResponse200:
 
         rows = d.pop("rows")
 
-        backup = d.pop("backup")
+        backup = OpsRestoreResponse200Backup.from_dict(d.pop("backup"))
 
-        status = d.pop("status")
+        status = GroupStatus.from_dict(d.pop("status"))
 
         ops_restore_response_200 = cls(
             app=app,

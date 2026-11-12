@@ -6,12 +6,18 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
-T = TypeVar("T", bound="OpsQuotasGetResponse200")
+from typing import cast
+
+if TYPE_CHECKING:
+    from ..models.quota_settings_orgs import QuotaSettingsOrgs
+
+
+T = TypeVar("T", bound="QuotaSettings")
 
 
 @_attrs_define
-class OpsQuotasGetResponse200:
-    """Other properties than those listed may be present: the ones listed are those clients rely on.
+class QuotaSettings:
+    """`GET /ops/quotas`: the cluster's limits and, under `orgs`, each payer's overrides by payer id.
 
     Attributes:
         max_apps_per_account (int):
@@ -23,7 +29,7 @@ class OpsQuotasGetResponse200:
         max_concurrent_runs_per_org (int):
         compute_fuel_per_org (int):
         max_fuel_per_developer_per_day (str): an unsigned 64-bit integer as a decimal string (D20)
-        orgs (Any):
+        orgs (QuotaSettingsOrgs):
     """
 
     max_apps_per_account: int
@@ -35,10 +41,12 @@ class OpsQuotasGetResponse200:
     max_concurrent_runs_per_org: int
     compute_fuel_per_org: int
     max_fuel_per_developer_per_day: str
-    orgs: Any
+    orgs: "QuotaSettingsOrgs"
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.quota_settings_orgs import QuotaSettingsOrgs
+
         max_apps_per_account = self.max_apps_per_account
 
         max_bundle_bytes_per_account = self.max_bundle_bytes_per_account
@@ -57,7 +65,7 @@ class OpsQuotasGetResponse200:
 
         max_fuel_per_developer_per_day = self.max_fuel_per_developer_per_day
 
-        orgs = self.orgs
+        orgs = self.orgs.to_dict()
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -80,6 +88,8 @@ class OpsQuotasGetResponse200:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.quota_settings_orgs import QuotaSettingsOrgs
+
         d = dict(src_dict)
         max_apps_per_account = d.pop("maxAppsPerAccount")
 
@@ -99,9 +109,9 @@ class OpsQuotasGetResponse200:
 
         max_fuel_per_developer_per_day = d.pop("maxFuelPerDeveloperPerDay")
 
-        orgs = d.pop("orgs")
+        orgs = QuotaSettingsOrgs.from_dict(d.pop("orgs"))
 
-        ops_quotas_get_response_200 = cls(
+        quota_settings = cls(
             max_apps_per_account=max_apps_per_account,
             max_bundle_bytes_per_account=max_bundle_bytes_per_account,
             max_api_keys_per_account=max_api_keys_per_account,
@@ -114,8 +124,8 @@ class OpsQuotasGetResponse200:
             orgs=orgs,
         )
 
-        ops_quotas_get_response_200.additional_properties = d
-        return ops_quotas_get_response_200
+        quota_settings.additional_properties = d
+        return quota_settings
 
     @property
     def additional_keys(self) -> list[str]:

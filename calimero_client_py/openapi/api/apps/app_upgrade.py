@@ -108,7 +108,8 @@ def sync_detailed(
     (`upgrades`: the owner, or its publisher's `MANAGE_APPLICATION` holders), with a step-up over `{
     bundle, migrate, manifest }`; an upgrade key signs in place of it. A refused or failed upgrade
     leaves the app on its release and answers `422 UPGRADE_FAILED` with the app log's error in `details`
-    (`MigrationsNotSupported` when `migrate` is named: there are no migrations in this version).
+    (`MigrationsNotSupported` when `migrate` is named: there are no migrations in this version). `error`
+    is the app log's error value (`null` when it ran), free-form: the app's own.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
     `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
@@ -151,7 +152,8 @@ def sync(
     (`upgrades`: the owner, or its publisher's `MANAGE_APPLICATION` holders), with a step-up over `{
     bundle, migrate, manifest }`; an upgrade key signs in place of it. A refused or failed upgrade
     leaves the app on its release and answers `422 UPGRADE_FAILED` with the app log's error in `details`
-    (`MigrationsNotSupported` when `migrate` is named: there are no migrations in this version).
+    (`MigrationsNotSupported` when `migrate` is named: there are no migrations in this version). `error`
+    is the app log's error value (`null` when it ran), free-form: the app's own.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
     `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
@@ -189,7 +191,8 @@ async def asyncio_detailed(
     (`upgrades`: the owner, or its publisher's `MANAGE_APPLICATION` holders), with a step-up over `{
     bundle, migrate, manifest }`; an upgrade key signs in place of it. A refused or failed upgrade
     leaves the app on its release and answers `422 UPGRADE_FAILED` with the app log's error in `details`
-    (`MigrationsNotSupported` when `migrate` is named: there are no migrations in this version).
+    (`MigrationsNotSupported` when `migrate` is named: there are no migrations in this version). `error`
+    is the app log's error value (`null` when it ran), free-form: the app's own.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
     `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
@@ -230,7 +233,8 @@ async def asyncio(
     (`upgrades`: the owner, or its publisher's `MANAGE_APPLICATION` holders), with a step-up over `{
     bundle, migrate, manifest }`; an upgrade key signs in place of it. A refused or failed upgrade
     leaves the app on its release and answers `422 UPGRADE_FAILED` with the app log's error in `details`
-    (`MigrationsNotSupported` when `migrate` is named: there are no migrations in this version).
+    (`MigrationsNotSupported` when `migrate` is named: there are no migrations in this version). `error`
+    is the app log's error value (`null` when it ran), free-form: the app's own.
 
     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
     `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over

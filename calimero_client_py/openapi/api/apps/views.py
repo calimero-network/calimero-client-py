@@ -90,7 +90,8 @@ def sync_detailed(
 
      Read on a caught-up replica (`consistency: \"strong\"`, the default; any value but `\"stale\"` reads
     as it), or (`\"stale\"`) on the one answering; `minIndex` waits until the replica applied it (`503
-    NOT_CAUGHT_UP`).
+    NOT_CAUGHT_UP`). `args`, `result` and each event's `data` are the app's own JSON, free-form here:
+    the app's ABI (`GET /apps/{app}/abi`, or its OpenAPI document) types them.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 
@@ -128,7 +129,8 @@ def sync(
 
      Read on a caught-up replica (`consistency: \"strong\"`, the default; any value but `\"stale\"` reads
     as it), or (`\"stale\"`) on the one answering; `minIndex` waits until the replica applied it (`503
-    NOT_CAUGHT_UP`).
+    NOT_CAUGHT_UP`). `args`, `result` and each event's `data` are the app's own JSON, free-form here:
+    the app's ABI (`GET /apps/{app}/abi`, or its OpenAPI document) types them.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 
@@ -161,7 +163,8 @@ async def asyncio_detailed(
 
      Read on a caught-up replica (`consistency: \"strong\"`, the default; any value but `\"stale\"` reads
     as it), or (`\"stale\"`) on the one answering; `minIndex` waits until the replica applied it (`503
-    NOT_CAUGHT_UP`).
+    NOT_CAUGHT_UP`). `args`, `result` and each event's `data` are the app's own JSON, free-form here:
+    the app's ABI (`GET /apps/{app}/abi`, or its OpenAPI document) types them.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 
@@ -197,7 +200,8 @@ async def asyncio(
 
      Read on a caught-up replica (`consistency: \"strong\"`, the default; any value but `\"stale\"` reads
     as it), or (`\"stale\"`) on the one answering; `minIndex` waits until the replica applied it (`503
-    NOT_CAUGHT_UP`).
+    NOT_CAUGHT_UP`). `args`, `result` and each event's `data` are the app's own JSON, free-form here:
+    the app's ABI (`GET /apps/{app}/abi`, or its OpenAPI document) types them.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 

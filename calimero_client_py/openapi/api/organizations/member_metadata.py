@@ -81,7 +81,9 @@ def sync_detailed(
 ) -> Response[Union[Error, MemberMetadataResponse200]]:
     """Set a member's metadata
 
-     **Who:** signed in (a session or an API key).
+     `metadata` is the caller's own JSON, free-form, kept as given.
+
+    **Who:** signed in (a session or an API key).
 
     Args:
         org (str):
@@ -118,7 +120,9 @@ def sync(
 ) -> Optional[Union[Error, MemberMetadataResponse200]]:
     """Set a member's metadata
 
-     **Who:** signed in (a session or an API key).
+     `metadata` is the caller's own JSON, free-form, kept as given.
+
+    **Who:** signed in (a session or an API key).
 
     Args:
         org (str):
@@ -150,7 +154,9 @@ async def asyncio_detailed(
 ) -> Response[Union[Error, MemberMetadataResponse200]]:
     """Set a member's metadata
 
-     **Who:** signed in (a session or an API key).
+     `metadata` is the caller's own JSON, free-form, kept as given.
+
+    **Who:** signed in (a session or an API key).
 
     Args:
         org (str):
@@ -185,7 +191,9 @@ async def asyncio(
 ) -> Optional[Union[Error, MemberMetadataResponse200]]:
     """Set a member's metadata
 
-     **Who:** signed in (a session or an API key).
+     `metadata` is the caller's own JSON, free-form, kept as given.
+
+    **Who:** signed in (a session or an API key).
 
     Args:
         org (str):

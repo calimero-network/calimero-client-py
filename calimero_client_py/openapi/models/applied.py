@@ -6,28 +6,31 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
+from ..models.applied_status import AppliedStatus
+
 T = TypeVar("T", bound="Applied")
 
 
 @_attrs_define
 class Applied:
-    """An entry an app's log applied: its index, how it ended and the app's error, if any.
+    """An entry an app's log applied: its index, how it ended and the app's error (`null` when it ended `ok`; the app's own
+    error value otherwise, free-form). `details` of a `422 UPGRADE_FAILED`.
 
-    Attributes:
-        index (int):
-        status (str):
-        error (Any):
+        Attributes:
+            index (int):
+            status (AppliedStatus):
+            error (Any): Free-form JSON: its shape is not this API's (see the description around it for whose it is).
     """
 
     index: int
-    status: str
+    status: AppliedStatus
     error: Any
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         index = self.index
 
-        status = self.status
+        status = self.status.value
 
         error = self.error
 
@@ -48,7 +51,7 @@ class Applied:
         d = dict(src_dict)
         index = d.pop("index")
 
-        status = d.pop("status")
+        status = AppliedStatus(d.pop("status"))
 
         error = d.pop("error")
 

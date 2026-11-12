@@ -73,7 +73,8 @@ def sync_detailed(
 ) -> Response[Union[Error, InviteRedeemResponse200]]:
     """Join with an invite
 
-     No passkey prompt: the node signs the redemption with the token's key.
+     No passkey prompt: the node signs the redemption with the token's key. Answers the organization
+    joined.
 
     **Who:** a passkey session (an API key is refused).
 
@@ -106,7 +107,8 @@ def sync(
 ) -> Optional[Union[Error, InviteRedeemResponse200]]:
     """Join with an invite
 
-     No passkey prompt: the node signs the redemption with the token's key.
+     No passkey prompt: the node signs the redemption with the token's key. Answers the organization
+    joined.
 
     **Who:** a passkey session (an API key is refused).
 
@@ -134,7 +136,8 @@ async def asyncio_detailed(
 ) -> Response[Union[Error, InviteRedeemResponse200]]:
     """Join with an invite
 
-     No passkey prompt: the node signs the redemption with the token's key.
+     No passkey prompt: the node signs the redemption with the token's key. Answers the organization
+    joined.
 
     **Who:** a passkey session (an API key is refused).
 
@@ -165,7 +168,8 @@ async def asyncio(
 ) -> Optional[Union[Error, InviteRedeemResponse200]]:
     """Join with an invite
 
-     No passkey prompt: the node signs the redemption with the token's key.
+     No passkey prompt: the node signs the redemption with the token's key. Answers the organization
+    joined.
 
     **Who:** a passkey session (an API key is refused).
 

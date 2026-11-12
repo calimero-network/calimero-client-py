@@ -9,7 +9,7 @@ from ... import errors
 
 from ...models.confirm_only import ConfirmOnly
 from ...models.error import Error
-from ...models.written import Written
+from ...models.invite_key import InviteKey
 from typing import cast
 
 
@@ -37,9 +37,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[Error, Written]]:
+) -> Optional[Union[Error, InviteKey]]:
     if response.status_code == 200:
-        response_200 = Written.from_dict(response.json())
+        response_200 = InviteKey.from_dict(response.json())
 
         return response_200
 
@@ -76,7 +76,7 @@ def _parse_response(
 
 def _build_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[Error, Written]]:
+) -> Response[Union[Error, InviteKey]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -90,7 +90,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient,
     body: ConfirmOnly,
-) -> Response[Union[Error, Written]]:
+) -> Response[Union[Error, InviteKey]]:
     """Withdraw a cluster sign-up invite
 
      **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
@@ -107,7 +107,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Error, Written]]
+        Response[Union[Error, InviteKey]]
     """
 
     kwargs = _get_kwargs(
@@ -127,7 +127,7 @@ def sync(
     *,
     client: AuthenticatedClient,
     body: ConfirmOnly,
-) -> Optional[Union[Error, Written]]:
+) -> Optional[Union[Error, InviteKey]]:
     """Withdraw a cluster sign-up invite
 
      **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
@@ -144,7 +144,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Error, Written]
+        Union[Error, InviteKey]
     """
 
     return sync_detailed(
@@ -159,7 +159,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient,
     body: ConfirmOnly,
-) -> Response[Union[Error, Written]]:
+) -> Response[Union[Error, InviteKey]]:
     """Withdraw a cluster sign-up invite
 
      **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
@@ -176,7 +176,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Error, Written]]
+        Response[Union[Error, InviteKey]]
     """
 
     kwargs = _get_kwargs(
@@ -194,7 +194,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient,
     body: ConfirmOnly,
-) -> Optional[Union[Error, Written]]:
+) -> Optional[Union[Error, InviteKey]]:
     """Withdraw a cluster sign-up invite
 
      **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
@@ -211,7 +211,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Error, Written]
+        Union[Error, InviteKey]
     """
 
     return (

@@ -84,7 +84,8 @@ def sync_detailed(
     """An app's OpenAPI document
 
      Generated from the ABI of the bundle the app runs, under the access `/abi` has: one `POST
-    /apps/{app}/methods/{method}` per method, with its arguments, result and errors.
+    /apps/{app}/methods/{method}` per method, with its arguments, result and errors. Free-form here: it
+    is a document of its own, which a client reads as OpenAPI.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 
@@ -118,7 +119,8 @@ def sync(
     """An app's OpenAPI document
 
      Generated from the ABI of the bundle the app runs, under the access `/abi` has: one `POST
-    /apps/{app}/methods/{method}` per method, with its arguments, result and errors.
+    /apps/{app}/methods/{method}` per method, with its arguments, result and errors. Free-form here: it
+    is a document of its own, which a client reads as OpenAPI.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 
@@ -147,7 +149,8 @@ async def asyncio_detailed(
     """An app's OpenAPI document
 
      Generated from the ABI of the bundle the app runs, under the access `/abi` has: one `POST
-    /apps/{app}/methods/{method}` per method, with its arguments, result and errors.
+    /apps/{app}/methods/{method}` per method, with its arguments, result and errors. Free-form here: it
+    is a document of its own, which a client reads as OpenAPI.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 
@@ -179,7 +182,8 @@ async def asyncio(
     """An app's OpenAPI document
 
      Generated from the ABI of the bundle the app runs, under the access `/abi` has: one `POST
-    /apps/{app}/methods/{method}` per method, with its arguments, result and errors.
+    /apps/{app}/methods/{method}` per method, with its arguments, result and errors. Free-form here: it
+    is a document of its own, which a client reads as OpenAPI.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 

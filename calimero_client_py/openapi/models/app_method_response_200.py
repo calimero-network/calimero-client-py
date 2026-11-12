@@ -25,7 +25,7 @@ class AppMethodResponse200:
     """
     Attributes:
         index (int):
-        result (Any):
+        result (Any): Free-form JSON: its shape is not this API's (see the description around it for whose it is).
         receipt (Receipt): The answering node's signature (receipt key, hex) over `(app, index, SHA-256(JCS(result)),
             node)`.
         events (Union[Unset, list['AppMethodResponse200EventsItem']]):

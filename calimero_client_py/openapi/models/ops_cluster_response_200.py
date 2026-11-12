@@ -13,12 +13,12 @@ T = TypeVar("T", bound="OpsClusterResponse200")
 class OpsClusterResponse200:
     """
     Attributes:
-        cluster (Any):
-        identity (Any):
+        cluster (str):
+        identity (str):
     """
 
-    cluster: Any
-    identity: Any
+    cluster: str
+    identity: str
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

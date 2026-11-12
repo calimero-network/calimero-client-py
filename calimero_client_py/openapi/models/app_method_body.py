@@ -22,7 +22,8 @@ T = TypeVar("T", bound="AppMethodBody")
 class AppMethodBody:
     """
     Attributes:
-        args (Union[Unset, Any]):
+        args (Union[Unset, Any]): Free-form JSON: its shape is not this API's (see the description around it for whose
+            it is).
         idempotency_key (Union[Unset, str]):
         confirm (Union[Unset, Confirm]): A passkey assertion over the challenge a `412 CONFIRM_REQUIRED` named: the same
             request sent again with it approves exactly that request.

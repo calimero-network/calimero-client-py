@@ -6,29 +6,45 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
-T = TypeVar("T", bound="AppRunResponse200")
+from ..models.run_final_type_0_outcome_type_0_kind import RunFinalType0OutcomeType0Kind
+
+T = TypeVar("T", bound="RunFinalType0OutcomeType0")
 
 
 @_attrs_define
-class AppRunResponse200:
-    """ """
+class RunFinalType0OutcomeType0:
+    """
+    Attributes:
+        kind (RunFinalType0OutcomeType0Kind):
+    """
 
+    kind: RunFinalType0OutcomeType0Kind
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        kind = self.kind.value
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
+        field_dict.update(
+            {
+                "kind": kind,
+            }
+        )
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        app_run_response_200 = cls()
+        kind = RunFinalType0OutcomeType0Kind(d.pop("kind"))
 
-        app_run_response_200.additional_properties = d
-        return app_run_response_200
+        run_final_type_0_outcome_type_0 = cls(
+            kind=kind,
+        )
+
+        run_final_type_0_outcome_type_0.additional_properties = d
+        return run_final_type_0_outcome_type_0
 
     @property
     def additional_keys(self) -> list[str]:

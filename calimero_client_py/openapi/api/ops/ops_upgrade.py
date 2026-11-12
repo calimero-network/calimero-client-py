@@ -98,7 +98,8 @@ def sync_detailed(
 ) -> Response[Union[Error, OpsUpgradeResponse200]]:
     """Upgrade an app as the operator
 
-     To a release the operator installed, where the operator holds app upgrades.
+     To a release the operator installed, where the operator holds app upgrades. `error` is the app log's
+    error value (`null` when it ran), free-form: the app's own.
 
     **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first;
     send it again with `operatorProof`, the operator key's signature over `details.message` and its
@@ -136,7 +137,8 @@ def sync(
 ) -> Optional[Union[Error, OpsUpgradeResponse200]]:
     """Upgrade an app as the operator
 
-     To a release the operator installed, where the operator holds app upgrades.
+     To a release the operator installed, where the operator holds app upgrades. `error` is the app log's
+    error value (`null` when it ran), free-form: the app's own.
 
     **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first;
     send it again with `operatorProof`, the operator key's signature over `details.message` and its
@@ -169,7 +171,8 @@ async def asyncio_detailed(
 ) -> Response[Union[Error, OpsUpgradeResponse200]]:
     """Upgrade an app as the operator
 
-     To a release the operator installed, where the operator holds app upgrades.
+     To a release the operator installed, where the operator holds app upgrades. `error` is the app log's
+    error value (`null` when it ran), free-form: the app's own.
 
     **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first;
     send it again with `operatorProof`, the operator key's signature over `details.message` and its
@@ -205,7 +208,8 @@ async def asyncio(
 ) -> Optional[Union[Error, OpsUpgradeResponse200]]:
     """Upgrade an app as the operator
 
-     To a release the operator installed, where the operator holds app upgrades.
+     To a release the operator installed, where the operator holds app upgrades. `error` is the app log's
+    error value (`null` when it ran), free-form: the app's own.
 
     **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first;
     send it again with `operatorProof`, the operator key's signature over `details.message` and its

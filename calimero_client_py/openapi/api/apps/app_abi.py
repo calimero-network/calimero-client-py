@@ -68,7 +68,8 @@ def sync_detailed(
 ) -> Response[Union[AppAbiResponse200, Error]]:
     """An app's ABI
 
-     The ABI its bundle embeds: methods, events, errors and state.
+     The ABI its bundle embeds: methods, events, errors and state. `abi` is the bundle's own document,
+    free-form here: its format is the ABI's, not this API's.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 
@@ -101,7 +102,8 @@ def sync(
 ) -> Optional[Union[AppAbiResponse200, Error]]:
     """An app's ABI
 
-     The ABI its bundle embeds: methods, events, errors and state.
+     The ABI its bundle embeds: methods, events, errors and state. `abi` is the bundle's own document,
+    free-form here: its format is the ABI's, not this API's.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 
@@ -129,7 +131,8 @@ async def asyncio_detailed(
 ) -> Response[Union[AppAbiResponse200, Error]]:
     """An app's ABI
 
-     The ABI its bundle embeds: methods, events, errors and state.
+     The ABI its bundle embeds: methods, events, errors and state. `abi` is the bundle's own document,
+    free-form here: its format is the ABI's, not this API's.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 
@@ -160,7 +163,8 @@ async def asyncio(
 ) -> Optional[Union[AppAbiResponse200, Error]]:
     """An app's ABI
 
-     The ABI its bundle embeds: methods, events, errors and state.
+     The ABI its bundle embeds: methods, events, errors and state. `abi` is the bundle's own document,
+    free-form here: its format is the ABI's, not this API's.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 

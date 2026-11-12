@@ -6,12 +6,17 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
-from ..types import UNSET, Unset
 from typing import cast
-from typing import Union
+from typing import cast, Union
 
 if TYPE_CHECKING:
+    from ..models.group_status import GroupStatus
     from ..models.governance import Governance
+    from ..models.rollback_status import RollbackStatus
+    from ..models.node_record import NodeRecord
+    from ..models.ops_status_response_200_groups_item import (
+        OpsStatusResponse200GroupsItem,
+    )
 
 
 T = TypeVar("T", bound="OpsStatusResponse200")
@@ -21,46 +26,63 @@ T = TypeVar("T", bound="OpsStatusResponse200")
 class OpsStatusResponse200:
     """
     Attributes:
-        node (Any):
-        system (Any):
+        node (int):
+        system (GroupStatus): A Raft group's status as one node sees it: the leader (`null`: none known), whether this
+            node is it, the term, the last log index (`null`: an empty log), the applied index, and the voters and learners.
         governance (Governance): Who decides what on this cluster: release approvals, app upgrades and outbound
             approvals (`owner`: each app's owner; `operator`: the operator), and, left out at their defaults, `deployments`
             (`open`), `deployers` (`operator`) and `signUp` (`open`).
-        groups (Any):
-        nodes (Any):
-        apps (Any):
-        accounts (Any):
-        rollback (Union[Unset, Any]):
+        groups (list['OpsStatusResponse200GroupsItem']):
+        nodes (list['NodeRecord']):
+        apps (int):
+        accounts (int):
+        rollback (Union['RollbackStatus', None]):
     """
 
-    node: Any
-    system: Any
+    node: int
+    system: "GroupStatus"
     governance: "Governance"
-    groups: Any
-    nodes: Any
-    apps: Any
-    accounts: Any
-    rollback: Union[Unset, Any] = UNSET
+    groups: list["OpsStatusResponse200GroupsItem"]
+    nodes: list["NodeRecord"]
+    apps: int
+    accounts: int
+    rollback: Union["RollbackStatus", None]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.group_status import GroupStatus
         from ..models.governance import Governance
+        from ..models.rollback_status import RollbackStatus
+        from ..models.node_record import NodeRecord
+        from ..models.ops_status_response_200_groups_item import (
+            OpsStatusResponse200GroupsItem,
+        )
 
         node = self.node
 
-        system = self.system
+        system = self.system.to_dict()
 
         governance = self.governance.to_dict()
 
-        groups = self.groups
+        groups = []
+        for groups_item_data in self.groups:
+            groups_item = groups_item_data.to_dict()
+            groups.append(groups_item)
 
-        nodes = self.nodes
+        nodes = []
+        for nodes_item_data in self.nodes:
+            nodes_item = nodes_item_data.to_dict()
+            nodes.append(nodes_item)
 
         apps = self.apps
 
         accounts = self.accounts
 
-        rollback = self.rollback
+        rollback: Union[None, dict[str, Any]]
+        if isinstance(self.rollback, RollbackStatus):
+            rollback = self.rollback.to_dict()
+        else:
+            rollback = self.rollback
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -73,33 +95,61 @@ class OpsStatusResponse200:
                 "nodes": nodes,
                 "apps": apps,
                 "accounts": accounts,
+                "rollback": rollback,
             }
         )
-        if rollback is not UNSET:
-            field_dict["rollback"] = rollback
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.group_status import GroupStatus
         from ..models.governance import Governance
+        from ..models.rollback_status import RollbackStatus
+        from ..models.node_record import NodeRecord
+        from ..models.ops_status_response_200_groups_item import (
+            OpsStatusResponse200GroupsItem,
+        )
 
         d = dict(src_dict)
         node = d.pop("node")
 
-        system = d.pop("system")
+        system = GroupStatus.from_dict(d.pop("system"))
 
         governance = Governance.from_dict(d.pop("governance"))
 
-        groups = d.pop("groups")
+        groups = []
+        _groups = d.pop("groups")
+        for groups_item_data in _groups:
+            groups_item = OpsStatusResponse200GroupsItem.from_dict(groups_item_data)
 
-        nodes = d.pop("nodes")
+            groups.append(groups_item)
+
+        nodes = []
+        _nodes = d.pop("nodes")
+        for nodes_item_data in _nodes:
+            nodes_item = NodeRecord.from_dict(nodes_item_data)
+
+            nodes.append(nodes_item)
 
         apps = d.pop("apps")
 
         accounts = d.pop("accounts")
 
-        rollback = d.pop("rollback", UNSET)
+        def _parse_rollback(data: object) -> Union["RollbackStatus", None]:
+            if data is None:
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                rollback_type_0 = RollbackStatus.from_dict(data)
+
+                return rollback_type_0
+            except:  # noqa: E722
+                pass
+            return cast(Union["RollbackStatus", None], data)
+
+        rollback = _parse_rollback(d.pop("rollback"))
 
         ops_status_response_200 = cls(
             node=node,

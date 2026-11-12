@@ -94,7 +94,10 @@ def sync_detailed(
 ) -> Response[Union[AppRunsResponse200, Error]]:
     """An app's compute runs
 
-     **Who:** whoever the app's access admits (a public app: anyone).
+     Newest first, `limit` (1 to 100, default 20) at a time; `next` is the `before` of the next page,
+    `null` on the last.
+
+    **Who:** whoever the app's access admits (a public app: anyone).
 
     Args:
         app (str):
@@ -131,7 +134,10 @@ def sync(
 ) -> Optional[Union[AppRunsResponse200, Error]]:
     """An app's compute runs
 
-     **Who:** whoever the app's access admits (a public app: anyone).
+     Newest first, `limit` (1 to 100, default 20) at a time; `next` is the `before` of the next page,
+    `null` on the last.
+
+    **Who:** whoever the app's access admits (a public app: anyone).
 
     Args:
         app (str):
@@ -163,7 +169,10 @@ async def asyncio_detailed(
 ) -> Response[Union[AppRunsResponse200, Error]]:
     """An app's compute runs
 
-     **Who:** whoever the app's access admits (a public app: anyone).
+     Newest first, `limit` (1 to 100, default 20) at a time; `next` is the `before` of the next page,
+    `null` on the last.
+
+    **Who:** whoever the app's access admits (a public app: anyone).
 
     Args:
         app (str):
@@ -198,7 +207,10 @@ async def asyncio(
 ) -> Optional[Union[AppRunsResponse200, Error]]:
     """An app's compute runs
 
-     **Who:** whoever the app's access admits (a public app: anyone).
+     Newest first, `limit` (1 to 100, default 20) at a time; `next` is the `before` of the next page,
+    `null` on the last.
+
+    **Who:** whoever the app's access admits (a public app: anyone).
 
     Args:
         app (str):

@@ -18,7 +18,8 @@ class ViewsBody:
     """
     Attributes:
         method (str):
-        args (Union[Unset, Any]):
+        args (Union[Unset, Any]): Free-form JSON: its shape is not this API's (see the description around it for whose
+            it is).
         consistency (Union[Unset, ViewsBodyConsistency]):
         min_index (Union[Unset, int]):
     """

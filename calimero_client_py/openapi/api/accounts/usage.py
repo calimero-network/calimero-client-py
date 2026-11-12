@@ -63,8 +63,10 @@ def sync_detailed(
 ) -> Response[Union[Error, UsageResponse200]]:
     """The account's usage against its quotas
 
-     Apps, bundle bytes, API keys and owned organizations; what today's runs of the apps the account
-    develops used (decimal strings).
+     The apps the account owns, its bundle bytes (a decimal string), API keys and owned organizations;
+    the file bytes held by each payer it belongs to (each organization it is in, and `account:<id>` for
+    its own apps); the cluster's quotas; and what today's runs of the apps the account develops used
+    (decimal strings).
 
     **Who:** signed in (a session or an API key).
 
@@ -91,8 +93,10 @@ def sync(
 ) -> Optional[Union[Error, UsageResponse200]]:
     """The account's usage against its quotas
 
-     Apps, bundle bytes, API keys and owned organizations; what today's runs of the apps the account
-    develops used (decimal strings).
+     The apps the account owns, its bundle bytes (a decimal string), API keys and owned organizations;
+    the file bytes held by each payer it belongs to (each organization it is in, and `account:<id>` for
+    its own apps); the cluster's quotas; and what today's runs of the apps the account develops used
+    (decimal strings).
 
     **Who:** signed in (a session or an API key).
 
@@ -115,8 +119,10 @@ async def asyncio_detailed(
 ) -> Response[Union[Error, UsageResponse200]]:
     """The account's usage against its quotas
 
-     Apps, bundle bytes, API keys and owned organizations; what today's runs of the apps the account
-    develops used (decimal strings).
+     The apps the account owns, its bundle bytes (a decimal string), API keys and owned organizations;
+    the file bytes held by each payer it belongs to (each organization it is in, and `account:<id>` for
+    its own apps); the cluster's quotas; and what today's runs of the apps the account develops used
+    (decimal strings).
 
     **Who:** signed in (a session or an API key).
 
@@ -141,8 +147,10 @@ async def asyncio(
 ) -> Optional[Union[Error, UsageResponse200]]:
     """The account's usage against its quotas
 
-     Apps, bundle bytes, API keys and owned organizations; what today's runs of the apps the account
-    develops used (decimal strings).
+     The apps the account owns, its bundle bytes (a decimal string), API keys and owned organizations;
+    the file bytes held by each payer it belongs to (each organization it is in, and `account:<id>` for
+    its own apps); the cluster's quotas; and what today's runs of the apps the account develops used
+    (decimal strings).
 
     **Who:** signed in (a session or an API key).
 

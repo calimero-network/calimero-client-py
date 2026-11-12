@@ -32,7 +32,7 @@ class TeamView:
             name (str):
             parent (Union[None, str]):
             join (TeamJoin): Open (`everyone` who reaches the parent) or restricted (`invite`) membership.
-            metadata (Any):
+            metadata (Any): Free-form JSON: its shape is not this API's (see the description around it for whose it is).
             members (list['TeamViewMembersItem']):
             children (list[str]):
             apps (list['TeamViewAppsItem']):

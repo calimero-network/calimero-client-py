@@ -78,8 +78,8 @@ def sync_detailed(
 ) -> Response[Union[Error, OrgUsageResponse200]]:
     """An organization's usage
 
-     An admin: what today's runs of the apps the organization develops used (decimal strings) and its
-    quotas; a member gets `403`.
+     An admin: how many apps the organization develops, what their runs used today (decimal strings) and
+    the cluster's quotas; a member gets `403`.
 
     **Who:** signed in (a session or an API key).
 
@@ -112,8 +112,8 @@ def sync(
 ) -> Optional[Union[Error, OrgUsageResponse200]]:
     """An organization's usage
 
-     An admin: what today's runs of the apps the organization develops used (decimal strings) and its
-    quotas; a member gets `403`.
+     An admin: how many apps the organization develops, what their runs used today (decimal strings) and
+    the cluster's quotas; a member gets `403`.
 
     **Who:** signed in (a session or an API key).
 
@@ -141,8 +141,8 @@ async def asyncio_detailed(
 ) -> Response[Union[Error, OrgUsageResponse200]]:
     """An organization's usage
 
-     An admin: what today's runs of the apps the organization develops used (decimal strings) and its
-    quotas; a member gets `403`.
+     An admin: how many apps the organization develops, what their runs used today (decimal strings) and
+    the cluster's quotas; a member gets `403`.
 
     **Who:** signed in (a session or an API key).
 
@@ -173,8 +173,8 @@ async def asyncio(
 ) -> Optional[Union[Error, OrgUsageResponse200]]:
     """An organization's usage
 
-     An admin: what today's runs of the apps the organization develops used (decimal strings) and its
-    quotas; a member gets `403`.
+     An admin: how many apps the organization develops, what their runs used today (decimal strings) and
+    the cluster's quotas; a member gets `403`.
 
     **Who:** signed in (a session or an API key).
 
