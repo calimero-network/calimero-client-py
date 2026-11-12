@@ -111,13 +111,19 @@ def test_a_ready_confirm_goes_in_the_body():
     assert native.sent[0]["body"]["confirm"] == ready
 
 
-def test_a_body_open_to_other_fields_takes_them():
-    # `POST /ops/quotas` names only `org`: each limit is a field by its key.
+def test_a_closed_body_takes_only_the_fields_it_names():
+    # Since core 92ac297a1 `POST /ops/quotas` is the closed `QuotaChanges`:
+    # each limit is a keyword argument by its Python name, sent by its JSON
+    # name, and a key that is no limit is refused before anything is sent
+    # (the node would answer `400 UNKNOWN_QUOTA`).
     native = Native(answer(200, {}))
-    client_on(native).ops.quotas_set(maxAppsPerAccount=3, operator_proof=False)
+    client_on(native).ops.quotas_set(max_apps_per_account=3, operator_proof=False)
     assert native.sent[0]["body"] == {"maxAppsPerAccount": 3}
     with pytest.raises(TypeError):
+        client_on(native).ops.quotas_set(maxAppsPerAccount=3, operator_proof=False)
+    with pytest.raises(TypeError):
         client_on(native).orgs.create(name="o", colour="red")
+    assert len(native.sent) == 1
 
 
 def test_operator_proof_takes_a_seed_or_false():
@@ -917,10 +923,10 @@ CASES = [
         {"apps": 1},
     ),
     (
-        lambda c: c.json.ops.quotas_set(**{"apps": 2}),
+        lambda c: c.json.ops.quotas_set(max_apps_per_account=2),
         "POST",
         "/ops/quotas",
-        {"apps": 2},
+        {"maxAppsPerAccount": 2},
         {},
         {},
     ),

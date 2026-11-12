@@ -120,8 +120,10 @@ client.orgs.invite_create(org=org, role="member", teams=[team], ttl_secs=3600)
   `content_type=`, the media type the blob is stored and served with
   (default `application/octet-stream`).
 - **Open bodies.** A body that takes fields the document does not name takes
-  them as further keyword arguments, by their JSON names:
-  `client.ops.quotas_set(maxAppsPerAccount=3)`.
+  them as further keyword arguments, by their JSON names. The current document
+  has none: `POST /ops/quotas` lists every limit, so `quotas_set` takes each by
+  its Python name, `client.ops.quotas_set(max_apps_per_account=3)`, and refuses
+  any other with `TypeError`.
 
 The generated model checks the body before it is sent: a value the document
 does not allow raises `ValueError` and sends nothing.
