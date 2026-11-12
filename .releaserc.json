@@ -1,19 +1,5 @@
 {
-  "_comment": [
-    "Releases while 1.0 is not final: master is a pre-release branch, so a merge",
-    "releases 1.0.0-rc.N (PyPI 1.0.0rcN), whatever the commit types, until a",
-    "stable release exists. The stable line is the branch `stable`, which",
-    "semantic-release requires to exist (a release branch it can release from;",
-    "`release` is taken by the old release/v0.2.x branches).",
-    "1.0.0 final: move `stable` to the commit to ship and run the Release on",
-    "merge workflow on `stable` (workflow_dispatch). After that, either keep",
-    "this shape (master makes 1.1.0-rc.N, `stable` the finals) or make master",
-    "the release branch (drop its `prerelease` and `channel`). RELEASING.md."
-  ],
-  "branches": [
-    { "name": "stable" },
-    { "name": "master", "prerelease": "rc", "channel": "rc" }
-  ],
+  "branches": ["master"],
   "tagFormat": "v${version}",
   "plugins": [
     [

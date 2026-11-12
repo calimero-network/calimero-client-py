@@ -175,47 +175,30 @@ Builds of master that are not tags report it, while the published files carry
 the tag's version. `CHANGELOG.md` stays hand-written; the GitHub Release
 carries the generated notes.
 
-### Versions while 1.0 is not final
+### Versions
 
-master is a pre-release branch (`"prerelease": "rc"`), so every release from
-it is `1.0.0-rc.N`, which PyPI shows as `1.0.0rcN`. Commit types don't change
-that: any release increments `N`. pip installs these only with `--pre` or an
-exact pin.
+master is the release branch (`"branches": ["master"]` in `.releaserc.json`,
+the shape mero-js, kotlin-sdk and swift-sdk use), so every release is a
+stable `MAJOR.MINOR.PATCH`. There is no pre-release line.
 
-The stable line is the `stable` branch. semantic-release refuses to run
-without at least one stable branch. The name `release` cannot be used because
-the old `release/v0.2.x` branches take it.
+Releases up to 1.0.0rc4 were made by hand and left no tags, so
+semantic-release sees no earlier release and starts at **1.0.0**: the first
+merge to master whose commits make a release (a `feat`, `fix`, `perf` or a
+breaking change since the start of the history) tags `v1.0.0`, whatever those
+commits' types, majors included. Every release after that counts from the
+last `v*` tag as the table above says.
 
-**To release 1.0.0:**
+Before it tags anything, release-on-merge.yml computes the version with
+`semantic-release --dry-run` and asks PyPI whether it already has it. If it
+does (say a tag was lost, so semantic-release counts from an older one), the
+run fails and tags nothing: PyPI would refuse the files.
 
-1. Move `stable` to the commit to ship: `git push origin <sha>:stable`.
-2. Run *Release on merge* by hand on `stable` (Actions, Run workflow, branch
-   `stable`). It tags `v1.0.0`, and the tag builds and publishes as above.
-3. Then choose one:
-   - Keep the shape: master makes `1.1.0-rc.N`, and `stable` makes the finals.
-   - Make master the stable branch: in `.releaserc.json`, drop master's
-     `prerelease` and `channel`, and remove the `stable` entry.
-
-### Set up once
-
-semantic-release finds the last release from its tag and from a git note that
-names the tag's channel. Releases up to 1.0.0rc4 were made by hand, with
-neither. Before the first merge that releases, record rc4 and create
-`stable`:
-
-```bash
-git fetch origin
-git tag v1.0.0-rc.4 c46c737            # the commit 1.0.0rc4 was published from
-git notes --ref semantic-release add -m '{"channels":["rc"]}' v1.0.0-rc.4
-git push origin v1.0.0-rc.4 refs/notes/semantic-release
-git push origin c46c737:refs/heads/stable
-```
-
-Pushing that tag starts build-wheels.yml for `1.0.0rc4`, which is already
-on PyPI: reject the pending `pypi` deployment, or approve it and PyPI refuses
-the files. Either way nothing changes. Without these
-refs, release-on-merge.yml stops before it tags anything and says which one
-is missing.
+`CHANGELOG.md` is hand-written. A pull request that changes what users get
+adds its entry under `## Unreleased`. When a release lands, a follow-up
+`docs:` pull request renames that heading to the version (`## 1.0.0`) and
+opens a new `## Unreleased` above it; being `docs:`, it releases nothing.
+(1.0.0's heading was written by the pull request that made master the
+release branch, since its own merge released 1.0.0.)
 
 The workflow needs the organization's GitHub App installed on this
 repository. It reads the App's credentials from `vars.ACTIONS_APP_ID` and
@@ -227,17 +210,16 @@ would not start build-wheels.yml.
 
 - Approving the `pypi` environment's deployment in each `Build and Publish
   Wheels` run on a tag: nothing reaches PyPI without it.
-- Releasing 1.0.0 from `stable`, the one-time setup above, and any tag pushed
-  by hand. Agents never do these.
+- Any tag pushed by hand. Agents never push one.
 
 ### Checking that a release landed
 
-- The tag `vX.Y.Z` (or `vX.Y.Z-rc.N`) and its GitHub Release exist.
+- The tag `vX.Y.Z` and its GitHub Release exist.
 - The `Build and Publish Wheels` run on the tag is green, including the publish
   job after its approval.
 - [PyPI](https://pypi.org/project/calimero-client-py/#history) lists the version
-  (`X.Y.ZrcN` for a pre-release) with the sdist and five wheels;
-  `pip install --pre calimero-client-py==<version>` installs it.
+  with the sdist and five wheels; `pip install calimero-client-py==<version>`
+  installs it.
 
 ### How consumers are bumped
 
