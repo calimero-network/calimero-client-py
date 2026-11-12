@@ -39,6 +39,8 @@ dev = [
     # Signs the .mpk the cluster tests install (per-package origins).
     "cryptography",
 ]
+# Opens the recovery disk's files on the holder's side (calimero_client_py.recovery).
+recovery = ["cryptography"]
 # Regenerates calimero_client_py/openapi (scripts/generate_openapi_client.py).
 codegen = [
     "openapi-python-client==0.26.2",
