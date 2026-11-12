@@ -23,6 +23,7 @@ class AppTeamsScopeBodyAppsItem:
         instances (Union[Unset, list[str]]):
         join (Union[Unset, TeamJoin]): Open (`everyone` who reaches the parent) or restricted (`invite`) membership.
         keep (Union[Unset, list[str]]):
+        child_teams (Union[Unset, bool]):
     """
 
     package: str
@@ -30,6 +31,7 @@ class AppTeamsScopeBodyAppsItem:
     instances: Union[Unset, list[str]] = UNSET
     join: Union[Unset, TeamJoin] = UNSET
     keep: Union[Unset, list[str]] = UNSET
+    child_teams: Union[Unset, bool] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -49,6 +51,8 @@ class AppTeamsScopeBodyAppsItem:
         if not isinstance(self.keep, Unset):
             keep = self.keep
 
+        child_teams = self.child_teams
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -64,6 +68,8 @@ class AppTeamsScopeBodyAppsItem:
             field_dict["join"] = join
         if keep is not UNSET:
             field_dict["keep"] = keep
+        if child_teams is not UNSET:
+            field_dict["childTeams"] = child_teams
 
         return field_dict
 
@@ -85,12 +91,15 @@ class AppTeamsScopeBodyAppsItem:
 
         keep = cast(list[str], d.pop("keep", UNSET))
 
+        child_teams = d.pop("childTeams", UNSET)
+
         app_teams_scope_body_apps_item = cls(
             package=package,
             name=name,
             instances=instances,
             join=join,
             keep=keep,
+            child_teams=child_teams,
         )
 
         app_teams_scope_body_apps_item.additional_properties = d

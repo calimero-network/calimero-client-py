@@ -257,6 +257,7 @@ from .ops_register_node_response_200 import OpsRegisterNodeResponse200
 from .ops_release_body import OpsReleaseBody
 from .ops_release_deadline_body import OpsReleaseDeadlineBody
 from .ops_remove_node_response_200 import OpsRemoveNodeResponse200
+from .ops_remove_node_response_200_status import OpsRemoveNodeResponse200Status
 from .ops_restore_body import OpsRestoreBody
 from .ops_restore_response_200 import OpsRestoreResponse200
 from .ops_served_response_200 import OpsServedResponse200
@@ -653,6 +654,7 @@ __all__ = (
     "OpsReleaseBody",
     "OpsReleaseDeadlineBody",
     "OpsRemoveNodeResponse200",
+    "OpsRemoveNodeResponse200Status",
     "OpsRestoreBody",
     "OpsRestoreResponse200",
     "OpsServedResponse200",
