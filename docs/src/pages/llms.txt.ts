@@ -11,7 +11,8 @@ const BASE = '/calimero-client-py';
 
 const TRACKS: Record<string, string> = {
   'get-started': 'Get Started — installation, a first sign-up-deploy-and-call, and concepts',
-  reference: 'Reference — the Python API surface and error handling',
+  reference: 'Reference — using the client, every generated method by group, and error handling',
+  guides: 'Guides — migrating from 0.9 and 1.0.0rc3 to the generated client',
 };
 
 export const GET: APIRoute = async () => {

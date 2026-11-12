@@ -76,11 +76,11 @@ def cluster():
 @needs_merod
 def test_a_recovery_code_starts_a_recovery_the_account_can_cancel(cluster):
     alice, old = person(cluster, 0, "alice-account-recovery")
-    account = alice.me()["accountId"]
-    assert alice.me()["recoveryCode"] is False
+    account = alice.json.auth.me()["accountId"]
+    assert alice.json.auth.me()["recoveryCode"] is False
 
-    first = alice.create_recovery_code(old)
-    assert alice.me()["recoveryCode"] is True
+    first = alice.json.auth.recovery_create(confirm=old)["code"]
+    assert alice.json.auth.me()["recoveryCode"] is True
 
     # Someone with the code starts one, signed out, on another node.
     rescuer = cluster.client(1)
@@ -89,7 +89,7 @@ def test_a_recovery_code_starts_a_recovery_the_account_can_cancel(cluster):
     assert started["accountId"] == account
     assert started["credentialId"] == device.credential_id
     assert started["readyAt"] - started["startedAt"] == 72 * 3600
-    me = alice.me()
+    me = alice.json.auth.me()
     assert me["recoveryPending"]["credentialId"] == device.credential_id
     assert me["recoveryCode"] is False  # spent
     assert len(me["passkeys"]) == 1
@@ -101,8 +101,8 @@ def test_a_recovery_code_starts_a_recovery_the_account_can_cancel(cluster):
         assert code(e.value) == "RECOVERY_NOT_READY"
 
     # The account's own passkey cancels it; the spent code is refused.
-    alice.cancel_account_recovery(old)
-    assert alice.me()["recoveryPending"] is None
+    alice.json.auth.account_recovery_cancel(confirm=old)
+    assert alice.json.auth.me()["recoveryPending"] is None
     with pytest.raises(LoginRequired):
         cluster.client(2).start_account_recovery(
             first, SoftPasskey("localhost", ORIGIN)
@@ -110,7 +110,7 @@ def test_a_recovery_code_starts_a_recovery_the_account_can_cancel(cluster):
 
     # A fresh code, as written down, starts again; removing the code is the
     # account's too.
-    second = alice.create_recovery_code(old)
+    second = alice.json.auth.recovery_create(confirm=old)["code"]
     typed = second.lower().replace("-", " ")
     again = cluster.client(2).start_account_recovery(
         typed, SoftPasskey("localhost", ORIGIN)
@@ -118,9 +118,10 @@ def test_a_recovery_code_starts_a_recovery_the_account_can_cancel(cluster):
     assert again["accountId"] == account
     with pytest.raises(CloudError) as e:
         cluster.client(1).start_account_recovery(
-            alice.create_recovery_code(old), SoftPasskey("localhost", ORIGIN)
+            alice.json.auth.recovery_create(confirm=old)["code"],
+            SoftPasskey("localhost", ORIGIN),
         )
     assert code(e.value) == "RECOVERY_PENDING"
-    alice.cancel_account_recovery(old)
-    alice.remove_recovery_code(old)
-    assert alice.me()["recoveryCode"] is False
+    alice.json.auth.account_recovery_cancel(confirm=old)
+    alice.json.auth.recovery_remove(confirm=old)
+    assert alice.json.auth.me()["recoveryCode"] is False

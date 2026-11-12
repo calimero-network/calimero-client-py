@@ -10,7 +10,12 @@ description = "Python client for Calimero 1.0"
 authors = [{name = "Calimero Network", email = "support@calimero.network"}]
 readme = "README.md"
 requires-python = ">=3.9"
-dependencies = []
+# The generated client (calimero_client_py/openapi): openapi-python-client
+# 0.26.2's own requirements for the code it writes.
+dependencies = [
+    "httpx>=0.23.0,<0.29.0",
+    "attrs>=22.2.0",
+]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
@@ -34,6 +39,13 @@ dev = [
     # Signs the .mpk the cluster tests install (per-package origins).
     "cryptography",
 ]
+# Opens the recovery disk's files on the holder's side (calimero_client_py.recovery).
+recovery = ["cryptography"]
+# Regenerates calimero_client_py/openapi (scripts/generate_openapi_client.py).
+codegen = [
+    "openapi-python-client==0.26.2",
+    "black==26.10.1",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -46,9 +58,11 @@ asyncio_default_fixture_loop_scope = "function"
 
 [tool.maturin]
 features = ["python"]
-module-name = "calimero_client_py"
+# The Rust extension is the package's native half: the sealed channel, the
+# streams and the keys. The routes are calimero_client_py/openapi,
+# generated from core's OpenAPI document.
+module-name = "calimero_client_py._native"
 python-packages = ["calimero"]
-python-modules = ["calimero_client_py"]
 manifest-path = "Cargo.toml"
 
 [tool.black]

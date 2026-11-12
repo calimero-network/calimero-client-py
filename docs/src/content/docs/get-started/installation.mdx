@@ -11,9 +11,13 @@ import { Steps, Tabs, TabItem, LinkCard, CardGrid } from '@astrojs/starlight/com
 with [PyO3](https://pyo3.rs/) and [maturin](https://www.maturin.rs/). Two
 importable modules are installed:
 
-- **`calimero_client_py`** — the compiled extension: the classes and functions
-  documented in the [API reference](/reference/api/).
+- **`calimero_client_py`** — the client: `Client`, its generated methods
+  (documented in [using the client](/reference/client/) and the
+  [method reference](/reference/methods/)) and the compiled extension
+  (`calimero_client_py._native`) they send through.
 - **`calimero`** — a thin Python package that re-exports the same names.
+
+Its Python dependencies are `httpx` and `attrs`, which pip installs with it.
 
 ## Requirements
 
@@ -60,8 +64,9 @@ pipx install calimero-client-py
   </TabItem>
 </Tabs>
 
-A pre-release is installed only when asked for: `pip install --pre
-calimero-client-py`, or `pip install calimero-client-py==1.0.0rc1`.
+This installs the latest release (1.0.0 or later), the client for
+Calimero 1.0's node. The client for v1's node is 0.9.0
+(`pip install calimero-client-py==0.9.0`).
 
 ## Verify
 
@@ -101,9 +106,9 @@ extension and installs it into the active virtual environment in one step.
 </Steps>
 
 :::note
-The Rust core depends on `calimero-client` and `calimero-identity` from
-`github.com/calimero-network/core` (tag `1.0.0-rc.1`), so the first build
-fetches and compiles those too. A network connection is required for the initial build.
+The Rust core depends on `calimero-client`, `calimero-identity` and
+`calimero-sealed` from `github.com/calimero-network/core` (the tag `Cargo.toml`
+names), so the first build fetches and compiles those too. A network connection is required for the initial build.
 :::
 
 ## Next steps

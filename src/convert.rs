@@ -19,14 +19,6 @@ pub(crate) fn to_json(py: Python<'_>, obj: Option<&Bound<'_, PyAny>>) -> PyResul
     serde_json::from_str(&s).map_err(|e| PyValueError::new_err(e.to_string()))
 }
 
-/// Metadata to set: `None` clears it (JSON `null`), anything else as given.
-pub(crate) fn metadata_json(py: Python<'_>, obj: Option<&Bound<'_, PyAny>>) -> PyResult<Value> {
-    match obj {
-        Some(o) if !o.is_none() => to_json(py, Some(o)),
-        _ => Ok(Value::Null),
-    }
-}
-
 /// JSON -> Python object.
 pub(crate) fn to_py(py: Python<'_>, v: &impl serde::Serialize) -> PyResult<PyObject> {
     let s = serde_json::to_string(v).map_err(|e| PyValueError::new_err(e.to_string()))?;
@@ -41,13 +33,6 @@ pub(crate) fn seg(s: &str) -> String {
     url::form_urlencoded::byte_serialize(s.as_bytes())
         .collect::<String>()
         .replace('+', "%20")
-}
-
-pub(crate) fn field(v: &Value, name: &str) -> PyResult<String> {
-    v[name]
-        .as_str()
-        .map(str::to_owned)
-        .ok_or_else(|| PyValueError::new_err(format!("the node's answer has no {name}")))
 }
 
 #[cfg(test)]
