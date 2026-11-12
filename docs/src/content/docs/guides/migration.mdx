@@ -65,8 +65,8 @@ the key helpers and the calls on any path (`get`, `post`, `post_confirmed`,
 | `aliases()` | `client.auth.alias_list(...)` |
 | `app_abi(app)` | `client.apps.abi(...)` |
 | `app_storage(app)` | `client.apps.storage(...)` |
-| `approve_outbound(package, passkey, org, prefixes, replace)` | `client.auth.account_outbound_approval(...)` / `client.orgs.outbound_approval(...)` |
-| `approve_release(version, passkey, org)` | `client.auth.account_release_approval(...)` / `client.orgs.release_approval(...)` |
+| `approve_outbound(package, passkey, org, prefixes, replace)` | `client.orgs.outbound_approval(...)` (an account's own apps are its personal organization's) |
+| `approve_release(version, passkey, org)` | `client.orgs.release_approval(...)` (an account's own apps are its personal organization's) |
 | `blob_info(app, id)` | `client.apps.blob_info(...)` |
 | `call(app, method, args, idempotency_key)` | `client.apps.call(...)` |
 | `call_confirmed(app, method, args, passkey)` | `client.apps.call(...)` |
