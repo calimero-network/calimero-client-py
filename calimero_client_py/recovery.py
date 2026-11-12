@@ -17,8 +17,9 @@ it never reaches a node. This is the holder's side, for operators and scripts:
 The format is core's ``calimero_client::recovery``: HPKE (RFC 9180) base mode,
 DHKEM(X25519, HKDF-SHA256), HKDF-SHA256, AES-256-GCM; the header is JSON signed
 by the node's Ed25519 receipt key over :data:`SIGNING_LABEL` and its bytes. The
-tests open what core sealed. The header's attestation (that its key is an
-attested node's) is core's ``verify_attestation``; not checked here yet.
+tests open what core sealed. :func:`verify_attestation` checks that a header's
+signing key is an attested node's receipt key, through the caller's quote
+verifier (core's ``verify_attestation``).
 
 Needs the ``cryptography`` package (``pip install calimero-client-py[recovery]``).
 """
@@ -29,7 +30,7 @@ import hashlib
 import hmac
 import json
 import os
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Callable, Dict, Iterable, List, Optional
 
 RECOVERY_FORMAT = 1
 SIGNING_LABEL = b"calimero.recovery-backup.v1\x00"
@@ -164,11 +165,58 @@ def open_data_key(header: Dict[str, Any], secret: bytes) -> bytes:
     return plain
 
 
+def recovery_attestation_nonce(cluster: str, node: int) -> str:
+    """The nonce a node's recovery attestation binds (core's ``attestation_nonce``), hex."""
+    name = cluster.encode()
+    data = (
+        b"calimero.recovery-backup.attest.v1\x00"
+        + len(name).to_bytes(4, "big")
+        + name
+        + node.to_bytes(8, "big")
+    )
+    return hashlib.sha256(data).hexdigest()
+
+
+def receipt_key_binding(receipt_key: bytes, governance: Any) -> str:
+    """What a receipt-key quote binds after its nonce (core's ``receipt_key_binding``), hex."""
+    g = hashlib.sha256(json.dumps(governance, separators=(",", ":")).encode()).digest()
+    return hashlib.sha256(
+        b"calimero.tee-attest.receipt-key.v2" + receipt_key + g
+    ).hexdigest()
+
+
+def verify_attestation(
+    header: Dict[str, Any], verify_quote: Callable[[str, str, str], bool]
+) -> None:
+    """Check that the key that signed ``header`` is a node's attested receipt key.
+
+    ``verify_quote(quote_b64, nonce_hex, report_data_suffix_hex)`` must verify
+    the quote against Intel's root and trusted measurements and check that its
+    report data is the nonce followed by the suffix. Raises ``ValueError``.
+    """
+    doc = header.get("attestation")
+    if not isinstance(doc, dict) or not isinstance(doc.get("quote"), str):
+        raise ValueError("the file carries no attestation")
+    if doc.get("cluster") != header["cluster"] or doc.get("node") != header["node"]:
+        raise ValueError("the attestation is another node's")
+    if doc.get("receiptKey") != header["signingKey"]:
+        raise ValueError("the attested key is not the one that signed the file")
+    nonce = recovery_attestation_nonce(header["cluster"], header["node"])
+    if doc.get("nonce") != nonce:
+        raise ValueError("the attestation is not over the recovery nonce")
+    suffix = receipt_key_binding(
+        bytes.fromhex(header["signingKey"]), doc.get("governance")
+    )
+    if not verify_quote(doc["quote"], nonce, suffix):
+        raise ValueError("the quote was not accepted")
+
+
 def holder_recovery_body(
     holder: Dict[str, str],
     files: Iterable[Dict[str, str]],
     secret: bytes,
     apps: Optional[List[str]] = None,
+    verify_quote: Optional[Callable[[str, str, str], bool]] = None,
 ) -> Dict[str, Any]:
     """The body of ``POST /recover/holder`` from a holder's listed files
     (``GET /ops/recovery-files`` entries): the newest holder file, the newest
@@ -177,6 +225,8 @@ def holder_recovery_body(
     checked = []
     for f in sorted(files, key=lambda f: f["name"]):
         h = verify_header(f["header"], f["signature"])
+        if verify_quote is not None:
+            verify_attestation(h, verify_quote)
         if holder_key(h["holder"]) != holder_key(holder):
             raise ValueError(
                 f"{f['name']} is {holder_key(h['holder'])}'s, not {holder_key(holder)}'s"
