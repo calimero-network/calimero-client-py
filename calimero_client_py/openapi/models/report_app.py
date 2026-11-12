@@ -38,8 +38,9 @@ class ReportApp:
         Attributes:
             app (str):
             group (int):
-            scope (Union['AppScopeType0', 'AppScopeType1']): The scope whose approvals cover an app: its organization, or
-                its owner's account (never named).
+            scope (Union['AppScopeType0', 'AppScopeType1']): The scope whose approvals cover an app: its organization
+                (`personal: true` when it is its owner's personal organization). `account` is only `GET /auth/apps`' own scope:
+                the apps the account owns, wherever they are.
             bundle (str):
             package (Union['ReportAppPackageType0', None]):
             publisher (Union['ReportAppPublisherType0', None]):

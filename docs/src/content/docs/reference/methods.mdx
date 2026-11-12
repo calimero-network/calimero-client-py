@@ -22,7 +22,7 @@ codes the document lists for the method beyond the ones every call can get
 (`UNAUTHENTICATED`, `FORBIDDEN`, `NOT_FOUND`, ...): see
 [errors](/reference/errors/).
 
-Generated from core `c350a92bc`.
+Generated from core `3da5b6edb`.
 
 ## `client.apps`
 
@@ -81,13 +81,11 @@ Generated from core `c350a92bc`.
 | --- | --- | --- |
 | `account_apps(after=…, limit=…)` | `GET /auth/apps` | The account's own apps |
 | `account_backup_key()` | `GET /auth/backup-key` | The account's backup key |
-| `account_outbound_approval(package, prefixes=…, replace=…, confirm=None)` | `POST /auth/outbound` | Approve outbound prefixes for the account's apps. **passkey** |
 | `account_proof_prove(nonce, audience)` | `POST /auth/account-proof` | Prove the account to another party. *Refusals:* `400 BAD_AUDIENCE`, `400 BAD_NONCE` |
 | `account_recovery_begin(code)` | `POST /auth/recovery/begin` | Start an account recovery |
 | `account_recovery_cancel(confirm=None)` | `POST /auth/recovery/cancel` | Cancel an account recovery. **passkey** |
 | `account_recovery_finish(account_id=…, confirm=None)` | `POST /auth/recovery/finish` | Finish an account recovery. **passkey**. *Refusals:* `409 RECOVERY_NOT_READY` |
 | `account_recovery_start(challenge_id, code, registration)` | `POST /auth/recovery/start` | Spend the recovery code. *Refusals:* `400 BAD_REGISTRATION`, `409 RECOVERY_PENDING` |
-| `account_release_approval(version, approved=…, confirm=None)` | `POST /auth/releases` | Approve a mero-tee release for the account's apps. **passkey** |
 | `account_set_backup_key(public_key, confirm=None)` | `POST /auth/backup-key` | Set the account's backup key. **passkey**. *Refusals:* `400 BAD_BACKUP_KEY`, `409 FEATURE_NOT_ACTIVE` |
 | `activity_list(after=…)` | `GET /auth/activity` | What the account's passkeys did |
 | `alias_delete(alias)` | `DELETE /auth/aliases/{alias}` | Remove an alias |

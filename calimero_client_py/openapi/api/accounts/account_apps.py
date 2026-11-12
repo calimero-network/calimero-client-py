@@ -80,8 +80,9 @@ def sync_detailed(
 ) -> Response[Union[AccountAppsResponse200, Error]]:
     """The account's own apps
 
-     Outside any organization (a package-bound session: its package's): each app's release, the newer
-    releases it may upgrade to, its last upgrade, its replicas' releases and `lastWriteAt`.
+     The apps the account owns, in any organization (a package-bound session: its package's), with its
+    personal organization's `approvedReleases`: each app's release, the newer releases it may upgrade
+    to, its last upgrade, its replicas' releases and `lastWriteAt`.
 
     **Who:** signed in (a session or an API key).
 
@@ -117,8 +118,9 @@ def sync(
 ) -> Optional[Union[AccountAppsResponse200, Error]]:
     """The account's own apps
 
-     Outside any organization (a package-bound session: its package's): each app's release, the newer
-    releases it may upgrade to, its last upgrade, its replicas' releases and `lastWriteAt`.
+     The apps the account owns, in any organization (a package-bound session: its package's), with its
+    personal organization's `approvedReleases`: each app's release, the newer releases it may upgrade
+    to, its last upgrade, its replicas' releases and `lastWriteAt`.
 
     **Who:** signed in (a session or an API key).
 
@@ -149,8 +151,9 @@ async def asyncio_detailed(
 ) -> Response[Union[AccountAppsResponse200, Error]]:
     """The account's own apps
 
-     Outside any organization (a package-bound session: its package's): each app's release, the newer
-    releases it may upgrade to, its last upgrade, its replicas' releases and `lastWriteAt`.
+     The apps the account owns, in any organization (a package-bound session: its package's), with its
+    personal organization's `approvedReleases`: each app's release, the newer releases it may upgrade
+    to, its last upgrade, its replicas' releases and `lastWriteAt`.
 
     **Who:** signed in (a session or an API key).
 
@@ -184,8 +187,9 @@ async def asyncio(
 ) -> Optional[Union[AccountAppsResponse200, Error]]:
     """The account's own apps
 
-     Outside any organization (a package-bound session: its package's): each app's release, the newer
-    releases it may upgrade to, its last upgrade, its replicas' releases and `lastWriteAt`.
+     The apps the account owns, in any organization (a package-bound session: its package's), with its
+    personal organization's `approvedReleases`: each app's release, the newer releases it may upgrade
+    to, its last upgrade, its replicas' releases and `lastWriteAt`.
 
     **Who:** signed in (a session or an API key).
 

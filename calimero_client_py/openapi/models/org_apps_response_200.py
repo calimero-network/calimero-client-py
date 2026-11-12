@@ -24,8 +24,9 @@ T = TypeVar("T", bound="OrgAppsResponse200")
 class OrgAppsResponse200:
     """
     Attributes:
-        scope (Union['AppScopeType0', 'AppScopeType1']): The scope whose approvals cover an app: its organization, or
-            its owner's account (never named).
+        scope (Union['AppScopeType0', 'AppScopeType1']): The scope whose approvals cover an app: its organization
+            (`personal: true` when it is its owner's personal organization). `account` is only `GET /auth/apps`' own scope:
+            the apps the account owns, wherever they are.
         governance (Governance): Who decides what on this cluster: release approvals, app upgrades and outbound
             approvals (`owner`: each app's owner; `operator`: the operator), and, left out at their defaults, `deployments`
             (`open`), `deployers` (`operator`) and `signUp` (`open`).

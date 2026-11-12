@@ -40,6 +40,11 @@ def _parse_response(
 
         return response_200
 
+    if response.status_code == 400:
+        response_400 = Error.from_dict(response.json())
+
+        return response_400
+
     if response.status_code == 401:
         response_401 = Error.from_dict(response.json())
 
@@ -84,7 +89,8 @@ def sync_detailed(
 ) -> Response[Union[Error, OrgCreateResponse200]]:
     """Create an organization
 
-     `recoveryKey` is the public half of an organization recovery key.
+     `recoveryKey` is the public half of an organization recovery key. Every account also has a personal
+    organization from sign-up (`personal` in `/auth/me`), which this does not make.
 
     **Who:** a passkey session (an API key is refused).
 
@@ -117,7 +123,8 @@ def sync(
 ) -> Optional[Union[Error, OrgCreateResponse200]]:
     """Create an organization
 
-     `recoveryKey` is the public half of an organization recovery key.
+     `recoveryKey` is the public half of an organization recovery key. Every account also has a personal
+    organization from sign-up (`personal` in `/auth/me`), which this does not make.
 
     **Who:** a passkey session (an API key is refused).
 
@@ -145,7 +152,8 @@ async def asyncio_detailed(
 ) -> Response[Union[Error, OrgCreateResponse200]]:
     """Create an organization
 
-     `recoveryKey` is the public half of an organization recovery key.
+     `recoveryKey` is the public half of an organization recovery key. Every account also has a personal
+    organization from sign-up (`personal` in `/auth/me`), which this does not make.
 
     **Who:** a passkey session (an API key is refused).
 
@@ -176,7 +184,8 @@ async def asyncio(
 ) -> Optional[Union[Error, OrgCreateResponse200]]:
     """Create an organization
 
-     `recoveryKey` is the public half of an organization recovery key.
+     `recoveryKey` is the public half of an organization recovery key. Every account also has a personal
+    organization from sign-up (`personal` in `/auth/me`), which this does not make.
 
     **Who:** a passkey session (an API key is refused).
 
