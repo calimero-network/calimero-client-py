@@ -15,6 +15,7 @@ call, `confirm=` takes a passkey, a ready `confirm` value or `False`, and
 """
 
 from .openapi.api.accounts import account_apps as _account_apps
+from .openapi.api.accounts import account_backup_key as _account_backup_key
 from .openapi.api.accounts import (
     account_outbound_approval as _account_outbound_approval,
 )
@@ -24,6 +25,7 @@ from .openapi.api.accounts import account_recovery_cancel as _account_recovery_c
 from .openapi.api.accounts import account_recovery_finish as _account_recovery_finish
 from .openapi.api.accounts import account_recovery_start as _account_recovery_start
 from .openapi.api.accounts import account_release_approval as _account_release_approval
+from .openapi.api.accounts import account_set_backup_key as _account_set_backup_key
 from .openapi.api.accounts import activity_list as _activity_list
 from .openapi.api.accounts import alias_delete as _alias_delete
 from .openapi.api.accounts import alias_get as _alias_get
@@ -73,10 +75,20 @@ from .openapi.api.apps import blob_info as _blob_info
 from .openapi.api.apps import blob_list as _blob_list
 from .openapi.api.apps import blob_revoke as _blob_revoke
 from .openapi.api.apps import blob_upload as _blob_upload
+from .openapi.api.apps import exports_export as _exports_export
+from .openapi.api.apps import exports_segment as _exports_segment
 from .openapi.api.apps import file_info as _file_info
 from .openapi.api.apps import files_list as _files_list
 from .openapi.api.apps import files_upload as _files_upload
 from .openapi.api.apps import intents as _intents
+from .openapi.api.apps import pipeline_receipt_receipt as _pipeline_receipt_receipt
+from .openapi.api.apps import pipelines_cancel as _pipelines_cancel
+from .openapi.api.apps import pipelines_estimate_run as _pipelines_estimate_run
+from .openapi.api.apps import pipelines_get as _pipelines_get
+from .openapi.api.apps import pipelines_list as _pipelines_list
+from .openapi.api.apps import pipelines_retry as _pipelines_retry
+from .openapi.api.apps import pipelines_start as _pipelines_start
+from .openapi.api.apps import pipelines_validate as _pipelines_validate
 from .openapi.api.apps import presence_get as _presence_get
 from .openapi.api.apps import presence_publish as _presence_publish
 from .openapi.api.apps import upload_abort as _upload_abort
@@ -89,6 +101,7 @@ from .openapi.api.consent import consent_page_create as _consent_page_create
 from .openapi.api.consent import consent_page_result as _consent_page_result
 from .openapi.api.ops import ops_apps as _ops_apps
 from .openapi.api.ops import ops_backup as _ops_backup
+from .openapi.api.ops import ops_backup_key as _ops_backup_key
 from .openapi.api.ops import ops_cluster as _ops_cluster
 from .openapi.api.ops import ops_cluster_owner as _ops_cluster_owner
 from .openapi.api.ops import ops_deployer_grant as _ops_deployer_grant
@@ -109,9 +122,13 @@ from .openapi.api.ops import (
 from .openapi.api.ops import ops_placement as _ops_placement
 from .openapi.api.ops import ops_pools_get as _ops_pools_get
 from .openapi.api.ops import ops_pools_set as _ops_pools_set
+from .openapi.api.ops import ops_prices_get as _ops_prices_get
+from .openapi.api.ops import ops_prices_set as _ops_prices_set
 from .openapi.api.ops import ops_quotas_get as _ops_quotas_get
 from .openapi.api.ops import ops_quotas_set as _ops_quotas_set
 from .openapi.api.ops import ops_receipt_key as _ops_receipt_key
+from .openapi.api.ops import ops_recover as _ops_recover
+from .openapi.api.ops import ops_recovery_files as _ops_recovery_files
 from .openapi.api.ops import ops_register_node as _ops_register_node
 from .openapi.api.ops import ops_release as _ops_release
 from .openapi.api.ops import ops_release_deadline as _ops_release_deadline
@@ -119,6 +136,7 @@ from .openapi.api.ops import ops_release_deadline_lift as _ops_release_deadline_
 from .openapi.api.ops import ops_remove_node as _ops_remove_node
 from .openapi.api.ops import ops_restore as _ops_restore
 from .openapi.api.ops import ops_served as _ops_served
+from .openapi.api.ops import ops_set_backup_key as _ops_set_backup_key
 from .openapi.api.ops import ops_set_replicas as _ops_set_replicas
 from .openapi.api.ops import ops_sign_up_invite_create as _ops_sign_up_invite_create
 from .openapi.api.ops import ops_sign_up_invite_list as _ops_sign_up_invite_list
@@ -142,6 +160,7 @@ from .openapi.api.organizations import member_remove_teams as _member_remove_tea
 from .openapi.api.organizations import member_set_teams as _member_set_teams
 from .openapi.api.organizations import org_all_apps as _org_all_apps
 from .openapi.api.organizations import org_apps as _org_apps
+from .openapi.api.organizations import org_backup_key as _org_backup_key
 from .openapi.api.organizations import org_capabilities as _org_capabilities
 from .openapi.api.organizations import org_create as _org_create
 from .openapi.api.organizations import org_delete as _org_delete
@@ -153,6 +172,7 @@ from .openapi.api.organizations import org_publisher as _org_publisher
 from .openapi.api.organizations import org_release_approval as _org_release_approval
 from .openapi.api.organizations import org_remove_member as _org_remove_member
 from .openapi.api.organizations import org_rename as _org_rename
+from .openapi.api.organizations import org_set_backup_key as _org_set_backup_key
 from .openapi.api.organizations import org_set_member as _org_set_member
 from .openapi.api.organizations import org_upgrade as _org_upgrade
 from .openapi.api.organizations import org_upgrade_retry as _org_upgrade_retry
@@ -176,6 +196,7 @@ from .openapi.api.packages import origins_remove as _origins_remove
 from .openapi.api.packages import package_get as _package_get
 from .openapi.api.packages import package_install as _package_install
 from .openapi.api.packages import package_list as _package_list
+from .openapi.api.packages import package_pipelines as _package_pipelines
 from .openapi.api.packages import package_uninstall as _package_uninstall
 from .openapi.api.packages import package_upload as _package_upload
 from .openapi.api.packages import (
@@ -185,6 +206,7 @@ from .openapi.api.public import attestation as _attestation
 from .openapi.api.public import health as _health
 from .openapi.api.public import publisher_binding as _publisher_binding
 from .openapi.api.public import releases_public as _releases_public
+from .openapi.api.public import restore_recover_holder as _restore_recover_holder
 from .openapi.api.sign_up_and_deployments import deployer_grant as _deployer_grant
 from .openapi.api.sign_up_and_deployments import deployer_list as _deployer_list
 from .openapi.api.sign_up_and_deployments import deployer_revoke as _deployer_revoke
@@ -214,6 +236,7 @@ from .openapi.models import AccountRecoveryBeginBody
 from .openapi.models import AccountRecoveryFinishBody
 from .openapi.models import AccountRecoveryStartBody
 from .openapi.models import AccountReleaseApprovalBody
+from .openapi.models import AccountSetBackupKeyBody
 from .openapi.models import AliasSetBody
 from .openapi.models import ApikeyCreateBody
 from .openapi.models import AppAccessBody
@@ -228,10 +251,24 @@ from .openapi.models import AttestationPurpose
 from .openapi.models import ConfirmOnly
 from .openapi.models import ConsentPageCreateBodyType0
 from .openapi.models import ConsentPageCreateBodyType1
+from .openapi.models import ConsentPageCreateBodyType10
+from .openapi.models import ConsentPageCreateBodyType11
+from .openapi.models import ConsentPageCreateBodyType12
+from .openapi.models import ConsentPageCreateBodyType13
+from .openapi.models import ConsentPageCreateBodyType14
+from .openapi.models import ConsentPageCreateBodyType15
 from .openapi.models import ConsentPageCreateBodyType2
+from .openapi.models import ConsentPageCreateBodyType3
+from .openapi.models import ConsentPageCreateBodyType4
+from .openapi.models import ConsentPageCreateBodyType5
+from .openapi.models import ConsentPageCreateBodyType6
+from .openapi.models import ConsentPageCreateBodyType7
+from .openapi.models import ConsentPageCreateBodyType8
+from .openapi.models import ConsentPageCreateBodyType9
 from .openapi.models import DeployerGrantBody
 from .openapi.models import DeploymentCreateBody
 from .openapi.models import DeploymentOfferBody
+from .openapi.models import ExportsExportBody
 from .openapi.models import IntentsBody
 from .openapi.models import InviteCreateBody
 from .openapi.models import LoginBeginBody
@@ -245,10 +282,13 @@ from .openapi.models import OpsOrgUpgradeBody
 from .openapi.models import OpsOutboundBody
 from .openapi.models import OpsPackageInstallBody
 from .openapi.models import OpsPoolsSetBody
+from .openapi.models import OpsPricesSetBody
+from .openapi.models import OpsRecoverBody
 from .openapi.models import OpsRegisterNodeBody
 from .openapi.models import OpsReleaseBody
 from .openapi.models import OpsReleaseDeadlineBody
 from .openapi.models import OpsRestoreBody
+from .openapi.models import OpsSetBackupKeyBody
 from .openapi.models import OpsSetReplicasBody
 from .openapi.models import OpsSignUpInviteCreateBody
 from .openapi.models import OpsSignUpSetBody
@@ -262,6 +302,7 @@ from .openapi.models import OrgOutboundApprovalBody
 from .openapi.models import OrgPublisherBody
 from .openapi.models import OrgReleaseApprovalBody
 from .openapi.models import OrgRenameBody
+from .openapi.models import OrgSetBackupKeyBody
 from .openapi.models import OrgSetMemberBody
 from .openapi.models import OrgUpgradeBody
 from .openapi.models import OrgUpgradeRetryBody
@@ -270,6 +311,10 @@ from .openapi.models import OriginsRemoveBody
 from .openapi.models import PackageInstallBody
 from .openapi.models import PasskeyAddFinishBody
 from .openapi.models import PasskeyLabelBody
+from .openapi.models import PipelinesEstimateRunBody
+from .openapi.models import PipelinesRetryBody
+from .openapi.models import PipelinesStartBody
+from .openapi.models import PipelinesValidateBody
 from .openapi.models import PresencePublishBody
 from .openapi.models import ProofOnly
 from .openapi.models import PublisherUpgradeBody
@@ -279,6 +324,7 @@ from .openapi.models import RecoveryStartBody
 from .openapi.models import RefreshBody
 from .openapi.models import RegisterBeginBody
 from .openapi.models import RegisterFinishBody
+from .openapi.models import RestoreRecoverHolderBody
 from .openapi.models import SignUpInviteCreateBody
 from .openapi.models import SignUpSetBody
 from .openapi.models import TeamCreateBody
@@ -362,6 +408,18 @@ _APP_DELETE = Operation(
     body="none",
     answer="json",
 )
+_EXPORTS_EXPORT = Operation(
+    _exports_export,
+    "exports_export",
+    body=ExportsExportBody,
+    answer="json",
+)
+_EXPORTS_SEGMENT = Operation(
+    _exports_segment,
+    "exports_segment",
+    body="none",
+    answer="bytes",
+)
 _FILE_INFO = Operation(
     _file_info,
     "file_info",
@@ -413,6 +471,54 @@ _APP_OPENAPI = Operation(
     _app_openapi,
     "app_openapi",
     body="none",
+    answer="json",
+)
+_PIPELINE_RECEIPT_RECEIPT = Operation(
+    _pipeline_receipt_receipt,
+    "pipeline_receipt_receipt",
+    body="none",
+    answer="json",
+)
+_PIPELINES_CANCEL = Operation(
+    _pipelines_cancel,
+    "pipelines_cancel",
+    body="none",
+    answer="json",
+)
+_PIPELINES_ESTIMATE_RUN = Operation(
+    _pipelines_estimate_run,
+    "pipelines_estimate_run",
+    body=PipelinesEstimateRunBody,
+    answer="json",
+)
+_PIPELINES_GET = Operation(
+    _pipelines_get,
+    "pipelines_get",
+    body="none",
+    answer="json",
+)
+_PIPELINES_LIST = Operation(
+    _pipelines_list,
+    "pipelines_list",
+    body="none",
+    answer="json",
+)
+_PIPELINES_RETRY = Operation(
+    _pipelines_retry,
+    "pipelines_retry",
+    body=PipelinesRetryBody,
+    answer="json",
+)
+_PIPELINES_START = Operation(
+    _pipelines_start,
+    "pipelines_start",
+    body=PipelinesStartBody,
+    answer="json",
+)
+_PIPELINES_VALIDATE = Operation(
+    _pipelines_validate,
+    "pipelines_validate",
+    body=PipelinesValidateBody,
     answer="json",
 )
 _PRESENCE_GET = Operation(
@@ -516,6 +622,8 @@ class Apps(Group):
     def access(self, *, app, access):
         """Set who may reach an app (`POST /apps/{app}/access`, `app_access`).
 
+        A package-bound session: only its own package's app, from one of its package's teams to another.
+
         **Who:** a passkey session (an API key is refused).
 
         Args:
@@ -529,7 +637,7 @@ class Apps(Group):
     def attestation(self, *, app, nonce):
         """Every replica's receipt-key attestation (`GET /apps/{app}/attestation`, `app_attestation`).
 
-        Each replica's `/attestation?purpose=receipts` for `nonce` (32 bytes, hex), or why it could not be had (`error`). Any other query parameter is ignored.
+        Each replica's `/attestation?purpose=receipts` for `nonce` (32 bytes, hex), or why it could not be had (`error`), and `cluster`, the cluster id each quote binds (with the replica's `node`): the documents are fetched in the clear, so their own `cluster` and `node` fields count for nothing. Any other query parameter is ignored.
 
         **Who:** whoever the app's access admits (a public app: anyone).
 
@@ -757,6 +865,55 @@ class Apps(Group):
         """
         return self._run(_APP_DELETE, (app,), {}, None)
 
+    def exports_export(self, *, app, id, recipient):
+        """Export a sealed file's key (`POST /apps/{app}/files/{id}/export`, `exports_export`).
+
+        The owner and the organization's members. `recipient` is an X25519 public key (64 hex characters); the file's data key comes back wrapped to it, with the file's `segments` (each one's hash, hex) and `ephemeral` public key. The node never answers plaintext or a key in the clear. 30 a minute per account.
+
+        **Who:** signed in (a session or an API key).
+
+        Args:
+            app: path
+            id: path
+            recipient: body `recipient`
+
+        Returns: ExportsExportResponse200
+        """
+        return self._run(
+            _EXPORTS_EXPORT,
+            (
+                app,
+                id,
+            ),
+            {},
+            {"recipient": recipient},
+        )
+
+    def exports_segment(self, *, app, id, k):
+        """One segment of a sealed file (`GET /apps/{app}/files/{id}/segments/{k}`, `exports_segment`).
+
+        Segment `k` (from 0) of the file's ciphertext, raw; the owner and the organization's members.
+
+        **Who:** signed in (a session or an API key).
+
+        Args:
+            app: path
+            id: path
+            k: path
+
+        Returns: File
+        """
+        return self._run(
+            _EXPORTS_SEGMENT,
+            (
+                app,
+                id,
+                k,
+            ),
+            {},
+            None,
+        )
+
     def file_info(self, *, app, id):
         """One sealed file (`GET /apps/{app}/files/{id}`, `file_info`).
 
@@ -931,6 +1088,190 @@ class Apps(Group):
         Returns: AppOpenapiResponse200
         """
         return self._run(_APP_OPENAPI, (app,), {}, None)
+
+    def pipeline_receipt_receipt(self, *, app, run):
+        """A pipeline run's receipt (`GET /apps/{app}/pipeline-runs/{run}/receipt`, `pipeline_receipt_receipt`).
+
+        The owner and the organization's members. For an ended run: the receipt, the answering node and its signature over it, by the node's receipt key.
+
+        **Who:** signed in (a session or an API key).
+
+        Args:
+            app: path
+            run: path
+
+        Returns: PipelineReceiptReceiptResponse200
+        """
+        return self._run(
+            _PIPELINE_RECEIPT_RECEIPT,
+            (
+                app,
+                run,
+            ),
+            {},
+            None,
+        )
+
+    def pipelines_cancel(self, *, app, run):
+        """Cancel a pipeline run (`POST /apps/{app}/pipeline-runs/{run}/cancel`, `pipelines_cancel`).
+
+        The owner and the organization's members. Its pending steps end cancelled and its running steps' runs stop.
+
+        **Who:** signed in (a session or an API key).
+
+        Args:
+            app: path
+            run: path
+
+        Returns: PipelinesCancelResponse200
+        """
+        return self._run(
+            _PIPELINES_CANCEL,
+            (
+                app,
+                run,
+            ),
+            {},
+            None,
+        )
+
+    def pipelines_estimate_run(
+        self, *, app, name, inputs=UNSET, counts=UNSET, params=UNSET
+    ):
+        """Estimate a pipeline run (`POST /apps/{app}/pipelines/{name}/estimate`, `pipelines_estimate_run`).
+
+        The owner and the organization's members. Runs, fuel and cost of a run of a pipeline the app's release registers, for `inputs` (file ids, only counted) or `counts`, not both; numbers as decimal strings.
+
+        **Who:** signed in (a session or an API key).
+
+        Args:
+            app: path
+            name: path
+            inputs: body `inputs`
+            counts: body `counts`
+            params: body `params`
+
+        Returns: PipelinesEstimateRunResponse200
+        """
+        return self._run(
+            _PIPELINES_ESTIMATE_RUN,
+            (
+                app,
+                name,
+            ),
+            {},
+            {"inputs": inputs, "counts": counts, "params": params},
+        )
+
+    def pipelines_get(self, *, app, run):
+        """One pipeline run (`GET /apps/{app}/pipeline-runs/{run}`, `pipelines_get`).
+
+        Its record: `state`, `version`, `hash`, `computeBundle`, `inputs`, `params`, per-step `status`, `runs`, `outputs`, `result`, `reason` and `cost` (`cost` and `costSoFar` for a run with a cap). Sizes, hashes and results only for callers who may list the app's files.
+
+        **Who:** whoever the app's access admits (a public app: anyone).
+
+        Args:
+            app: path
+            run: path
+
+        Returns: PipelinesGetResponse200
+        """
+        return self._run(
+            _PIPELINES_GET,
+            (
+                app,
+                run,
+            ),
+            {},
+            None,
+        )
+
+    def pipelines_list(self, *, app, limit=UNSET):
+        """An app's pipeline runs (`GET /apps/{app}/pipeline-runs`, `pipelines_list`).
+
+        The recent runs, newest first, as `{ runs }`; `limit` 1 to 100. Sizes, hashes and results only for callers who may list the app's files.
+
+        **Who:** whoever the app's access admits (a public app: anyone).
+
+        Args:
+            app: path
+            limit: query
+
+        Returns: PipelinesListResponse200
+        """
+        return self._run(_PIPELINES_LIST, (app,), {"limit": limit}, None)
+
+    def pipelines_retry(self, *, app, run, limits=UNSET, max_cost=UNSET):
+        """Retry a pipeline run (`POST /apps/{app}/pipeline-runs/{run}/retry`, `pipelines_retry`).
+
+        The owner and the organization's members. A new run of an ended run's pipeline at the same release, hash and compute component, with the same inputs and params, the `limits` applied and `retryOf` set. `202`.
+
+        **Who:** signed in (a session or an API key).
+
+        Args:
+            app: path
+            run: path
+            limits: body `limits`
+            max_cost: body `maxCost`
+
+        Returns: PipelinesRetryResponse200
+        """
+        return self._run(
+            _PIPELINES_RETRY,
+            (
+                app,
+                run,
+            ),
+            {},
+            {"limits": limits, "maxCost": max_cost},
+        )
+
+    def pipelines_start(self, *, app, name, inputs=UNSET, params=UNSET, max_cost=UNSET):
+        """Start a pipeline run (`POST /apps/{app}/pipelines/{name}/runs`, `pipelines_start`).
+
+        The owner and the organization's members. Starts a run of a pipeline the app's release registers. `maxCost` (micro-units, a decimal string) caps the run, and `worstCase` answers it. `202`.
+
+        **Who:** signed in (a session or an API key).
+
+        Args:
+            app: path
+            name: path
+            inputs: body `inputs`
+            params: body `params`
+            max_cost: body `maxCost`
+
+        Returns: PipelinesStartResponse200
+        """
+        return self._run(
+            _PIPELINES_START,
+            (
+                app,
+                name,
+            ),
+            {},
+            {"inputs": inputs, "params": params, "maxCost": max_cost},
+        )
+
+    def pipelines_validate(self, *, source, package=UNSET, version=UNSET):
+        """Validate a pipeline (`POST /pipelines/validate`, `pipelines_validate`).
+
+        Every problem of `source`; with `package` and `version` (both, a release the caller sees) also against that release's methods, modules and the cluster's pools. Writes nothing.
+
+        **Who:** signed in (a session or an API key).
+
+        Args:
+            source: body `source`
+            package: body `package`
+            version: body `version`
+
+        Returns: PipelinesValidateResponse200
+        """
+        return self._run(
+            _PIPELINES_VALIDATE,
+            (),
+            {},
+            {"source": source, "package": package, "version": version},
+        )
 
     def presence_get(self, *, app):
         """Who is present (`GET /apps/{app}/presence`, `presence_get`).
@@ -1242,6 +1583,12 @@ _ACCOUNT_APPS = Operation(
     body="none",
     answer="json",
 )
+_ACCOUNT_BACKUP_KEY = Operation(
+    _account_backup_key,
+    "account_backup_key",
+    body="none",
+    answer="json",
+)
 _ACCOUNT_OUTBOUND_APPROVAL = Operation(
     _account_outbound_approval,
     "account_outbound_approval",
@@ -1288,6 +1635,13 @@ _ACCOUNT_RELEASE_APPROVAL = Operation(
     _account_release_approval,
     "account_release_approval",
     body=AccountReleaseApprovalBody,
+    answer="json",
+    confirm=True,
+)
+_ACCOUNT_SET_BACKUP_KEY = Operation(
+    _account_set_backup_key,
+    "account_set_backup_key",
+    body=AccountSetBackupKeyBody,
     answer="json",
     confirm=True,
 )
@@ -1440,6 +1794,17 @@ class Auth(Group):
         """
         return self._run(_ACCOUNT_APPS, (), {"after": after, "limit": limit}, None)
 
+    def account_backup_key(self):
+        """The account's backup key (`GET /auth/backup-key`, `account_backup_key`).
+
+        The X25519 public key the recovery-disk backups of the account's personal apps are sealed to (`key`, `null` while none is set).
+
+        **Who:** an account holder (a passkey session not bound to an app's frontend).
+
+        Returns: BackupKeyAnswer
+        """
+        return self._run(_ACCOUNT_BACKUP_KEY, (), {}, None)
+
     def account_outbound_approval(
         self, *, package, prefixes=UNSET, replace=UNSET, confirm=None
     ):
@@ -1566,6 +1931,23 @@ class Auth(Group):
             {},
             {"version": version, "approved": approved},
             confirm=confirm,
+        )
+
+    def account_set_backup_key(self, *, public_key, confirm=None):
+        """Set the account's backup key (`POST /auth/backup-key`, `account_set_backup_key`).
+
+        `publicKey`: 64 lowercase hex, an X25519 public key whose private half the account holder keeps (never a node), for its personal apps, where owners upgrade apps. `412` first.
+
+        **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over `details.challenge`.
+
+        Args:
+            public_key: body `publicKey`
+            confirm: a passkey for the step-up, a ready `confirm`, or False
+
+        Returns: BackupKeyAnswer
+        """
+        return self._run(
+            _ACCOUNT_SET_BACKUP_KEY, (), {}, {"publicKey": public_key}, confirm=confirm
         )
 
     def activity_list(self, *, after=UNSET):
@@ -1947,7 +2329,20 @@ _CONSENT_PAGE_CREATE = Operation(
     body=(
         ConsentPageCreateBodyType0,
         ConsentPageCreateBodyType1,
+        ConsentPageCreateBodyType10,
+        ConsentPageCreateBodyType11,
+        ConsentPageCreateBodyType12,
+        ConsentPageCreateBodyType13,
+        ConsentPageCreateBodyType14,
+        ConsentPageCreateBodyType15,
         ConsentPageCreateBodyType2,
+        ConsentPageCreateBodyType3,
+        ConsentPageCreateBodyType4,
+        ConsentPageCreateBodyType5,
+        ConsentPageCreateBodyType6,
+        ConsentPageCreateBodyType7,
+        ConsentPageCreateBodyType8,
+        ConsentPageCreateBodyType9,
     ),
     answer="json",
 )
@@ -1965,12 +2360,12 @@ class Consent(Group):
     def page_create(self, *, body):
         """Ask the account's owner to approve (`POST /consent/requests`, `consent_page_create`).
 
-        From an app's frontend: a release approval, an upgrade of its instance, or outbound prefixes, approved on the node's own consent page (`url`), which takes the passkey. 64 KiB at most.
+        From an app's frontend: a release approval, an upgrade of its instance, outbound prefixes, a new organization, a new invite or joining with one, leaving an organization, a member's removal, role, teams or capabilities, an invite's revocation, an organization's name, its deletion, defaults or all-apps grants, approved on the node's own consent page (`url`), which takes the passkey. What the approval made (`orgId`, an invite's `token`, the `org` joined, a rename's `{ orgId, name }`, a deletion's `apps`) is in `/consent/{request}/result`'s `outcome`. 64 KiB at most.
 
         **Who:** a passkey session (an API key is refused).
 
         Args:
-            body: the body, one of ConsentPageCreateBodyType0, ConsentPageCreateBodyType1, ConsentPageCreateBodyType2
+            body: the body, one of ConsentPageCreateBodyType0, ConsentPageCreateBodyType1, ConsentPageCreateBodyType10, ConsentPageCreateBodyType11, ConsentPageCreateBodyType12, ConsentPageCreateBodyType13, ConsentPageCreateBodyType14, ConsentPageCreateBodyType15, ConsentPageCreateBodyType2, ConsentPageCreateBodyType3, ConsentPageCreateBodyType4, ConsentPageCreateBodyType5, ConsentPageCreateBodyType6, ConsentPageCreateBodyType7, ConsentPageCreateBodyType8, ConsentPageCreateBodyType9
 
         Returns: ConsentPageCreateResponse200
         """
@@ -1979,7 +2374,7 @@ class Consent(Group):
     def page_result(self, *, request):
         """What became of a consent request (`GET /consent/{request}/result`, `consent_page_result`).
 
-        `decidedAt` (Unix seconds) is `null` while it is pending.
+        `decidedAt` (Unix seconds) is `null` while it is pending. `outcome`, once approved, is what the approval made: `{ orgId }` for `createOrg`, `{ token }` for `createInvite`, `{ org }` for `acceptInvite`, `{ orgId, name }` for `renameOrg`, `{ apps }` (the apps deleted) for `deleteOrg`; absent for the other kinds.
 
         **Who:** a passkey session (an API key is refused).
 
@@ -2329,6 +2724,12 @@ _OPS_BACKUP = Operation(
     body="none",
     answer="json",
 )
+_OPS_BACKUP_KEY = Operation(
+    _ops_backup_key,
+    "ops_backup_key",
+    body="none",
+    answer="json",
+)
 _OPS_CLUSTER = Operation(
     _ops_cluster,
     "ops_cluster",
@@ -2437,6 +2838,19 @@ _OPS_POOLS_GET = Operation(
 _OPS_POOLS_SET = Operation(
     _ops_pools_set, "ops_pools_set", body=OpsPoolsSetBody, answer="json", operator=True
 )
+_OPS_PRICES_GET = Operation(
+    _ops_prices_get,
+    "ops_prices_get",
+    body="none",
+    answer="json",
+)
+_OPS_PRICES_SET = Operation(
+    _ops_prices_set,
+    "ops_prices_set",
+    body=OpsPricesSetBody,
+    answer="json",
+    operator=True,
+)
 _OPS_QUOTAS_GET = Operation(
     _ops_quotas_get,
     "ops_quotas_get",
@@ -2449,6 +2863,18 @@ _OPS_QUOTAS_SET = Operation(
 _OPS_RECEIPT_KEY = Operation(
     _ops_receipt_key,
     "ops_receipt_key",
+    body="none",
+    answer="json",
+)
+_OPS_RECOVER = Operation(
+    _ops_recover,
+    "ops_recover",
+    body=OpsRecoverBody,
+    answer="json",
+)
+_OPS_RECOVERY_FILES = Operation(
+    _ops_recovery_files,
+    "ops_recovery_files",
     body="none",
     answer="json",
 )
@@ -2492,6 +2918,13 @@ _OPS_SERVED = Operation(
     "ops_served",
     body="none",
     answer="json",
+)
+_OPS_SET_BACKUP_KEY = Operation(
+    _ops_set_backup_key,
+    "ops_set_backup_key",
+    body=OpsSetBackupKeyBody,
+    answer="json",
+    operator=True,
 )
 _OPS_SET_REPLICAS = Operation(
     _ops_set_replicas,
@@ -2577,6 +3010,17 @@ class Ops(Group):
         Returns: OpsBackupResponse200
         """
         return self._run(_OPS_BACKUP, (), {"all_": all_}, None)
+
+    def backup_key(self):
+        """The operator's backup key (`GET /ops/backup-key`, `ops_backup_key`).
+
+        The X25519 public key every app's recovery-disk backups are sealed to where the operator upgrades apps (`key`, `null` while none is set).
+
+        **Who:** the ops token.
+
+        Returns: BackupKeyAnswer
+        """
+        return self._run(_OPS_BACKUP_KEY, (), {}, None)
 
     def cluster(self):
         """The cluster's identity (`GET /ops/cluster`, `ops_cluster`).
@@ -2871,6 +3315,34 @@ class Ops(Group):
             _OPS_POOLS_SET, (), {}, {"pools": pools}, operator_proof=operator_proof
         )
 
+    def prices_get(self):
+        """The price table (`GET /ops/prices`, `ops_prices_get`).
+
+        In micro-units of the billing currency; `{}` until one is set.
+
+        **Who:** the ops token.
+
+        Returns: OpsPricesGetResponse200
+        """
+        return self._run(_OPS_PRICES_GET, (), {}, None)
+
+    def prices_set(self, *, table, operator_proof=None):
+        """Set the price table (`POST /ops/prices`, `ops_prices_set`).
+
+        Signed over `cluster / __set_price_table / { table }`; `PRICE_VERSION` unless `version` is the current one plus one (1 for the first), `BAD_PRICES` for a zero `fuelPerVcpuSecond`.
+
+        **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first; send it again with `operatorProof`, the operator key's signature over `details.message` and its `nonce`.
+
+        Args:
+            table: body `table`
+            operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
+
+        Returns: OpsPricesSetResponse200
+        """
+        return self._run(
+            _OPS_PRICES_SET, (), {}, {"table": table}, operator_proof=operator_proof
+        )
+
     def quotas_get(self):
         """The quotas (`GET /ops/quotas`, `ops_quotas_get`).
 
@@ -2960,6 +3432,35 @@ class Ops(Group):
         Returns: OpsReceiptKeyResponse200
         """
         return self._run(_OPS_RECEIPT_KEY, (id,), {}, None)
+
+    def recover(self, *, system, code=UNSET):
+        """Found the cluster again from its recovery disk (`POST /ops/recover`, `ops_recover`).
+
+        On the founder started with `--bootstrap --recover-from DIR`, its system state empty: the newest `system` file in `DIR/operator/` and the apps' `code` files, each with the data key the operator opened from it (hex). Checked as founding from backups is (governance, operator key, no node of the old cluster answering), then the system group is seeded; each app waits for `POST /ops/apps/{app}/restore { recovery }`.
+
+        **Who:** the ops token.
+
+        Args:
+            system: body `system`
+            code: body `code`
+
+        Returns: OpsRecoverResponse200
+        """
+        return self._run(_OPS_RECOVER, (), {}, {"system": system, "code": code})
+
+    def recovery_files(self, *, holder=UNSET):
+        """The recovery files a node reads (`GET /ops/recovery-files`, `ops_recovery_files`).
+
+        In `--recover-from`, else `--recovery-dir`, of `holder` (`operator`, the default; `org:<id>`; `account:<id>`): each file's name, its header as signed (JSON text) and the node's Ed25519 signature over `calimero.recovery-backup.v1\\0` and those bytes (hex), for the holder's device to check before it opens a key with its own.
+
+        **Who:** the ops token.
+
+        Args:
+            holder: query
+
+        Returns: OpsRecoveryFilesResponse200
+        """
+        return self._run(_OPS_RECOVERY_FILES, (), {"holder": holder}, None)
 
     def register_node(
         self, *, id, addr, zone=UNSET, role=UNSET, pool=UNSET, operator_proof=None
@@ -3066,22 +3567,27 @@ class Ops(Group):
         """
         return self._run(_OPS_REMOVE_NODE, (id,), {}, {}, operator_proof=operator_proof)
 
-    def restore(self, *, app, backup=UNSET, operator_proof=None):
+    def restore(self, *, app, backup=UNSET, recovery=UNSET, operator_proof=None):
         """Restore an app from its sealed backup (`POST /ops/apps/{app}/restore`, `ops_restore`).
 
-        Signed over `<app> / __restore_app / { backup, sha256 }`. The receiving node holds the backup (`backup`, else the newest, in `{backup-dir}/{app}/`) and seeds the restore; answers once every replica holds the restored state: the rows restored, the backup (`format` 0, with `merod` and `release` `null`, for one written before manifests) and the app group's Raft status.
+        Signed over `<app> / __restore_app / { backup, sha256 }`. The receiving node holds the backup (`backup`, else the newest, in `{backup-dir}/{app}/`) and seeds the restore; answers once every replica holds the restored state: the rows restored, the backup (`format` 0, with `merod` and `release` `null`, for one written before manifests) and the app group's Raft status. `recovery` restores from a recovery-disk file instead (in the app's holder's directory under `--recover-from`, else `--recovery-dir`), opened with the data key its holder opened from it (hex); `backup` is then the file's name and `sha256` its body's.
 
         **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first; send it again with `operatorProof`, the operator key's signature over `details.message` and its `nonce`.
 
         Args:
             app: path
             backup: body `backup`
+            recovery: body `recovery`
             operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
 
         Returns: OpsRestoreResponse200
         """
         return self._run(
-            _OPS_RESTORE, (app,), {}, {"backup": backup}, operator_proof=operator_proof
+            _OPS_RESTORE,
+            (app,),
+            {},
+            {"backup": backup, "recovery": recovery},
+            operator_proof=operator_proof,
         )
 
     def served(self):
@@ -3094,6 +3600,27 @@ class Ops(Group):
         Returns: OpsServedResponse200
         """
         return self._run(_OPS_SERVED, (), {}, None)
+
+    def set_backup_key(self, *, public_key, operator_proof=None):
+        """Set the operator's backup key (`POST /ops/backup-key`, `ops_set_backup_key`).
+
+        Signed over `operator / __set_backup_key / { publicKey }`, where the operator upgrades apps (else `403`). `publicKey`: 64 lowercase hex, an X25519 public key whose private half the operator keeps (never a node).
+
+        **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first; send it again with `operatorProof`, the operator key's signature over `details.message` and its `nonce`.
+
+        Args:
+            public_key: body `publicKey`
+            operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
+
+        Returns: BackupKeyAnswer
+        """
+        return self._run(
+            _OPS_SET_BACKUP_KEY,
+            (),
+            {},
+            {"publicKey": public_key},
+            operator_proof=operator_proof,
+        )
 
     def set_replicas(self, *, app, replicas, operator_proof=None):
         """Move an app's replicas (`POST /ops/apps/{app}/replicas`, `ops_set_replicas`).
@@ -3282,6 +3809,12 @@ _ORG_APPS = Operation(
     body="none",
     answer="json",
 )
+_ORG_BACKUP_KEY = Operation(
+    _org_backup_key,
+    "org_backup_key",
+    body="none",
+    answer="json",
+)
 _ORG_CAPABILITIES = Operation(
     _org_capabilities,
     "org_capabilities",
@@ -3402,6 +3935,13 @@ _ORG_REMOVE_MEMBER = Operation(
 )
 _ORG_RENAME = Operation(
     _org_rename, "org_rename", body=OrgRenameBody, answer="json", confirm=True
+)
+_ORG_SET_BACKUP_KEY = Operation(
+    _org_set_backup_key,
+    "org_set_backup_key",
+    body=OrgSetBackupKeyBody,
+    answer="json",
+    confirm=True,
 )
 _ORG_SET_MEMBER = Operation(
     _org_set_member,
@@ -3548,6 +4088,20 @@ class Orgs(Group):
         Returns: OrgAppsResponse200
         """
         return self._run(_ORG_APPS, (org,), {"after": after, "limit": limit}, None)
+
+    def backup_key(self, *, org):
+        """The organization's backup key (`GET /orgs/{org}/backup-key`, `org_backup_key`).
+
+        The X25519 public key its apps' recovery-disk backups are sealed to (`key`, `null` while none is set), and how many apps that covers. Any member; `404` outside the organization.
+
+        **Who:** an account holder (a passkey session not bound to an app's frontend).
+
+        Args:
+            org: path
+
+        Returns: BackupKeyAnswer
+        """
+        return self._run(_ORG_BACKUP_KEY, (org,), {}, None)
 
     def capabilities(
         self, *, org, account=UNSET, team=UNSET, capabilities, confirm=None
@@ -4032,6 +4586,24 @@ class Orgs(Group):
         """
         return self._run(_ORG_RENAME, (org,), {}, {"name": name}, confirm=confirm)
 
+    def set_backup_key(self, *, org, public_key, confirm=None):
+        """Set the organization's backup key (`POST /orgs/{org}/backup-key`, `org_set_backup_key`).
+
+        `publicKey`: 64 lowercase hex, an X25519 public key whose private half its holder keeps (never a node). Those who upgrade all the organization's apps (org-wide `MANAGE_APPLICATION`), where owners upgrade apps; replaces the key before. `412` first.
+
+        **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over `details.challenge`.
+
+        Args:
+            org: path
+            public_key: body `publicKey`
+            confirm: a passkey for the step-up, a ready `confirm`, or False
+
+        Returns: BackupKeyAnswer
+        """
+        return self._run(
+            _ORG_SET_BACKUP_KEY, (org,), {}, {"publicKey": public_key}, confirm=confirm
+        )
+
     def set_member(self, *, org, account, role, confirm=None):
         """Set a member's role (`POST /orgs/{org}/members`, `org_set_member`).
 
@@ -4058,7 +4630,7 @@ class Orgs(Group):
     def team_create(self, *, org, name, parent=UNSET, join):
         """Create a team (`POST /orgs/{org}/teams`, `team_create`).
 
-        An admin, a lead of `parent`, a member with `CREATE_TEAM` at the top, or a member who holds `CREATE_CHILD_TEAM` under `parent` (a restricted team only).
+        An admin, a lead of `parent`, a member with `CREATE_TEAM` at the top, or a member who holds `CREATE_CHILD_TEAM` under `parent` (a restricted team only). A package-bound session: only its own package's teams (its app team and the teams below it): `parent` one of them.
 
         **Who:** a passkey session (an API key is refused).
 
@@ -4077,7 +4649,7 @@ class Orgs(Group):
     def team_delete(self, *, org, team, confirm=None):
         """Delete a team (`DELETE /orgs/{org}/teams/{team}`, `team_delete`).
 
-        With the teams and apps below it.
+        With the teams and apps below it. A package-bound session: only its own package's teams (its app team and the teams below it): a team below its app team whose apps are all its package's.
 
         **Who:** a passkey session (an API key is refused). **Step-up:** answers `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over `details.challenge`.
 
@@ -4123,6 +4695,8 @@ class Orgs(Group):
     def team_remove_member(self, *, org, team, account, confirm=None):
         """Remove a team member, or leave (`DELETE /orgs/{org}/teams/{team}/members/{account}`, `team_remove_member`).
 
+        A package-bound session: only its own package's teams (its app team and the teams below it).
+
         **Who:** a passkey session (an API key is refused). **Step-up:** answers `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over `details.challenge`.
 
         Args:
@@ -4158,6 +4732,8 @@ class Orgs(Group):
     ):
         """Add or change a team member (`POST /orgs/{org}/teams/{team}/members`, `team_set_member`).
 
+        A package-bound session: only its own package's teams (its app team and the teams below it).
+
         **Who:** a passkey session (an API key is refused). **Step-up:** answers `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over `details.challenge`.
 
         Args:
@@ -4192,7 +4768,7 @@ class Orgs(Group):
     ):
         """Update a team (`POST /orgs/{org}/teams/{team}`, `team_update`).
 
-        Rename, open or restrict, move under another parent, or set its metadata (the caller's own JSON, free-form, kept as given). `parent` absent leaves the team where it is; `parent: null` (an explicit null) moves it to the top; a team id moves it under that team.
+        Rename, open or restrict, move under another parent, or set its metadata (the caller's own JSON, free-form, kept as given). `parent` absent leaves the team where it is; `parent: null` (an explicit null) moves it to the top; a team id moves it under that team. A package-bound session: only its own package's teams (its app team and the teams below it): a team below its app team, moved only within.
 
         **Who:** a passkey session (an API key is refused).
 
@@ -4363,6 +4939,12 @@ _ORIGINS_REMOVE = Operation(
     answer="json",
     confirm=True,
 )
+_PACKAGE_PIPELINES = Operation(
+    _package_pipelines,
+    "package_pipelines",
+    body="none",
+    answer="json",
+)
 _PACKAGE_UNINSTALL = Operation(
     _package_uninstall,
     "package_uninstall",
@@ -4494,6 +5076,29 @@ class Packages(Group):
             _ORIGINS_REMOVE, (package,), {}, {"origin": origin}, confirm=confirm
         )
 
+    def pipelines(self, *, package, version):
+        """A release's pipelines (`GET /packages/{package}/{version}/pipelines`, `package_pipelines`).
+
+        The pipelines the release registers, by name: `hash`, `worstCaseFuel` (a decimal string), the `modules` they pin and the canonical `pipeline`. `404` for a release the caller may not see.
+
+        **Who:** signed in (a session or an API key).
+
+        Args:
+            package: path
+            version: path
+
+        Returns: PackagePipelinesResponse200
+        """
+        return self._run(
+            _PACKAGE_PIPELINES,
+            (
+                package,
+                version,
+            ),
+            {},
+            None,
+        )
+
     def uninstall(self, *, package):
         """Uninstall a package (`DELETE /packages/{package}`, `package_uninstall`).
 
@@ -4568,6 +5173,13 @@ _RELEASES_PUBLIC = Operation(
     body="none",
     answer="json",
 )
+_RESTORE_RECOVER_HOLDER = Operation(
+    _restore_recover_holder,
+    "restore_recover_holder",
+    body=RestoreRecoverHolderBody,
+    answer="json",
+    operator=True,
+)
 
 
 class Public(Group):
@@ -4635,6 +5247,32 @@ class Public(Group):
         Returns: ReleasesPublicResponse200
         """
         return self._run(_RELEASES_PUBLIC, (), {}, None)
+
+    def restore_recover_holder(
+        self, *, holder, slice_, apps=UNSET, code=UNSET, operator_proof=None
+    ):
+        """Bring an organization's or account's apps back from its recovery files (`POST /recover/holder`, `restore_recover_holder`).
+
+        Sent by the holder's own device, over the sealed channel: its newest `holder` file (`slice`), each app's file and the code files, in the receiving node's `--recovery-dir` (or `--recover-from`) under `org-<id>/` or `account-<id>/`, each with the data key the holder opened from it with its backup key (hex). The cluster admits it with the operator's signature over `cluster / __recover_holder / { holder, slice, apps: [{ app, file, sha256 }] }` (`428` first, naming it). Where owners upgrade apps, and only for an organization, account, apps and passkeys the cluster does not hold; the receiving node seeds each app, which answers `409 APP_RESTORING` until its replicas hold it. People sign in again with the passkeys they had.
+
+        **Who:** anyone. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first; send it again with `operatorProof`, the operator key's signature over `details.message` and its `nonce`.
+
+        Args:
+            holder: body `holder`
+            slice_: body `slice`
+            apps: body `apps`
+            code: body `code`
+            operator_proof: an operator seed (hex), a signer, a ready `operatorProof`, or False
+
+        Returns: RestoreRecoverHolderResponse200
+        """
+        return self._run(
+            _RESTORE_RECOVER_HOLDER,
+            (),
+            {},
+            {"holder": holder, "slice": slice_, "apps": apps, "code": code},
+            operator_proof=operator_proof,
+        )
 
 
 # The client's attribute for each group.

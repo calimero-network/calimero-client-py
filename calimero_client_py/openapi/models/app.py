@@ -6,6 +6,7 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
+from ..models.app_components import AppComponents
 from ..models.app_executor import AppExecutor
 from ..types import UNSET, Unset
 from typing import cast
@@ -48,6 +49,7 @@ class App:
             metadata (Any): Free-form JSON: its shape is not this API's (see the description around it for whose it is).
             executor (Union[Unset, AppExecutor]):
             compute_bundle (Union[Unset, str]):
+            components (Union[Unset, AppComponents]):
             last_upgrade (Union[Unset, Upgrade]): The last upgrade tried on an app, done or failed: `from` and `to` are
                 bundle hashes, `by` the account (or `operator`), `run` the organization-wide run it was part of, `apiKey` the
                 upgrade key that made it.
@@ -73,6 +75,7 @@ class App:
     metadata: Any
     executor: Union[Unset, AppExecutor] = UNSET
     compute_bundle: Union[Unset, str] = UNSET
+    components: Union[Unset, AppComponents] = UNSET
     last_upgrade: Union[Unset, "Upgrade"] = UNSET
     deployment: Union[Unset, str] = UNSET
     release: Union[Unset, "PackageRef"] = UNSET
@@ -130,6 +133,10 @@ class App:
 
         compute_bundle = self.compute_bundle
 
+        components: Union[Unset, str] = UNSET
+        if not isinstance(self.components, Unset):
+            components = self.components.value
+
         last_upgrade: Union[Unset, dict[str, Any]] = UNSET
         if not isinstance(self.last_upgrade, Unset):
             last_upgrade = self.last_upgrade.to_dict()
@@ -166,6 +173,8 @@ class App:
             field_dict["executor"] = executor
         if compute_bundle is not UNSET:
             field_dict["computeBundle"] = compute_bundle
+        if components is not UNSET:
+            field_dict["components"] = components
         if last_upgrade is not UNSET:
             field_dict["lastUpgrade"] = last_upgrade
         if deployment is not UNSET:
@@ -270,6 +279,13 @@ class App:
 
         compute_bundle = d.pop("computeBundle", UNSET)
 
+        _components = d.pop("components", UNSET)
+        components: Union[Unset, AppComponents]
+        if isinstance(_components, Unset):
+            components = UNSET
+        else:
+            components = AppComponents(_components)
+
         _last_upgrade = d.pop("lastUpgrade", UNSET)
         last_upgrade: Union[Unset, Upgrade]
         if isinstance(_last_upgrade, Unset):
@@ -308,6 +324,7 @@ class App:
             metadata=metadata,
             executor=executor,
             compute_bundle=compute_bundle,
+            components=components,
             last_upgrade=last_upgrade,
             deployment=deployment,
             release=release,

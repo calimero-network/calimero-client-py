@@ -83,7 +83,10 @@ def sync_detailed(
 ) -> Response[Union[ConsentPageResultResponse200, Error]]:
     """What became of a consent request
 
-     `decidedAt` (Unix seconds) is `null` while it is pending.
+     `decidedAt` (Unix seconds) is `null` while it is pending. `outcome`, once approved, is what the
+    approval made: `{ orgId }` for `createOrg`, `{ token }` for `createInvite`, `{ org }` for
+    `acceptInvite`, `{ orgId, name }` for `renameOrg`, `{ apps }` (the apps deleted) for `deleteOrg`;
+    absent for the other kinds.
 
     **Who:** a passkey session (an API key is refused).
 
@@ -116,7 +119,10 @@ def sync(
 ) -> Optional[Union[ConsentPageResultResponse200, Error]]:
     """What became of a consent request
 
-     `decidedAt` (Unix seconds) is `null` while it is pending.
+     `decidedAt` (Unix seconds) is `null` while it is pending. `outcome`, once approved, is what the
+    approval made: `{ orgId }` for `createOrg`, `{ token }` for `createInvite`, `{ org }` for
+    `acceptInvite`, `{ orgId, name }` for `renameOrg`, `{ apps }` (the apps deleted) for `deleteOrg`;
+    absent for the other kinds.
 
     **Who:** a passkey session (an API key is refused).
 
@@ -144,7 +150,10 @@ async def asyncio_detailed(
 ) -> Response[Union[ConsentPageResultResponse200, Error]]:
     """What became of a consent request
 
-     `decidedAt` (Unix seconds) is `null` while it is pending.
+     `decidedAt` (Unix seconds) is `null` while it is pending. `outcome`, once approved, is what the
+    approval made: `{ orgId }` for `createOrg`, `{ token }` for `createInvite`, `{ org }` for
+    `acceptInvite`, `{ orgId, name }` for `renameOrg`, `{ apps }` (the apps deleted) for `deleteOrg`;
+    absent for the other kinds.
 
     **Who:** a passkey session (an API key is refused).
 
@@ -175,7 +184,10 @@ async def asyncio(
 ) -> Optional[Union[ConsentPageResultResponse200, Error]]:
     """What became of a consent request
 
-     `decidedAt` (Unix seconds) is `null` while it is pending.
+     `decidedAt` (Unix seconds) is `null` while it is pending. `outcome`, once approved, is what the
+    approval made: `{ orgId }` for `createOrg`, `{ token }` for `createInvite`, `{ org }` for
+    `acceptInvite`, `{ orgId, name }` for `renameOrg`, `{ apps }` (the apps deleted) for `deleteOrg`;
+    absent for the other kinds.
 
     **Who:** a passkey session (an API key is refused).
 

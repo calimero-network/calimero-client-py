@@ -79,7 +79,9 @@ def sync_detailed(
     """Every replica's receipt-key attestation
 
      Each replica's `/attestation?purpose=receipts` for `nonce` (32 bytes, hex), or why it could not be
-    had (`error`). Any other query parameter is ignored.
+    had (`error`), and `cluster`, the cluster id each quote binds (with the replica's `node`): the
+    documents are fetched in the clear, so their own `cluster` and `node` fields count for nothing. Any
+    other query parameter is ignored.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 
@@ -116,7 +118,9 @@ def sync(
     """Every replica's receipt-key attestation
 
      Each replica's `/attestation?purpose=receipts` for `nonce` (32 bytes, hex), or why it could not be
-    had (`error`). Any other query parameter is ignored.
+    had (`error`), and `cluster`, the cluster id each quote binds (with the replica's `node`): the
+    documents are fetched in the clear, so their own `cluster` and `node` fields count for nothing. Any
+    other query parameter is ignored.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 
@@ -148,7 +152,9 @@ async def asyncio_detailed(
     """Every replica's receipt-key attestation
 
      Each replica's `/attestation?purpose=receipts` for `nonce` (32 bytes, hex), or why it could not be
-    had (`error`). Any other query parameter is ignored.
+    had (`error`), and `cluster`, the cluster id each quote binds (with the replica's `node`): the
+    documents are fetched in the clear, so their own `cluster` and `node` fields count for nothing. Any
+    other query parameter is ignored.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 
@@ -183,7 +189,9 @@ async def asyncio(
     """Every replica's receipt-key attestation
 
      Each replica's `/attestation?purpose=receipts` for `nonce` (32 bytes, hex), or why it could not be
-    had (`error`). Any other query parameter is ignored.
+    had (`error`), and `cluster`, the cluster id each quote binds (with the replica's `node`): the
+    documents are fetched in the clear, so their own `cluster` and `node` fields count for nothing. Any
+    other query parameter is ignored.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 

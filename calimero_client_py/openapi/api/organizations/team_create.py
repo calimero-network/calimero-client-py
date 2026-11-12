@@ -84,7 +84,8 @@ def sync_detailed(
     """Create a team
 
      An admin, a lead of `parent`, a member with `CREATE_TEAM` at the top, or a member who holds
-    `CREATE_CHILD_TEAM` under `parent` (a restricted team only).
+    `CREATE_CHILD_TEAM` under `parent` (a restricted team only). A package-bound session: only its own
+    package's teams (its app team and the teams below it): `parent` one of them.
 
     **Who:** a passkey session (an API key is refused).
 
@@ -121,7 +122,8 @@ def sync(
     """Create a team
 
      An admin, a lead of `parent`, a member with `CREATE_TEAM` at the top, or a member who holds
-    `CREATE_CHILD_TEAM` under `parent` (a restricted team only).
+    `CREATE_CHILD_TEAM` under `parent` (a restricted team only). A package-bound session: only its own
+    package's teams (its app team and the teams below it): `parent` one of them.
 
     **Who:** a passkey session (an API key is refused).
 
@@ -153,7 +155,8 @@ async def asyncio_detailed(
     """Create a team
 
      An admin, a lead of `parent`, a member with `CREATE_TEAM` at the top, or a member who holds
-    `CREATE_CHILD_TEAM` under `parent` (a restricted team only).
+    `CREATE_CHILD_TEAM` under `parent` (a restricted team only). A package-bound session: only its own
+    package's teams (its app team and the teams below it): `parent` one of them.
 
     **Who:** a passkey session (an API key is refused).
 
@@ -188,7 +191,8 @@ async def asyncio(
     """Create a team
 
      An admin, a lead of `parent`, a member with `CREATE_TEAM` at the top, or a member who holds
-    `CREATE_CHILD_TEAM` under `parent` (a restricted team only).
+    `CREATE_CHILD_TEAM` under `parent` (a restricted team only). A package-bound session: only its own
+    package's teams (its app team and the teams below it): `parent` one of them.
 
     **Who:** a passkey session (an API key is refused).
 

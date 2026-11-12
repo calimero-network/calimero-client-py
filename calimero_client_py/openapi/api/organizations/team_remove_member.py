@@ -99,7 +99,9 @@ def sync_detailed(
 ) -> Response[Union[Error, TeamRemoveMemberResponse200]]:
     """Remove a team member, or leave
 
-     **Who:** a passkey session (an API key is refused). **Step-up:** answers `412 CONFIRM_REQUIRED`
+     A package-bound session: only its own package's teams (its app team and the teams below it).
+
+    **Who:** a passkey session (an API key is refused). **Step-up:** answers `412 CONFIRM_REQUIRED`
     first; send the same request again with `confirm`, a passkey assertion over `details.challenge`.
 
     Args:
@@ -141,7 +143,9 @@ def sync(
 ) -> Optional[Union[Error, TeamRemoveMemberResponse200]]:
     """Remove a team member, or leave
 
-     **Who:** a passkey session (an API key is refused). **Step-up:** answers `412 CONFIRM_REQUIRED`
+     A package-bound session: only its own package's teams (its app team and the teams below it).
+
+    **Who:** a passkey session (an API key is refused). **Step-up:** answers `412 CONFIRM_REQUIRED`
     first; send the same request again with `confirm`, a passkey assertion over `details.challenge`.
 
     Args:
@@ -178,7 +182,9 @@ async def asyncio_detailed(
 ) -> Response[Union[Error, TeamRemoveMemberResponse200]]:
     """Remove a team member, or leave
 
-     **Who:** a passkey session (an API key is refused). **Step-up:** answers `412 CONFIRM_REQUIRED`
+     A package-bound session: only its own package's teams (its app team and the teams below it).
+
+    **Who:** a passkey session (an API key is refused). **Step-up:** answers `412 CONFIRM_REQUIRED`
     first; send the same request again with `confirm`, a passkey assertion over `details.challenge`.
 
     Args:
@@ -218,7 +224,9 @@ async def asyncio(
 ) -> Optional[Union[Error, TeamRemoveMemberResponse200]]:
     """Remove a team member, or leave
 
-     **Who:** a passkey session (an API key is refused). **Step-up:** answers `412 CONFIRM_REQUIRED`
+     A package-bound session: only its own package's teams (its app team and the teams below it).
+
+    **Who:** a passkey session (an API key is refused). **Step-up:** answers `412 CONFIRM_REQUIRED`
     first; send the same request again with `confirm`, a passkey assertion over `details.challenge`.
 
     Args:
