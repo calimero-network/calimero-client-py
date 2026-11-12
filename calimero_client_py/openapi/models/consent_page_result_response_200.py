@@ -12,7 +12,16 @@ from ..models.consent_page_result_response_200_kind import (
 from ..models.consent_page_result_response_200_status import (
     ConsentPageResultResponse200Status,
 )
+from ..types import UNSET, Unset
+from typing import cast
 from typing import cast, Union
+from typing import Union
+
+if TYPE_CHECKING:
+    from ..models.consent_page_result_response_200_outcome import (
+        ConsentPageResultResponse200Outcome,
+    )
+
 
 T = TypeVar("T", bound="ConsentPageResultResponse200")
 
@@ -25,15 +34,21 @@ class ConsentPageResultResponse200:
         kind (ConsentPageResultResponse200Kind):
         status (ConsentPageResultResponse200Status):
         decided_at (Union[None, int]):
+        outcome (Union[Unset, ConsentPageResultResponse200Outcome]):
     """
 
     request_id: str
     kind: ConsentPageResultResponse200Kind
     status: ConsentPageResultResponse200Status
     decided_at: Union[None, int]
+    outcome: Union[Unset, "ConsentPageResultResponse200Outcome"] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.consent_page_result_response_200_outcome import (
+            ConsentPageResultResponse200Outcome,
+        )
+
         request_id = self.request_id
 
         kind = self.kind.value
@@ -42,6 +57,10 @@ class ConsentPageResultResponse200:
 
         decided_at: Union[None, int]
         decided_at = self.decided_at
+
+        outcome: Union[Unset, dict[str, Any]] = UNSET
+        if not isinstance(self.outcome, Unset):
+            outcome = self.outcome.to_dict()
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -53,11 +72,17 @@ class ConsentPageResultResponse200:
                 "decidedAt": decided_at,
             }
         )
+        if outcome is not UNSET:
+            field_dict["outcome"] = outcome
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.consent_page_result_response_200_outcome import (
+            ConsentPageResultResponse200Outcome,
+        )
+
         d = dict(src_dict)
         request_id = d.pop("requestId")
 
@@ -72,11 +97,19 @@ class ConsentPageResultResponse200:
 
         decided_at = _parse_decided_at(d.pop("decidedAt"))
 
+        _outcome = d.pop("outcome", UNSET)
+        outcome: Union[Unset, ConsentPageResultResponse200Outcome]
+        if isinstance(_outcome, Unset):
+            outcome = UNSET
+        else:
+            outcome = ConsentPageResultResponse200Outcome.from_dict(_outcome)
+
         consent_page_result_response_200 = cls(
             request_id=request_id,
             kind=kind,
             status=status,
             decided_at=decided_at,
+            outcome=outcome,
         )
 
         consent_page_result_response_200.additional_properties = d
