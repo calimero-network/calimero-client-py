@@ -68,6 +68,7 @@ jobs:
         id: next
         env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
+          FORCE_COLOR: '0'
         run: |
           set -euo pipefail
           npx --yes \
@@ -77,10 +78,18 @@ jobs:
             -p @semantic-release/github@12.0.10 \
             -p conventional-changelog-conventionalcommits@9.3.1 \
             semantic-release --dry-run | tee "$RUNNER_TEMP/dry-run.log"
-          version=$(sed -nE 's/.*The next release version is ([^ ]+).*/\1/p' "$RUNNER_TEMP/dry-run.log" | tail -n 1)
+          # "the next release version is X", or, before the first release,
+          # "There is no previous release, the next release version is 1.0.0".
+          version=$(sed -E 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/dry-run.log" \
+            | sed -nE 's/.*[Tt]he next release version is ([0-9A-Za-z.+-]+).*/\1/p' | tail -n 1)
           if [ -z "$version" ]; then
             if grep -q 'There are no relevant changes' "$RUNNER_TEMP/dry-run.log"; then
               echo "::notice::no release: no feat, fix, perf or breaking commit since the last one"
+              echo "version=" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            if grep -q 'configured to only publish from' "$RUNNER_TEMP/dry-run.log"; then
+              echo "::notice::no release: only master releases"
               echo "version=" >> "$GITHUB_OUTPUT"
               exit 0
             fi
