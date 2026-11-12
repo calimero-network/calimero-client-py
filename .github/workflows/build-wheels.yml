@@ -16,12 +16,19 @@ on:
 permissions:
   contents: read
 
+# A newer push to the same pull request makes the older run worthless; cancel
+# it. Pushes to master and tags are never cancelled.
+concurrency:
+  group: wheels-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   # The release's version: the tag's, without its `v`. Empty for anything but
   # a tag, which then builds with Cargo.toml's version and publishes nothing.
   version:
     name: Release version
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       version: ${{ steps.tag.outputs.version }}
     steps:
@@ -46,6 +53,7 @@ jobs:
   build-source:
     name: Build source distribution
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [version]
 
     steps:
@@ -90,6 +98,7 @@ jobs:
   build-wheels:
     name: Build wheel (${{ matrix.name }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
     needs: [version]
     strategy:
       fail-fast: false
@@ -191,6 +200,7 @@ jobs:
   publish-pypi:
     name: Publish to PyPI
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     # Every wheel is a hard requirement, not a nice-to-have: a platform whose
     # wheel is missing falls back to the sdist, which means compiling a pyo3
     # extension plus `ring` and `aws-lc-sys` from source there. `needs` waits
