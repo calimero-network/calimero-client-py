@@ -22,7 +22,7 @@ codes the document lists for the method beyond the ones every call can get
 (`UNAUTHENTICATED`, `FORBIDDEN`, `NOT_FOUND`, ...): see
 [errors](/reference/errors/).
 
-Generated from core `3da5b6edb`.
+Generated from core `f0b0a6b9d`.
 
 ## `client.apps`
 
@@ -62,6 +62,7 @@ Generated from core `3da5b6edb`.
 | `presence_get(app)` | `GET /apps/{app}/presence` | Who is present |
 | `presence_publish(app, seq, state=…)` | `POST /apps/{app}/presence` | Publish presence. *Refusals:* `400 BAD_STATE` |
 | `run(app, run)` | `GET /apps/{app}/runs/{run}` | One compute run |
+| `run_logs(app, run)` | `GET /apps/{app}/runs/{run}/logs` | A compute run's attempt logs |
 | `runs(app, limit=…, before=…)` | `GET /apps/{app}/runs` | An app's compute runs. *Refusals:* `400 BAD_CURSOR`, `400 BAD_LIMIT` |
 | `storage(app)` | `GET /apps/{app}/storage` | What an app stores |
 | `transfer(app, to, confirm=None)` | `POST /apps/{app}/transfer` | Hand an app to another account. **passkey** |

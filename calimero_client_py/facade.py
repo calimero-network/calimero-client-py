@@ -59,6 +59,7 @@ from .openapi.api.apps import app_method as _app_method
 from .openapi.api.apps import app_move as _app_move
 from .openapi.api.apps import app_openapi as _app_openapi
 from .openapi.api.apps import app_run as _app_run
+from .openapi.api.apps import app_run_logs as _app_run_logs
 from .openapi.api.apps import app_runs as _app_runs
 from .openapi.api.apps import app_storage as _app_storage
 from .openapi.api.apps import app_transfer as _app_transfer
@@ -530,6 +531,12 @@ _PRESENCE_PUBLISH = Operation(
 _APP_RUN = Operation(
     _app_run,
     "app_run",
+    body="none",
+    answer="json",
+)
+_APP_RUN_LOGS = Operation(
+    _app_run_logs,
+    "app_run_logs",
     body="none",
     answer="json",
 )
@@ -1312,6 +1319,29 @@ class Apps(Group):
         """
         return self._run(
             _APP_RUN,
+            (
+                app,
+                run,
+            ),
+            {},
+            None,
+        )
+
+    def run_logs(self, *, app, run):
+        """A compute run's attempt logs (`GET /apps/{app}/runs/{run}/logs`, `app_run_logs`).
+
+        Each attempt's module log, as a sealed file of the app: `{ attempt, id, size, sha256 }`. Only for those who may handle the app's files; the bytes are a files export.
+
+        **Who:** signed in (a session or an API key).
+
+        Args:
+            app: path
+            run: path
+
+        Returns: AppRunLogsResponse200
+        """
+        return self._run(
+            _APP_RUN_LOGS,
             (
                 app,
                 run,
@@ -2309,7 +2339,7 @@ class Consent(Group):
     def page_result(self, *, request):
         """What became of a consent request (`GET /consent/{request}/result`, `consent_page_result`).
 
-        `decidedAt` (Unix seconds) is `null` while it is pending. `outcome`, once approved, is what the approval made: `{ orgId }` for `createOrg`, `{ token }` for `createInvite`, `{ org }` for `acceptInvite`, `{ orgId, name }` for `renameOrg`, `{ apps }` (the apps deleted) for `deleteOrg`; absent for the other kinds.
+        `decidedAt` (Unix seconds) is `null` while it is pending. `outcome`, once approved, is what the approval made: `{ orgId }` for `createOrg` (with `teamId`, the asking app's own team the organization starts with, when an app's frontend asked on a cluster that makes it), `{ token }` for `createInvite`, `{ org }` for `acceptInvite`, `{ orgId, name }` for `renameOrg`, `{ apps }` (the apps deleted) for `deleteOrg`; absent for the other kinds.
 
         **Who:** a passkey session (an API key is refused).
 

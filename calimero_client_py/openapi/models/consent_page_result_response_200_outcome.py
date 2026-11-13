@@ -18,6 +18,7 @@ class ConsentPageResultResponse200Outcome:
     """
     Attributes:
         org_id (Union[Unset, str]):
+        team_id (Union[Unset, str]):
         token (Union[Unset, str]):
         org (Union[Unset, str]):
         name (Union[Unset, str]):
@@ -25,6 +26,7 @@ class ConsentPageResultResponse200Outcome:
     """
 
     org_id: Union[Unset, str] = UNSET
+    team_id: Union[Unset, str] = UNSET
     token: Union[Unset, str] = UNSET
     org: Union[Unset, str] = UNSET
     name: Union[Unset, str] = UNSET
@@ -33,6 +35,8 @@ class ConsentPageResultResponse200Outcome:
 
     def to_dict(self) -> dict[str, Any]:
         org_id = self.org_id
+
+        team_id = self.team_id
 
         token = self.token
 
@@ -49,6 +53,8 @@ class ConsentPageResultResponse200Outcome:
         field_dict.update({})
         if org_id is not UNSET:
             field_dict["orgId"] = org_id
+        if team_id is not UNSET:
+            field_dict["teamId"] = team_id
         if token is not UNSET:
             field_dict["token"] = token
         if org is not UNSET:
@@ -65,6 +71,8 @@ class ConsentPageResultResponse200Outcome:
         d = dict(src_dict)
         org_id = d.pop("orgId", UNSET)
 
+        team_id = d.pop("teamId", UNSET)
+
         token = d.pop("token", UNSET)
 
         org = d.pop("org", UNSET)
@@ -75,6 +83,7 @@ class ConsentPageResultResponse200Outcome:
 
         consent_page_result_response_200_outcome = cls(
             org_id=org_id,
+            team_id=team_id,
             token=token,
             org=org,
             name=name,
