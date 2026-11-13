@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+- **feat: `ca_bundle`, extra trusted TLS roots.** `Client(..., ca_bundle=path)`
+  and `Client.connect(..., ca_bundle=path)` take a PEM file whose certificates
+  are trusted as roots on top of the built-in public ones, for every node
+  (its attestation and sealed channel), a leader a `421 NOT_LEADER` names, and
+  the node directory: for clusters whose nodes have certificates from a
+  private or staging CA (Let's Encrypt's staging roots). The client used to
+  trust the public roots only and ignores `SSL_CERT_FILE`, so such a node
+  failed with `invalid peer certificate: UnknownIssuer`. `None` (the default)
+  is the behaviour as before. A file that cannot be read raises the `OSError`
+  it stands for, one with no usable certificate `ValueError`, at
+  construction. The event streams, `attestation()` and `verify_app_cluster()`
+  run on core's own client and still trust the public roots only.
+
 ## 1.0.0
 
 The first stable release: 1.0.0-rc.4 and the changes below. From here on
