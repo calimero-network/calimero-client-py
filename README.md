@@ -1,10 +1,21 @@
-# Calimero Client Python Library
+# calimero-client-py
 
-The Python client for [Calimero 1.0](https://calimero-network.github.io/core/),
-backed by core's Rust `calimero-client` via [PyO3](https://pyo3.rs/). Verify a
-node's attestation, sign in with a passkey or API key, deploy apps, call and
-view their methods, read their events, administer organizations and teams, and
-run the operator's Ops API — all from synchronous Python.
+**Your app's whole backend, like Firebase. Except nobody can read your data,
+not even us.** [Calimero](https://calimero-network.github.io/core/) gives an app
+auth (passkeys, sessions, scoped API keys), a database (replicated app state),
+functions (Rust app methods, compute jobs, timers), realtime events and
+presence, sealed storage, search and hosting, all running inside attested
+Intel TDX nodes. Clients verify a node's attestation against signed releases,
+then talk to it over a sealed channel.
+
+This package is the Python client for it, built on core's Rust
+`calimero-client` via [PyO3](https://pyo3.rs/). It verifies a node's
+attestation against your TEE policy before sending anything, seals every
+request, signs people in with passkeys and machines with API keys, and calls
+and views app methods and reads their events. It also covers automation and
+operations: deploying apps, administering organizations and teams, and the
+operator's Ops API, with operator-signed decisions. All from synchronous
+Python (CPython 3.9+).
 
 Up to 0.9.0 this package also shipped a client for v1's peer-to-peer node
 (`create_connection`, `create_client`, v1's `Client`, `sign_warrant`, ...).
@@ -193,11 +204,22 @@ cargo test          # Rust unit tests
 pytest              # Python tests
 ```
 
-The Rust core depends on `calimero-client` and `calimero-identity` from core's
-`claude/proofs-at-apply` branch (until core #4791 merges; then master) on
+The Rust core depends on `calimero-client`, `calimero-identity` and
+`calimero-sealed` from
 [`github.com/calimero-network/core`](https://github.com/calimero-network/core),
-so the first build fetches and compiles those too (a network connection is
-required for the initial build).
+pinned by tag in `Cargo.toml`, so the first build fetches and compiles those too
+(a network connection is required for the initial build).
+
+## Related repositories
+
+- [core](https://github.com/calimero-network/core): the node (`merod`), `meroctl`, the Rust SDK and `calimero-client` this package wraps ([docs](https://calimero-network.github.io/core/))
+- [mero-tee](https://github.com/calimero-network/mero-tee): the TDX node images and their signed releases that attestation is checked against
+- [app-registry](https://github.com/calimero-network/app-registry): the registry of signed app packages
+- [apps](https://github.com/calimero-network/apps): example and reference apps
+- [mero-js](https://github.com/calimero-network/mero-js): the JavaScript/TypeScript client
+- [mero-react](https://github.com/calimero-network/mero-react): React bindings over mero-js
+- [swift-sdk](https://github.com/calimero-network/swift-sdk): the Swift client
+- [kotlin-sdk](https://github.com/calimero-network/kotlin-sdk): the Kotlin client
 
 ## Support
 
