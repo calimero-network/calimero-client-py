@@ -84,9 +84,10 @@ def sync_detailed(
     """What became of a consent request
 
      `decidedAt` (Unix seconds) is `null` while it is pending. `outcome`, once approved, is what the
-    approval made: `{ orgId }` for `createOrg`, `{ token }` for `createInvite`, `{ org }` for
-    `acceptInvite`, `{ orgId, name }` for `renameOrg`, `{ apps }` (the apps deleted) for `deleteOrg`;
-    absent for the other kinds.
+    approval made: `{ orgId }` for `createOrg` (with `teamId`, the asking app's own team the
+    organization starts with, when an app's frontend asked on a cluster that makes it), `{ token }` for
+    `createInvite`, `{ org }` for `acceptInvite`, `{ orgId, name }` for `renameOrg`, `{ apps }` (the
+    apps deleted) for `deleteOrg`; absent for the other kinds.
 
     **Who:** a passkey session (an API key is refused).
 
@@ -120,9 +121,10 @@ def sync(
     """What became of a consent request
 
      `decidedAt` (Unix seconds) is `null` while it is pending. `outcome`, once approved, is what the
-    approval made: `{ orgId }` for `createOrg`, `{ token }` for `createInvite`, `{ org }` for
-    `acceptInvite`, `{ orgId, name }` for `renameOrg`, `{ apps }` (the apps deleted) for `deleteOrg`;
-    absent for the other kinds.
+    approval made: `{ orgId }` for `createOrg` (with `teamId`, the asking app's own team the
+    organization starts with, when an app's frontend asked on a cluster that makes it), `{ token }` for
+    `createInvite`, `{ org }` for `acceptInvite`, `{ orgId, name }` for `renameOrg`, `{ apps }` (the
+    apps deleted) for `deleteOrg`; absent for the other kinds.
 
     **Who:** a passkey session (an API key is refused).
 
@@ -151,9 +153,10 @@ async def asyncio_detailed(
     """What became of a consent request
 
      `decidedAt` (Unix seconds) is `null` while it is pending. `outcome`, once approved, is what the
-    approval made: `{ orgId }` for `createOrg`, `{ token }` for `createInvite`, `{ org }` for
-    `acceptInvite`, `{ orgId, name }` for `renameOrg`, `{ apps }` (the apps deleted) for `deleteOrg`;
-    absent for the other kinds.
+    approval made: `{ orgId }` for `createOrg` (with `teamId`, the asking app's own team the
+    organization starts with, when an app's frontend asked on a cluster that makes it), `{ token }` for
+    `createInvite`, `{ org }` for `acceptInvite`, `{ orgId, name }` for `renameOrg`, `{ apps }` (the
+    apps deleted) for `deleteOrg`; absent for the other kinds.
 
     **Who:** a passkey session (an API key is refused).
 
@@ -185,9 +188,10 @@ async def asyncio(
     """What became of a consent request
 
      `decidedAt` (Unix seconds) is `null` while it is pending. `outcome`, once approved, is what the
-    approval made: `{ orgId }` for `createOrg`, `{ token }` for `createInvite`, `{ org }` for
-    `acceptInvite`, `{ orgId, name }` for `renameOrg`, `{ apps }` (the apps deleted) for `deleteOrg`;
-    absent for the other kinds.
+    approval made: `{ orgId }` for `createOrg` (with `teamId`, the asking app's own team the
+    organization starts with, when an app's frontend asked on a cluster that makes it), `{ token }` for
+    `createInvite`, `{ org }` for `acceptInvite`, `{ orgId, name }` for `renameOrg`, `{ apps }` (the
+    apps deleted) for `deleteOrg`; absent for the other kinds.
 
     **Who:** a passkey session (an API key is refused).
 

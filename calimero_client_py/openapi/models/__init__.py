@@ -71,6 +71,8 @@ from .app_move_response_200 import AppMoveResponse200
 from .app_openapi_response_200 import AppOpenapiResponse200
 from .app_restore import AppRestore
 from .app_restore_source import AppRestoreSource
+from .app_run_logs_response_200 import AppRunLogsResponse200
+from .app_run_logs_response_200_logs_item import AppRunLogsResponse200LogsItem
 from .app_runs_response_200 import AppRunsResponse200
 from .app_scope_type_0 import AppScopeType0
 from .app_scope_type_0_kind import AppScopeType0Kind
@@ -667,6 +669,8 @@ __all__ = (
     "AppRestore",
     "AppRestoreSource",
     "ApprovedReleases",
+    "AppRunLogsResponse200",
+    "AppRunLogsResponse200LogsItem",
     "AppRunsResponse200",
     "AppScopeType0",
     "AppScopeType0Kind",
