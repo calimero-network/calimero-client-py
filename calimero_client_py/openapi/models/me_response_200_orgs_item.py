@@ -7,6 +7,8 @@ from attrs import field as _attrs_field
 from ..types import UNSET, Unset
 
 from ..models.org_role import OrgRole
+from ..types import UNSET, Unset
+from typing import Union
 
 T = TypeVar("T", bound="MeResponse200OrgsItem")
 
@@ -18,11 +20,13 @@ class MeResponse200OrgsItem:
         org_id (str):
         name (str):
         role (OrgRole): A member's role in an organization.
+        personal (Union[Unset, bool]):
     """
 
     org_id: str
     name: str
     role: OrgRole
+    personal: Union[Unset, bool] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -31,6 +35,8 @@ class MeResponse200OrgsItem:
         name = self.name
 
         role = self.role.value
+
+        personal = self.personal
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -41,6 +47,8 @@ class MeResponse200OrgsItem:
                 "role": role,
             }
         )
+        if personal is not UNSET:
+            field_dict["personal"] = personal
 
         return field_dict
 
@@ -53,10 +61,13 @@ class MeResponse200OrgsItem:
 
         role = OrgRole(d.pop("role"))
 
+        personal = d.pop("personal", UNSET)
+
         me_response_200_orgs_item = cls(
             org_id=org_id,
             name=name,
             role=role,
+            personal=personal,
         )
 
         me_response_200_orgs_item.additional_properties = d

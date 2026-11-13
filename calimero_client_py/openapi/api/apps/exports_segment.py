@@ -7,36 +7,35 @@ from ...client import AuthenticatedClient, Client
 from ...types import Response, UNSET
 from ... import errors
 
-from ...models.account_release_approval_body import AccountReleaseApprovalBody
-from ...models.approved_releases import ApprovedReleases
 from ...models.error import Error
+from ...types import File, FileTypes
+from io import BytesIO
 from typing import cast
 
 
 def _get_kwargs(
-    *,
-    body: AccountReleaseApprovalBody,
+    app: str,
+    id: str,
+    k: str,
 ) -> dict[str, Any]:
-    headers: dict[str, Any] = {}
 
     _kwargs: dict[str, Any] = {
-        "method": "post",
-        "url": "/auth/releases",
+        "method": "get",
+        "url": "/apps/{app}/files/{id}/segments/{k}".format(
+            app=app,
+            id=id,
+            k=k,
+        ),
     }
 
-    _kwargs["json"] = body.to_dict()
-
-    headers["Content-Type"] = "application/json"
-
-    _kwargs["headers"] = headers
     return _kwargs
 
 
 def _parse_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[ApprovedReleases, Error]]:
+) -> Optional[Union[Error, File]]:
     if response.status_code == 200:
-        response_200 = ApprovedReleases.from_dict(response.json())
+        response_200 = File(payload=BytesIO(response.content))
 
         return response_200
 
@@ -55,10 +54,10 @@ def _parse_response(
 
         return response_403
 
-    if response.status_code == 412:
-        response_412 = Error.from_dict(response.json())
+    if response.status_code == 404:
+        response_404 = Error.from_dict(response.json())
 
-        return response_412
+        return response_404
 
     if response.status_code == 421:
         response_421 = Error.from_dict(response.json())
@@ -73,7 +72,7 @@ def _parse_response(
 
 def _build_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[ApprovedReleases, Error]]:
+) -> Response[Union[Error, File]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -83,31 +82,35 @@ def _build_response(
 
 
 def sync_detailed(
+    app: str,
+    id: str,
+    k: str,
     *,
     client: AuthenticatedClient,
-    body: AccountReleaseApprovalBody,
-) -> Response[Union[ApprovedReleases, Error]]:
-    """Approve a mero-tee release for the account's apps
+) -> Response[Union[Error, File]]:
+    """One segment of a sealed file
 
-     Where the owner holds release approvals; `412` first.
+     Segment `k` (from 0) of the file's ciphertext, raw; the owner and the organization's members.
 
-    **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
-    `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
-    `details.challenge`.
+    **Who:** signed in (a session or an API key).
 
     Args:
-        body (AccountReleaseApprovalBody):
+        app (str):
+        id (str):
+        k (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[ApprovedReleases, Error]]
+        Response[Union[Error, File]]
     """
 
     kwargs = _get_kwargs(
-        body=body,
+        app=app,
+        id=id,
+        k=k,
     )
 
     response = client.get_httpx_client().request(
@@ -118,61 +121,69 @@ def sync_detailed(
 
 
 def sync(
+    app: str,
+    id: str,
+    k: str,
     *,
     client: AuthenticatedClient,
-    body: AccountReleaseApprovalBody,
-) -> Optional[Union[ApprovedReleases, Error]]:
-    """Approve a mero-tee release for the account's apps
+) -> Optional[Union[Error, File]]:
+    """One segment of a sealed file
 
-     Where the owner holds release approvals; `412` first.
+     Segment `k` (from 0) of the file's ciphertext, raw; the owner and the organization's members.
 
-    **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
-    `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
-    `details.challenge`.
+    **Who:** signed in (a session or an API key).
 
     Args:
-        body (AccountReleaseApprovalBody):
+        app (str):
+        id (str):
+        k (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[ApprovedReleases, Error]
+        Union[Error, File]
     """
 
     return sync_detailed(
+        app=app,
+        id=id,
+        k=k,
         client=client,
-        body=body,
     ).parsed
 
 
 async def asyncio_detailed(
+    app: str,
+    id: str,
+    k: str,
     *,
     client: AuthenticatedClient,
-    body: AccountReleaseApprovalBody,
-) -> Response[Union[ApprovedReleases, Error]]:
-    """Approve a mero-tee release for the account's apps
+) -> Response[Union[Error, File]]:
+    """One segment of a sealed file
 
-     Where the owner holds release approvals; `412` first.
+     Segment `k` (from 0) of the file's ciphertext, raw; the owner and the organization's members.
 
-    **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
-    `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
-    `details.challenge`.
+    **Who:** signed in (a session or an API key).
 
     Args:
-        body (AccountReleaseApprovalBody):
+        app (str):
+        id (str):
+        k (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[ApprovedReleases, Error]]
+        Response[Union[Error, File]]
     """
 
     kwargs = _get_kwargs(
-        body=body,
+        app=app,
+        id=id,
+        k=k,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -181,32 +192,36 @@ async def asyncio_detailed(
 
 
 async def asyncio(
+    app: str,
+    id: str,
+    k: str,
     *,
     client: AuthenticatedClient,
-    body: AccountReleaseApprovalBody,
-) -> Optional[Union[ApprovedReleases, Error]]:
-    """Approve a mero-tee release for the account's apps
+) -> Optional[Union[Error, File]]:
+    """One segment of a sealed file
 
-     Where the owner holds release approvals; `412` first.
+     Segment `k` (from 0) of the file's ciphertext, raw; the owner and the organization's members.
 
-    **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
-    `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
-    `details.challenge`.
+    **Who:** signed in (a session or an API key).
 
     Args:
-        body (AccountReleaseApprovalBody):
+        app (str):
+        id (str):
+        k (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[ApprovedReleases, Error]
+        Union[Error, File]
     """
 
     return (
         await asyncio_detailed(
+            app=app,
+            id=id,
+            k=k,
             client=client,
-            body=body,
         )
     ).parsed

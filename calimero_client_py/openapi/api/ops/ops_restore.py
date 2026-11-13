@@ -101,7 +101,10 @@ def sync_detailed(
      Signed over `<app> / __restore_app / { backup, sha256 }`. The receiving node holds the backup
     (`backup`, else the newest, in `{backup-dir}/{app}/`) and seeds the restore; answers once every
     replica holds the restored state: the rows restored, the backup (`format` 0, with `merod` and
-    `release` `null`, for one written before manifests) and the app group's Raft status.
+    `release` `null`, for one written before manifests) and the app group's Raft status. `recovery`
+    restores from a recovery-disk file instead (in the app's holder's directory under `--recover-from`,
+    else `--recovery-dir`), opened with the data key its holder opened from it (hex); `backup` is then
+    the file's name and `sha256` its body's.
 
     **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first;
     send it again with `operatorProof`, the operator key's signature over `details.message` and its
@@ -142,7 +145,10 @@ def sync(
      Signed over `<app> / __restore_app / { backup, sha256 }`. The receiving node holds the backup
     (`backup`, else the newest, in `{backup-dir}/{app}/`) and seeds the restore; answers once every
     replica holds the restored state: the rows restored, the backup (`format` 0, with `merod` and
-    `release` `null`, for one written before manifests) and the app group's Raft status.
+    `release` `null`, for one written before manifests) and the app group's Raft status. `recovery`
+    restores from a recovery-disk file instead (in the app's holder's directory under `--recover-from`,
+    else `--recovery-dir`), opened with the data key its holder opened from it (hex); `backup` is then
+    the file's name and `sha256` its body's.
 
     **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first;
     send it again with `operatorProof`, the operator key's signature over `details.message` and its
@@ -178,7 +184,10 @@ async def asyncio_detailed(
      Signed over `<app> / __restore_app / { backup, sha256 }`. The receiving node holds the backup
     (`backup`, else the newest, in `{backup-dir}/{app}/`) and seeds the restore; answers once every
     replica holds the restored state: the rows restored, the backup (`format` 0, with `merod` and
-    `release` `null`, for one written before manifests) and the app group's Raft status.
+    `release` `null`, for one written before manifests) and the app group's Raft status. `recovery`
+    restores from a recovery-disk file instead (in the app's holder's directory under `--recover-from`,
+    else `--recovery-dir`), opened with the data key its holder opened from it (hex); `backup` is then
+    the file's name and `sha256` its body's.
 
     **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first;
     send it again with `operatorProof`, the operator key's signature over `details.message` and its
@@ -217,7 +226,10 @@ async def asyncio(
      Signed over `<app> / __restore_app / { backup, sha256 }`. The receiving node holds the backup
     (`backup`, else the newest, in `{backup-dir}/{app}/`) and seeds the restore; answers once every
     replica holds the restored state: the rows restored, the backup (`format` 0, with `merod` and
-    `release` `null`, for one written before manifests) and the app group's Raft status.
+    `release` `null`, for one written before manifests) and the app group's Raft status. `recovery`
+    restores from a recovery-disk file instead (in the app's holder's directory under `--recover-from`,
+    else `--recovery-dir`), opened with the data key its holder opened from it (hex); `backup` is then
+    the file's name and `sha256` its body's.
 
     **Who:** the ops token. **Operator signature:** answers `428 OPERATOR_SIGNATURE_REQUIRED` first;
     send it again with `operatorProof`, the operator key's signature over `details.message` and its

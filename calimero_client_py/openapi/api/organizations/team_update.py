@@ -88,7 +88,8 @@ def sync_detailed(
 
      Rename, open or restrict, move under another parent, or set its metadata (the caller's own JSON,
     free-form, kept as given). `parent` absent leaves the team where it is; `parent: null` (an explicit
-    null) moves it to the top; a team id moves it under that team.
+    null) moves it to the top; a team id moves it under that team. A package-bound session: only its own
+    package's teams (its app team and the teams below it): a team below its app team, moved only within.
 
     **Who:** a passkey session (an API key is refused).
 
@@ -129,7 +130,8 @@ def sync(
 
      Rename, open or restrict, move under another parent, or set its metadata (the caller's own JSON,
     free-form, kept as given). `parent` absent leaves the team where it is; `parent: null` (an explicit
-    null) moves it to the top; a team id moves it under that team.
+    null) moves it to the top; a team id moves it under that team. A package-bound session: only its own
+    package's teams (its app team and the teams below it): a team below its app team, moved only within.
 
     **Who:** a passkey session (an API key is refused).
 
@@ -165,7 +167,8 @@ async def asyncio_detailed(
 
      Rename, open or restrict, move under another parent, or set its metadata (the caller's own JSON,
     free-form, kept as given). `parent` absent leaves the team where it is; `parent: null` (an explicit
-    null) moves it to the top; a team id moves it under that team.
+    null) moves it to the top; a team id moves it under that team. A package-bound session: only its own
+    package's teams (its app team and the teams below it): a team below its app team, moved only within.
 
     **Who:** a passkey session (an API key is refused).
 
@@ -204,7 +207,8 @@ async def asyncio(
 
      Rename, open or restrict, move under another parent, or set its metadata (the caller's own JSON,
     free-form, kept as given). `parent` absent leaves the team where it is; `parent: null` (an explicit
-    null) moves it to the top; a team id moves it under that team.
+    null) moves it to the top; a team id moves it under that team. A package-bound session: only its own
+    package's teams (its app team and the teams below it): a team below its app team, moved only within.
 
     **Who:** a passkey session (an API key is refused).
 

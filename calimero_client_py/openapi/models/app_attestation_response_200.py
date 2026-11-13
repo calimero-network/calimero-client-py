@@ -26,11 +26,13 @@ class AppAttestationResponse200:
     """
     Attributes:
         app_id (str):
+        cluster (str):
         replicas (list[Union['AppAttestationResponse200ReplicasItemType0',
             'AppAttestationResponse200ReplicasItemType1']]):
     """
 
     app_id: str
+    cluster: str
     replicas: list[
         Union[
             "AppAttestationResponse200ReplicasItemType0",
@@ -49,6 +51,8 @@ class AppAttestationResponse200:
 
         app_id = self.app_id
 
+        cluster = self.cluster
+
         replicas = []
         for replicas_item_data in self.replicas:
             replicas_item: dict[str, Any]
@@ -66,6 +70,7 @@ class AppAttestationResponse200:
         field_dict.update(
             {
                 "appId": app_id,
+                "cluster": cluster,
                 "replicas": replicas,
             }
         )
@@ -83,6 +88,8 @@ class AppAttestationResponse200:
 
         d = dict(src_dict)
         app_id = d.pop("appId")
+
+        cluster = d.pop("cluster")
 
         replicas = []
         _replicas = d.pop("replicas")
@@ -118,6 +125,7 @@ class AppAttestationResponse200:
 
         app_attestation_response_200 = cls(
             app_id=app_id,
+            cluster=cluster,
             replicas=replicas,
         )
 

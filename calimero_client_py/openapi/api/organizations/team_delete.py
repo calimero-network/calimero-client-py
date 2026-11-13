@@ -101,7 +101,8 @@ def sync_detailed(
 ) -> Response[Union[Error, TeamDeleteResponse200]]:
     """Delete a team
 
-     With the teams and apps below it.
+     With the teams and apps below it. A package-bound session: only its own package's teams (its app
+    team and the teams below it): a team below its app team whose apps are all its package's.
 
     **Who:** a passkey session (an API key is refused). **Step-up:** answers `412 CONFIRM_REQUIRED`
     first; send the same request again with `confirm`, a passkey assertion over `details.challenge`.
@@ -142,7 +143,8 @@ def sync(
 ) -> Optional[Union[Error, TeamDeleteResponse200]]:
     """Delete a team
 
-     With the teams and apps below it.
+     With the teams and apps below it. A package-bound session: only its own package's teams (its app
+    team and the teams below it): a team below its app team whose apps are all its package's.
 
     **Who:** a passkey session (an API key is refused). **Step-up:** answers `412 CONFIRM_REQUIRED`
     first; send the same request again with `confirm`, a passkey assertion over `details.challenge`.
@@ -178,7 +180,8 @@ async def asyncio_detailed(
 ) -> Response[Union[Error, TeamDeleteResponse200]]:
     """Delete a team
 
-     With the teams and apps below it.
+     With the teams and apps below it. A package-bound session: only its own package's teams (its app
+    team and the teams below it): a team below its app team whose apps are all its package's.
 
     **Who:** a passkey session (an API key is refused). **Step-up:** answers `412 CONFIRM_REQUIRED`
     first; send the same request again with `confirm`, a passkey assertion over `details.challenge`.
@@ -217,7 +220,8 @@ async def asyncio(
 ) -> Optional[Union[Error, TeamDeleteResponse200]]:
     """Delete a team
 
-     With the teams and apps below it.
+     With the teams and apps below it. A package-bound session: only its own package's teams (its app
+    team and the teams below it): a team below its app team whose apps are all its package's.
 
     **Who:** a passkey session (an API key is refused). **Step-up:** answers `412 CONFIRM_REQUIRED`
     first; send the same request again with `confirm`, a passkey assertion over `details.challenge`.

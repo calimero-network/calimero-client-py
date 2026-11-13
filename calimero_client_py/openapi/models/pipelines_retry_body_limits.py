@@ -9,22 +9,26 @@ from ..types import UNSET, Unset
 from typing import cast
 
 if TYPE_CHECKING:
-    from ..models.outbound_approval import OutboundApproval
+    from ..models.pipelines_retry_body_limits_additional_property import (
+        PipelinesRetryBodyLimitsAdditionalProperty,
+    )
 
 
-T = TypeVar("T", bound="MeResponse200OutboundApprovals")
+T = TypeVar("T", bound="PipelinesRetryBodyLimits")
 
 
 @_attrs_define
-class MeResponse200OutboundApprovals:
+class PipelinesRetryBodyLimits:
     """ """
 
-    additional_properties: dict[str, "OutboundApproval"] = _attrs_field(
-        init=False, factory=dict
+    additional_properties: dict[str, "PipelinesRetryBodyLimitsAdditionalProperty"] = (
+        _attrs_field(init=False, factory=dict)
     )
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.outbound_approval import OutboundApproval
+        from ..models.pipelines_retry_body_limits_additional_property import (
+            PipelinesRetryBodyLimitsAdditionalProperty,
+        )
 
         field_dict: dict[str, Any] = {}
         for prop_name, prop in self.additional_properties.items():
@@ -34,28 +38,34 @@ class MeResponse200OutboundApprovals:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.outbound_approval import OutboundApproval
+        from ..models.pipelines_retry_body_limits_additional_property import (
+            PipelinesRetryBodyLimitsAdditionalProperty,
+        )
 
         d = dict(src_dict)
-        me_response_200_outbound_approvals = cls()
+        pipelines_retry_body_limits = cls()
 
         additional_properties = {}
         for prop_name, prop_dict in d.items():
-            additional_property = OutboundApproval.from_dict(prop_dict)
+            additional_property = PipelinesRetryBodyLimitsAdditionalProperty.from_dict(
+                prop_dict
+            )
 
             additional_properties[prop_name] = additional_property
 
-        me_response_200_outbound_approvals.additional_properties = additional_properties
-        return me_response_200_outbound_approvals
+        pipelines_retry_body_limits.additional_properties = additional_properties
+        return pipelines_retry_body_limits
 
     @property
     def additional_keys(self) -> list[str]:
         return list(self.additional_properties.keys())
 
-    def __getitem__(self, key: str) -> "OutboundApproval":
+    def __getitem__(self, key: str) -> "PipelinesRetryBodyLimitsAdditionalProperty":
         return self.additional_properties[key]
 
-    def __setitem__(self, key: str, value: "OutboundApproval") -> None:
+    def __setitem__(
+        self, key: str, value: "PipelinesRetryBodyLimitsAdditionalProperty"
+    ) -> None:
         self.additional_properties[key] = value
 
     def __delitem__(self, key: str) -> None:

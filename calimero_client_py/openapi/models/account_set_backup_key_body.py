@@ -14,44 +14,37 @@ if TYPE_CHECKING:
     from ..models.confirm import Confirm
 
 
-T = TypeVar("T", bound="AccountReleaseApprovalBody")
+T = TypeVar("T", bound="AccountSetBackupKeyBody")
 
 
 @_attrs_define
-class AccountReleaseApprovalBody:
+class AccountSetBackupKeyBody:
     """
     Attributes:
-        version (str):
-        approved (Union[Unset, bool]):
+        public_key (str):
         confirm (Union[Unset, Confirm]): A passkey assertion over the challenge a `412 CONFIRM_REQUIRED` named: the same
             request sent again with it approves exactly that request.
     """
 
-    version: str
-    approved: Union[Unset, bool] = UNSET
+    public_key: str
     confirm: Union[Unset, "Confirm"] = UNSET
-    additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         from ..models.confirm import Confirm
 
-        version = self.version
-
-        approved = self.approved
+        public_key = self.public_key
 
         confirm: Union[Unset, dict[str, Any]] = UNSET
         if not isinstance(self.confirm, Unset):
             confirm = self.confirm.to_dict()
 
         field_dict: dict[str, Any] = {}
-        field_dict.update(self.additional_properties)
+
         field_dict.update(
             {
-                "version": version,
+                "publicKey": public_key,
             }
         )
-        if approved is not UNSET:
-            field_dict["approved"] = approved
         if confirm is not UNSET:
             field_dict["confirm"] = confirm
 
@@ -62,9 +55,7 @@ class AccountReleaseApprovalBody:
         from ..models.confirm import Confirm
 
         d = dict(src_dict)
-        version = d.pop("version")
-
-        approved = d.pop("approved", UNSET)
+        public_key = d.pop("publicKey")
 
         _confirm = d.pop("confirm", UNSET)
         confirm: Union[Unset, Confirm]
@@ -73,27 +64,9 @@ class AccountReleaseApprovalBody:
         else:
             confirm = Confirm.from_dict(_confirm)
 
-        account_release_approval_body = cls(
-            version=version,
-            approved=approved,
+        account_set_backup_key_body = cls(
+            public_key=public_key,
             confirm=confirm,
         )
 
-        account_release_approval_body.additional_properties = d
-        return account_release_approval_body
-
-    @property
-    def additional_keys(self) -> list[str]:
-        return list(self.additional_properties.keys())
-
-    def __getitem__(self, key: str) -> Any:
-        return self.additional_properties[key]
-
-    def __setitem__(self, key: str, value: Any) -> None:
-        self.additional_properties[key] = value
-
-    def __delitem__(self, key: str) -> None:
-        del self.additional_properties[key]
-
-    def __contains__(self, key: str) -> bool:
-        return key in self.additional_properties
+        return account_set_backup_key_body

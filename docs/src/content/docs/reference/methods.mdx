@@ -22,7 +22,7 @@ codes the document lists for the method beyond the ones every call can get
 (`UNAUTHENTICATED`, `FORBIDDEN`, `NOT_FOUND`, ...): see
 [errors](/reference/errors/).
 
-Generated from core `92ac297a1`.
+Generated from core `3da5b6edb`.
 
 ## `client.apps`
 
@@ -40,6 +40,8 @@ Generated from core `92ac297a1`.
 | `call(app, method, args=…, idempotency_key=…, confirm=None)` | `POST /apps/{app}/intents` | Call a method. **passkey** (the method is a `confirm` method of the app's ABI). *Refusals:* `409 RELEASE_DEADLINE`, `413 ARGS_TOO_LARGE`, `422 APP_ERROR`, `422 TRAP`, `429 QUOTA_EXCEEDED`, `503 TIMEOUT` |
 | `create(name=…, bundle=…, package=…, version=…, service=…, org=…, access=…, init_args=…, metadata=…, deployment=…)` | `POST /apps` | Create an app instance. *Refusals:* `400 AMBIGUOUS_COMPUTE`, `400 NOT_OFFERED`, `400 NO_SUCH_SERVICE`, `400 VERSION_REQUIRED`, `409 RELEASE_DEADLINE`, `409 RUNTIME_TOO_OLD`, `422 INIT_FAILED`, `429 QUOTA_EXCEEDED` |
 | `delete(app)` | `DELETE /apps/{app}` | Delete an app |
+| `exports_export(app, id, recipient)` | `POST /apps/{app}/files/{id}/export` | Export a sealed file's key. *Refusals:* `400 BAD_RECIPIENT`, `429 TOO_MANY_EXPORTS` |
+| `exports_segment(app, id, k)` | `GET /apps/{app}/files/{id}/segments/{k}` | One segment of a sealed file. *Refusals:* `404 NO_SUCH_SEGMENT` |
 | `file_info(app, id)` | `GET /apps/{app}/files/{id}` | One sealed file |
 | `files_list(app)` | `GET /apps/{app}/files` | List an app's sealed files |
 | `files_upload(app, body)` | `POST /apps/{app}/files` | Upload a sealed file. *Refusals:* `429 QUOTA_EXCEEDED` |
@@ -49,6 +51,14 @@ Generated from core `92ac297a1`.
 | `method(app, method, args=…, idempotency_key=…, consistency=…, min_index=…, confirm=None)` | `POST /apps/{app}/methods/{method}` | Call a method by its path. **passkey** (the method is a `confirm` method of the app's ABI). *Refusals:* `400 RESERVED_METHOD`, `409 RELEASE_DEADLINE`, `413 ARGS_TOO_LARGE`, `422 APP_ERROR`, `422 TRAP`, `429 QUOTA_EXCEEDED`, `503 NOT_CAUGHT_UP`, `503 TIMEOUT` |
 | `move(app, to_org, bring_members=…, confirm=None)` | `POST /apps/{app}/move` | Move an app to another organization. **passkey**. *Refusals:* `409 FEATURE_NOT_ACTIVE` |
 | `openapi(app)` | `GET /apps/{app}/openapi.json` | An app's OpenAPI document. *Refusals:* `410 UNSUPPORTED_ENGINE`, `422 BAD_ABI` |
+| `pipeline_receipt_receipt(app, run)` | `GET /apps/{app}/pipeline-runs/{run}/receipt` | A pipeline run's receipt. *Refusals:* `409 RUN_NOT_ENDED` |
+| `pipelines_cancel(app, run)` | `POST /apps/{app}/pipeline-runs/{run}/cancel` | Cancel a pipeline run |
+| `pipelines_estimate_run(app, name, inputs=…, counts=…, params=…)` | `POST /apps/{app}/pipelines/{name}/estimate` | Estimate a pipeline run. *Refusals:* `400 BAD_INPUTS`, `400 BAD_PARAMS`, `404 NO_SUCH_PIPELINE` |
+| `pipelines_get(app, run)` | `GET /apps/{app}/pipeline-runs/{run}` | One pipeline run |
+| `pipelines_list(app, limit=…)` | `GET /apps/{app}/pipeline-runs` | An app's pipeline runs. *Refusals:* `400 BAD_LIMIT` |
+| `pipelines_retry(app, run, limits=…, max_cost=…)` | `POST /apps/{app}/pipeline-runs/{run}/retry` | Retry a pipeline run. *Refusals:* `400 BAD_LIMITS`, `400 BAD_MAX_COST`, `400 LIMIT_EXCEEDS_CAP`, `409 CLUSTER_NOT_UPGRADED`, `409 NO_PRICE_TABLE`, `409 STILL_RUNNING`, `410 OUTPUT_EXPIRED`, `429 TOO_MANY_PIPELINE_RUNS` |
+| `pipelines_start(app, name, inputs=…, params=…, max_cost=…)` | `POST /apps/{app}/pipelines/{name}/runs` | Start a pipeline run. *Refusals:* `400 BAD_INPUTS`, `400 BAD_MAX_COST`, `400 BAD_PARAMS`, `404 NO_SUCH_PIPELINE`, `409 CLUSTER_NOT_UPGRADED`, `409 NO_PRICE_TABLE`, `410 OUTPUT_EXPIRED`, `422 PIPELINES_NEED_ONE_SERVICE`, `429 TOO_MANY_PIPELINE_RUNS` |
+| `pipelines_validate(source, package=…, version=…)` | `POST /pipelines/validate` | Validate a pipeline. *Refusals:* `400 BAD_RELEASE` |
 | `presence_get(app)` | `GET /apps/{app}/presence` | Who is present |
 | `presence_publish(app, seq, state=…)` | `POST /apps/{app}/presence` | Publish presence. *Refusals:* `400 BAD_STATE` |
 | `run(app, run)` | `GET /apps/{app}/runs/{run}` | One compute run |
@@ -70,13 +80,13 @@ Generated from core `92ac297a1`.
 | Method | Route | What it does |
 | --- | --- | --- |
 | `account_apps(after=…, limit=…)` | `GET /auth/apps` | The account's own apps |
-| `account_outbound_approval(package, prefixes=…, replace=…, confirm=None)` | `POST /auth/outbound` | Approve outbound prefixes for the account's apps. **passkey** |
+| `account_backup_key()` | `GET /auth/backup-key` | The account's backup key |
 | `account_proof_prove(nonce, audience)` | `POST /auth/account-proof` | Prove the account to another party. *Refusals:* `400 BAD_AUDIENCE`, `400 BAD_NONCE` |
 | `account_recovery_begin(code)` | `POST /auth/recovery/begin` | Start an account recovery |
 | `account_recovery_cancel(confirm=None)` | `POST /auth/recovery/cancel` | Cancel an account recovery. **passkey** |
 | `account_recovery_finish(account_id=…, confirm=None)` | `POST /auth/recovery/finish` | Finish an account recovery. **passkey**. *Refusals:* `409 RECOVERY_NOT_READY` |
 | `account_recovery_start(challenge_id, code, registration)` | `POST /auth/recovery/start` | Spend the recovery code. *Refusals:* `400 BAD_REGISTRATION`, `409 RECOVERY_PENDING` |
-| `account_release_approval(version, approved=…, confirm=None)` | `POST /auth/releases` | Approve a mero-tee release for the account's apps. **passkey** |
+| `account_set_backup_key(public_key, confirm=None)` | `POST /auth/backup-key` | Set the account's backup key. **passkey**. *Refusals:* `400 BAD_BACKUP_KEY`, `409 FEATURE_NOT_ACTIVE` |
 | `activity_list(after=…)` | `GET /auth/activity` | What the account's passkeys did |
 | `alias_delete(alias)` | `DELETE /auth/aliases/{alias}` | Remove an alias |
 | `alias_get(alias)` | `GET /auth/aliases/{alias}` | Resolve an alias |
@@ -136,6 +146,7 @@ Generated from core `92ac297a1`.
 | --- | --- | --- |
 | `apps(after=…, limit=…)` | `GET /ops/apps` | What each app runs |
 | `backup(all_=…)` | `POST /ops/backup` | Snapshot the apps this node leads |
+| `backup_key()` | `GET /ops/backup-key` | The operator's backup key |
 | `cluster()` | `GET /ops/cluster` | The cluster's identity |
 | `cluster_owner(owner, operator_proof=None)` | `POST /ops/cluster-owner` | Name the cluster's owner. **operator**. *Refusals:* `409 CONFLICT` |
 | `deployer_grant(deployer, until=…, operator_proof=None)` | `POST /ops/deployers` | Grant a deployer. **operator** |
@@ -154,16 +165,21 @@ Generated from core `92ac297a1`.
 | `placement()` | `GET /ops/placement` | Where every app's replicas are |
 | `pools_get()` | `GET /ops/pools` | Compute pools |
 | `pools_set(pools, operator_proof=None)` | `POST /ops/pools` | Set the compute pools. **operator**. *Refusals:* `409 POOL_IN_USE`, `409 UPGRADE_PENDING` |
+| `prices_get()` | `GET /ops/prices` | The price table |
+| `prices_set(table, operator_proof=None)` | `POST /ops/prices` | Set the price table. **operator**. *Refusals:* `400 BAD_PRICES`, `409 PRICE_VERSION`, `409 UPGRADE_PENDING` |
 | `quotas_get()` | `GET /ops/quotas` | The quotas |
 | `quotas_set(org=…, orgs=…, max_apps_per_account=…, max_bundle_bytes_per_account=…, max_api_keys_per_account=…, max_orgs_per_account=…, max_accounts=…, max_file_bytes_per_org=…, max_concurrent_runs_per_org=…, compute_fuel_per_org=…, max_fuel_per_developer_per_day=…, max_concurrent_runs=…, compute_fuel=…, max_file_bytes=…, operator_proof=None)` | `POST /ops/quotas` | Change quotas. **operator**. *Refusals:* `400 UNKNOWN_QUOTA`, `409 UPGRADE_PENDING` |
 | `receipt_key(id)` | `GET /ops/nodes/{id}/receipt-key` | A node's receipt key |
+| `recover(system, code=…)` | `POST /ops/recover` | Found the cluster again from its recovery disk. *Refusals:* `400 BAD_RECOVERY_FILE`, `400 BAD_RECOVERY_KEY`, `400 TOO_MANY_FILES`, `400 UNATTESTED_RECOVERY_FILE`, `409 NOT_RECOVERING`, `409 OLD_CLUSTER_ANSWERS`, `409 OTHER_DEPLOYMENT` |
+| `recovery_files(holder=…)` | `GET /ops/recovery-files` | The recovery files a node reads. *Refusals:* `409 NO_BACKUP_DIR` |
 | `register_node(id, addr, zone=…, role=…, pool=…, operator_proof=None)` | `POST /ops/nodes` | Register a node. **operator**. *Refusals:* `400 BAD_ADDRESS`, `400 BAD_POOL`, `400 NODE_HOLDS_CLUSTER`, `400 POOL_FOR_JOB_NODES`, `409 ADDRESS_TAKEN` |
 | `release(version, approved=…, operator_proof=None)` | `POST /ops/releases` | Approve a mero-tee release for every app. **operator** |
 | `release_deadline(version, after=…, operator_proof=None)` | `POST /ops/releases/{version}/deadline` | Set a release deadline. **operator** |
 | `release_deadline_lift(version, operator_proof=None)` | `DELETE /ops/releases/{version}/deadline` | Lift a release deadline. **operator** |
 | `remove_node(id, operator_proof=None)` | `DELETE /ops/nodes/{id}` | Remove a node. **operator**. *Refusals:* `400 LAST_NODE` |
-| `restore(app, backup=…, operator_proof=None)` | `POST /ops/apps/{app}/restore` | Restore an app from its sealed backup. **operator**. *Refusals:* `400 BAD_BACKUP`, `400 NOT_A_REPLICA_NODE`, `404 BACKUP_NOT_FOUND`, `409 BACKUP_FROM_NEWER_RELEASE`, `409 BUNDLE_GONE`, `409 MOVE_IN_PROGRESS`, `409 NO_BACKUP_DIR`, `409 UNKNOWN_BACKUP_FORMAT`, `409 UPGRADE_PENDING` |
+| `restore(app, backup=…, recovery=…, operator_proof=None)` | `POST /ops/apps/{app}/restore` | Restore an app from its sealed backup. **operator**. *Refusals:* `400 BAD_BACKUP`, `400 BAD_RECOVERY_FILE`, `400 BAD_RECOVERY_KEY`, `400 NOT_A_REPLICA_NODE`, `400 UNATTESTED_RECOVERY_FILE`, `404 BACKUP_NOT_FOUND`, `409 BACKUP_FROM_NEWER_RELEASE`, `409 BUNDLE_GONE`, `409 MOVE_IN_PROGRESS`, `409 NO_BACKUP_DIR`, `409 RECOVERY_SEGMENTS_MISSING`, `409 UNKNOWN_BACKUP_FORMAT`, `409 UPGRADE_PENDING` |
 | `served()` | `GET /ops/served-origins` | Custom domains to serve |
+| `set_backup_key(public_key, operator_proof=None)` | `POST /ops/backup-key` | Set the operator's backup key. **operator**. *Refusals:* `400 BAD_BACKUP_KEY`, `409 FEATURE_NOT_ACTIVE` |
 | `set_replicas(app, replicas, operator_proof=None)` | `POST /ops/apps/{app}/replicas` | Move an app's replicas. **operator**. *Refusals:* `400 DUPLICATE_REPLICA`, `400 JOB_NODE`, `400 TOO_FEW`, `400 UNKNOWN_NODE`, `409 MOVE_IN_PROGRESS`, `409 RUNTIME_TOO_OLD` |
 | `sign_up_invite_create(token, uses=…, expires_at, operator_proof=None)` | `POST /ops/sign-up/invites` | Issue a cluster sign-up invite. **operator** |
 | `sign_up_invite_list()` | `GET /ops/sign-up/invites` | Cluster sign-up invites |
@@ -181,6 +197,7 @@ Generated from core `92ac297a1`.
 | `app_team_list(org)` | `GET /orgs/{org}/app-teams` | The organization's app teams |
 | `app_teams_scope(org, apps=…, shared=…, confirm=None)` | `POST /orgs/{org}/app-teams` | Give apps app teams, or open or close one. **passkey**. *Refusals:* `400 TOO_MANY_PACKAGES`, `409 FEATURE_NOT_ACTIVE` |
 | `apps(org, after=…, limit=…)` | `GET /orgs/{org}/apps` | The organization's apps |
+| `backup_key(org)` | `GET /orgs/{org}/backup-key` | The organization's backup key |
 | `capabilities(org, account=…, team=…, capabilities, confirm=None)` | `POST /orgs/{org}/capabilities` | Set capabilities. **passkey** |
 | `create(name, recovery_key=…)` | `POST /orgs` | Create an organization. *Refusals:* `429 QUOTA_EXCEEDED` |
 | `delete(org, confirm=None)` | `DELETE /orgs/{org}` | Delete an organization. **passkey** |
@@ -204,6 +221,7 @@ Generated from core `92ac297a1`.
 | `release_approval(org, version, approved=…, confirm=None)` | `POST /orgs/{org}/releases` | Approve a mero-tee release for the organization's apps. **passkey** |
 | `remove_member(org, account, confirm=None)` | `DELETE /orgs/{org}/members/{account}` | Remove a member, or leave. **passkey** |
 | `rename(org, name, confirm=None)` | `POST /orgs/{org}/name` | Rename an organization. **passkey**. *Refusals:* `409 FEATURE_NOT_ACTIVE` |
+| `set_backup_key(org, public_key, confirm=None)` | `POST /orgs/{org}/backup-key` | Set the organization's backup key. **passkey**. *Refusals:* `400 BAD_BACKUP_KEY`, `409 FEATURE_NOT_ACTIVE` |
 | `set_member(org, account, role, confirm=None)` | `POST /orgs/{org}/members` | Set a member's role. **passkey** |
 | `team_create(org, name, parent=…, join)` | `POST /orgs/{org}/teams` | Create a team |
 | `team_delete(org, team, confirm=None)` | `DELETE /orgs/{org}/teams/{team}` | Delete a team. **passkey** |
@@ -227,6 +245,7 @@ Generated from core `92ac297a1`.
 | `origins_add(package, origin, rp_id=…, served=…, confirm=None)` | `POST /package-origins/{package}` | Register a frontend origin. **passkey**. *Refusals:* `400 BAD_RP_ID`, `429 QUOTA_EXCEEDED` |
 | `origins_list(package)` | `GET /package-origins/{package}` | A package's frontend origins |
 | `origins_remove(package, origin, confirm=None)` | `DELETE /package-origins/{package}` | Remove a frontend origin. **passkey** |
+| `pipelines(package, version)` | `GET /packages/{package}/{version}/pipelines` | A release's pipelines |
 | `uninstall(package)` | `DELETE /packages/{package}` | Uninstall a package |
 | `upload(body)` | `POST /packages` | Upload a signed release. *Refusals:* `400 BAD_BUNDLE`, `400 BAD_PACKAGE`, `400 COMPUTE_ABI_MISMATCH`, `400 UNSUPPORTED_BUNDLE`, `403 DEPLOY_NOT_GRANTED`, `403 UPLOADS_DISABLED` |
 | `version_uninstall(package, version)` | `DELETE /packages/{package}/{version}` | Uninstall one version |
@@ -239,3 +258,4 @@ Generated from core `92ac297a1`.
 | `health()` | `GET /health` | Node health |
 | `publisher_binding(signer)` | `GET /publishers/{signer}` | Whether a signing key is bound |
 | `releases_public()` | `GET /releases` | The cluster's releases |
+| `restore_recover_holder(holder, slice_, apps=…, code=…, operator_proof=None)` | `POST /recover/holder` | Bring an organization's or account's apps back from its recovery files. **operator**. *Refusals:* `400 BAD_RECOVERY_FILE`, `400 BAD_RECOVERY_KEY`, `400 NOT_A_REPLICA_NODE`, `400 TOO_MANY_FILES`, `400 UNATTESTED_RECOVERY_FILE`, `409 FEATURE_NOT_ACTIVE`, `409 NO_BACKUP_DIR`, `409 RECOVERY_SEGMENTS_MISSING` |

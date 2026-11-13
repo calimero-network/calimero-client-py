@@ -739,28 +739,10 @@ CASES = [
         {"org": "o1"},
     ),
     (
-        lambda c: c.json.auth.account_release_approval(version="1.0.0", confirm=PK),
-        "POST",
-        "/auth/releases",
-        {"version": "1.0.0"},
-        {},
-        {},
-    ),
-    (
         lambda c: c.json.orgs.release_approval(version="1.0.0", confirm=PK, org="o1"),
         "POST",
         "/orgs/o1/releases",
         {"version": "1.0.0"},
-        {},
-        {},
-    ),
-    (
-        lambda c: c.json.auth.account_outbound_approval(
-            package="com.x", confirm=PK, prefixes="manifest"
-        ),
-        "POST",
-        "/auth/outbound",
-        {"package": "com.x", "prefixes": "manifest"},
         {},
         {},
     ),

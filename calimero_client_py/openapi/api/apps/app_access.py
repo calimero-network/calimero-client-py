@@ -83,7 +83,9 @@ def sync_detailed(
 ) -> Response[Union[AppAccessResponse200, Error]]:
     """Set who may reach an app
 
-     **Who:** a passkey session (an API key is refused).
+     A package-bound session: only its own package's app, from one of its package's teams to another.
+
+    **Who:** a passkey session (an API key is refused).
 
     Args:
         app (str):
@@ -117,7 +119,9 @@ def sync(
 ) -> Optional[Union[AppAccessResponse200, Error]]:
     """Set who may reach an app
 
-     **Who:** a passkey session (an API key is refused).
+     A package-bound session: only its own package's app, from one of its package's teams to another.
+
+    **Who:** a passkey session (an API key is refused).
 
     Args:
         app (str):
@@ -146,7 +150,9 @@ async def asyncio_detailed(
 ) -> Response[Union[AppAccessResponse200, Error]]:
     """Set who may reach an app
 
-     **Who:** a passkey session (an API key is refused).
+     A package-bound session: only its own package's app, from one of its package's teams to another.
+
+    **Who:** a passkey session (an API key is refused).
 
     Args:
         app (str):
@@ -178,7 +184,9 @@ async def asyncio(
 ) -> Optional[Union[AppAccessResponse200, Error]]:
     """Set who may reach an app
 
-     **Who:** a passkey session (an API key is refused).
+     A package-bound session: only its own package's app, from one of its package's teams to another.
+
+    **Who:** a passkey session (an API key is refused).
 
     Args:
         app (str):

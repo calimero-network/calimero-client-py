@@ -7,43 +7,28 @@ from ...client import AuthenticatedClient, Client
 from ...types import Response, UNSET
 from ... import errors
 
-from ...models.account_outbound_approval_body import AccountOutboundApprovalBody
+from ...models.backup_key_answer import BackupKeyAnswer
 from ...models.error import Error
-from ...models.outbound_approved import OutboundApproved
 from typing import cast
 
 
-def _get_kwargs(
-    *,
-    body: AccountOutboundApprovalBody,
-) -> dict[str, Any]:
-    headers: dict[str, Any] = {}
+def _get_kwargs() -> dict[str, Any]:
 
     _kwargs: dict[str, Any] = {
-        "method": "post",
-        "url": "/auth/outbound",
+        "method": "get",
+        "url": "/auth/backup-key",
     }
 
-    _kwargs["json"] = body.to_dict()
-
-    headers["Content-Type"] = "application/json"
-
-    _kwargs["headers"] = headers
     return _kwargs
 
 
 def _parse_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[Error, OutboundApproved]]:
+) -> Optional[Union[BackupKeyAnswer, Error]]:
     if response.status_code == 200:
-        response_200 = OutboundApproved.from_dict(response.json())
+        response_200 = BackupKeyAnswer.from_dict(response.json())
 
         return response_200
-
-    if response.status_code == 400:
-        response_400 = Error.from_dict(response.json())
-
-        return response_400
 
     if response.status_code == 401:
         response_401 = Error.from_dict(response.json())
@@ -54,11 +39,6 @@ def _parse_response(
         response_403 = Error.from_dict(response.json())
 
         return response_403
-
-    if response.status_code == 412:
-        response_412 = Error.from_dict(response.json())
-
-        return response_412
 
     if response.status_code == 421:
         response_421 = Error.from_dict(response.json())
@@ -73,7 +53,7 @@ def _parse_response(
 
 def _build_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[Error, OutboundApproved]]:
+) -> Response[Union[BackupKeyAnswer, Error]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -85,28 +65,23 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient,
-    body: AccountOutboundApprovalBody,
-) -> Response[Union[Error, OutboundApproved]]:
-    """Approve outbound prefixes for the account's apps
+) -> Response[Union[BackupKeyAnswer, Error]]:
+    """The account's backup key
 
-     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
-    `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
-    `details.challenge`.
+     The X25519 public key the recovery-disk backups of the account's personal apps are sealed to (`key`,
+    `null` while none is set).
 
-    Args:
-        body (AccountOutboundApprovalBody):
+    **Who:** an account holder (a passkey session not bound to an app's frontend).
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Error, OutboundApproved]]
+        Response[Union[BackupKeyAnswer, Error]]
     """
 
-    kwargs = _get_kwargs(
-        body=body,
-    )
+    kwargs = _get_kwargs()
 
     response = client.get_httpx_client().request(
         **kwargs,
@@ -118,56 +93,47 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient,
-    body: AccountOutboundApprovalBody,
-) -> Optional[Union[Error, OutboundApproved]]:
-    """Approve outbound prefixes for the account's apps
+) -> Optional[Union[BackupKeyAnswer, Error]]:
+    """The account's backup key
 
-     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
-    `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
-    `details.challenge`.
+     The X25519 public key the recovery-disk backups of the account's personal apps are sealed to (`key`,
+    `null` while none is set).
 
-    Args:
-        body (AccountOutboundApprovalBody):
+    **Who:** an account holder (a passkey session not bound to an app's frontend).
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Error, OutboundApproved]
+        Union[BackupKeyAnswer, Error]
     """
 
     return sync_detailed(
         client=client,
-        body=body,
     ).parsed
 
 
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient,
-    body: AccountOutboundApprovalBody,
-) -> Response[Union[Error, OutboundApproved]]:
-    """Approve outbound prefixes for the account's apps
+) -> Response[Union[BackupKeyAnswer, Error]]:
+    """The account's backup key
 
-     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
-    `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
-    `details.challenge`.
+     The X25519 public key the recovery-disk backups of the account's personal apps are sealed to (`key`,
+    `null` while none is set).
 
-    Args:
-        body (AccountOutboundApprovalBody):
+    **Who:** an account holder (a passkey session not bound to an app's frontend).
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Error, OutboundApproved]]
+        Response[Union[BackupKeyAnswer, Error]]
     """
 
-    kwargs = _get_kwargs(
-        body=body,
-    )
+    kwargs = _get_kwargs()
 
     response = await client.get_async_httpx_client().request(**kwargs)
 
@@ -177,28 +143,24 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient,
-    body: AccountOutboundApprovalBody,
-) -> Optional[Union[Error, OutboundApproved]]:
-    """Approve outbound prefixes for the account's apps
+) -> Optional[Union[BackupKeyAnswer, Error]]:
+    """The account's backup key
 
-     **Who:** an account holder (a passkey session not bound to an app's frontend). **Step-up:** answers
-    `412 CONFIRM_REQUIRED` first; send the same request again with `confirm`, a passkey assertion over
-    `details.challenge`.
+     The X25519 public key the recovery-disk backups of the account's personal apps are sealed to (`key`,
+    `null` while none is set).
 
-    Args:
-        body (AccountOutboundApprovalBody):
+    **Who:** an account holder (a passkey session not bound to an app's frontend).
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Error, OutboundApproved]
+        Union[BackupKeyAnswer, Error]
     """
 
     return (
         await asyncio_detailed(
             client=client,
-            body=body,
         )
     ).parsed

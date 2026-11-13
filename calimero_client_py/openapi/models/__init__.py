@@ -11,7 +11,6 @@ from .access_type_3_kind import AccessType3Kind
 from .access_type_4 import AccessType4
 from .access_type_4_kind import AccessType4Kind
 from .account_apps_response_200 import AccountAppsResponse200
-from .account_outbound_approval_body import AccountOutboundApprovalBody
 from .account_proof import AccountProof
 from .account_proof_prove_body import AccountProofProveBody
 from .account_recovery_begin_body import AccountRecoveryBeginBody
@@ -20,7 +19,7 @@ from .account_recovery_cancel_response_200 import AccountRecoveryCancelResponse2
 from .account_recovery_finish_body import AccountRecoveryFinishBody
 from .account_recovery_start_body import AccountRecoveryStartBody
 from .account_recovery_start_response_200 import AccountRecoveryStartResponse200
-from .account_release_approval_body import AccountReleaseApprovalBody
+from .account_set_backup_key_body import AccountSetBackupKeyBody
 from .account_statement import AccountStatement
 from .activity_list_response_200 import ActivityListResponse200
 from .activity_list_response_200_activity_item import (
@@ -53,6 +52,7 @@ from .app_attestation_response_200_replicas_item_type_0 import (
 from .app_attestation_response_200_replicas_item_type_1 import (
     AppAttestationResponse200ReplicasItemType1,
 )
+from .app_components import AppComponents
 from .app_create_body import AppCreateBody
 from .app_create_response_200 import AppCreateResponse200
 from .app_delete_response_200 import AppDeleteResponse200
@@ -98,6 +98,10 @@ from .approved_releases import ApprovedReleases
 from .assertion import Assertion
 from .attestation_doc import AttestationDoc
 from .attestation_purpose import AttestationPurpose
+from .backup_key_answer import BackupKeyAnswer
+from .backup_key_answer_holder import BackupKeyAnswerHolder
+from .backup_key_answer_holder_kind import BackupKeyAnswerHolderKind
+from .backup_key_answer_key_type_0 import BackupKeyAnswerKeyType0
 from .blob_delete_response_200 import BlobDeleteResponse200
 from .blob_info_response_200 import BlobInfoResponse200
 from .blob_list_response_200 import BlobListResponse200
@@ -120,6 +124,24 @@ from .consent_page_create_body_type_0_scope_type_1 import (
 )
 from .consent_page_create_body_type_0_subject import ConsentPageCreateBodyType0Subject
 from .consent_page_create_body_type_1 import ConsentPageCreateBodyType1
+from .consent_page_create_body_type_10 import ConsentPageCreateBodyType10
+from .consent_page_create_body_type_10_kind import ConsentPageCreateBodyType10Kind
+from .consent_page_create_body_type_10_subject import ConsentPageCreateBodyType10Subject
+from .consent_page_create_body_type_11 import ConsentPageCreateBodyType11
+from .consent_page_create_body_type_11_kind import ConsentPageCreateBodyType11Kind
+from .consent_page_create_body_type_11_subject import ConsentPageCreateBodyType11Subject
+from .consent_page_create_body_type_12 import ConsentPageCreateBodyType12
+from .consent_page_create_body_type_12_kind import ConsentPageCreateBodyType12Kind
+from .consent_page_create_body_type_12_subject import ConsentPageCreateBodyType12Subject
+from .consent_page_create_body_type_13 import ConsentPageCreateBodyType13
+from .consent_page_create_body_type_13_kind import ConsentPageCreateBodyType13Kind
+from .consent_page_create_body_type_13_subject import ConsentPageCreateBodyType13Subject
+from .consent_page_create_body_type_14 import ConsentPageCreateBodyType14
+from .consent_page_create_body_type_14_kind import ConsentPageCreateBodyType14Kind
+from .consent_page_create_body_type_14_subject import ConsentPageCreateBodyType14Subject
+from .consent_page_create_body_type_15 import ConsentPageCreateBodyType15
+from .consent_page_create_body_type_15_kind import ConsentPageCreateBodyType15Kind
+from .consent_page_create_body_type_15_subject import ConsentPageCreateBodyType15Subject
 from .consent_page_create_body_type_1_kind import ConsentPageCreateBodyType1Kind
 from .consent_page_create_body_type_1_subject import ConsentPageCreateBodyType1Subject
 from .consent_page_create_body_type_2 import ConsentPageCreateBodyType2
@@ -131,9 +153,45 @@ from .consent_page_create_body_type_2_scope_type_1 import (
     ConsentPageCreateBodyType2ScopeType1,
 )
 from .consent_page_create_body_type_2_subject import ConsentPageCreateBodyType2Subject
+from .consent_page_create_body_type_3 import ConsentPageCreateBodyType3
+from .consent_page_create_body_type_3_kind import ConsentPageCreateBodyType3Kind
+from .consent_page_create_body_type_3_subject import ConsentPageCreateBodyType3Subject
+from .consent_page_create_body_type_4 import ConsentPageCreateBodyType4
+from .consent_page_create_body_type_4_kind import ConsentPageCreateBodyType4Kind
+from .consent_page_create_body_type_4_subject import ConsentPageCreateBodyType4Subject
+from .consent_page_create_body_type_4_subject_role import (
+    ConsentPageCreateBodyType4SubjectRole,
+)
+from .consent_page_create_body_type_5 import ConsentPageCreateBodyType5
+from .consent_page_create_body_type_5_kind import ConsentPageCreateBodyType5Kind
+from .consent_page_create_body_type_5_subject import ConsentPageCreateBodyType5Subject
+from .consent_page_create_body_type_6 import ConsentPageCreateBodyType6
+from .consent_page_create_body_type_6_kind import ConsentPageCreateBodyType6Kind
+from .consent_page_create_body_type_6_subject import ConsentPageCreateBodyType6Subject
+from .consent_page_create_body_type_7 import ConsentPageCreateBodyType7
+from .consent_page_create_body_type_7_kind import ConsentPageCreateBodyType7Kind
+from .consent_page_create_body_type_7_subject import ConsentPageCreateBodyType7Subject
+from .consent_page_create_body_type_8 import ConsentPageCreateBodyType8
+from .consent_page_create_body_type_8_kind import ConsentPageCreateBodyType8Kind
+from .consent_page_create_body_type_8_subject import ConsentPageCreateBodyType8Subject
+from .consent_page_create_body_type_8_subject_role import (
+    ConsentPageCreateBodyType8SubjectRole,
+)
+from .consent_page_create_body_type_9 import ConsentPageCreateBodyType9
+from .consent_page_create_body_type_9_kind import ConsentPageCreateBodyType9Kind
+from .consent_page_create_body_type_9_subject import ConsentPageCreateBodyType9Subject
+from .consent_page_create_body_type_9_subject_teams_item import (
+    ConsentPageCreateBodyType9SubjectTeamsItem,
+)
+from .consent_page_create_body_type_9_subject_teams_item_role import (
+    ConsentPageCreateBodyType9SubjectTeamsItemRole,
+)
 from .consent_page_create_response_200 import ConsentPageCreateResponse200
 from .consent_page_result_response_200 import ConsentPageResultResponse200
 from .consent_page_result_response_200_kind import ConsentPageResultResponse200Kind
+from .consent_page_result_response_200_outcome import (
+    ConsentPageResultResponse200Outcome,
+)
 from .consent_page_result_response_200_status import ConsentPageResultResponse200Status
 from .dead_letter import DeadLetter
 from .deadlines import Deadlines
@@ -172,6 +230,8 @@ from .deployment_record_apps_additional_property import (
 )
 from .deployment_withdraw_response_200 import DeploymentWithdrawResponse200
 from .error import Error
+from .exports_export_body import ExportsExportBody
+from .exports_export_response_200 import ExportsExportResponse200
 from .feature_not_active import FeatureNotActive
 from .file_info_response_200 import FileInfoResponse200
 from .files_list_response_200 import FilesListResponse200
@@ -206,7 +266,6 @@ from .logout_all_response_200 import LogoutAllResponse200
 from .logout_response_200 import LogoutResponse200
 from .me_response_200 import MeResponse200
 from .me_response_200_orgs_item import MeResponse200OrgsItem
-from .me_response_200_outbound_approvals import MeResponse200OutboundApprovals
 from .me_response_200_passkeys_item import MeResponse200PasskeysItem
 from .me_response_200_recovery_pending_type_0 import MeResponse200RecoveryPendingType0
 from .me_response_200_via import MeResponse200Via
@@ -261,8 +320,20 @@ from .ops_pools_set_body_pools_additional_property import (
     OpsPoolsSetBodyPoolsAdditionalProperty,
 )
 from .ops_pools_set_response_200 import OpsPoolsSetResponse200
+from .ops_prices_get_response_200 import OpsPricesGetResponse200
+from .ops_prices_set_body import OpsPricesSetBody
+from .ops_prices_set_body_table import OpsPricesSetBodyTable
+from .ops_prices_set_response_200 import OpsPricesSetResponse200
 from .ops_quotas_set_response_200 import OpsQuotasSetResponse200
 from .ops_receipt_key_response_200 import OpsReceiptKeyResponse200
+from .ops_recover_body import OpsRecoverBody
+from .ops_recover_body_code_item import OpsRecoverBodyCodeItem
+from .ops_recover_body_system import OpsRecoverBodySystem
+from .ops_recover_response_200 import OpsRecoverResponse200
+from .ops_recovery_files_response_200 import OpsRecoveryFilesResponse200
+from .ops_recovery_files_response_200_files_item import (
+    OpsRecoveryFilesResponse200FilesItem,
+)
 from .ops_register_node_body import OpsRegisterNodeBody
 from .ops_register_node_body_role import OpsRegisterNodeBodyRole
 from .ops_register_node_response_200 import OpsRegisterNodeResponse200
@@ -271,10 +342,12 @@ from .ops_release_deadline_body import OpsReleaseDeadlineBody
 from .ops_remove_node_response_200 import OpsRemoveNodeResponse200
 from .ops_remove_node_response_200_status import OpsRemoveNodeResponse200Status
 from .ops_restore_body import OpsRestoreBody
+from .ops_restore_body_recovery import OpsRestoreBodyRecovery
 from .ops_restore_response_200 import OpsRestoreResponse200
 from .ops_restore_response_200_backup import OpsRestoreResponse200Backup
 from .ops_served_response_200 import OpsServedResponse200
 from .ops_served_response_200_origins_item import OpsServedResponse200OriginsItem
+from .ops_set_backup_key_body import OpsSetBackupKeyBody
 from .ops_set_replicas_body import OpsSetReplicasBody
 from .ops_set_replicas_response_200 import OpsSetReplicasResponse200
 from .ops_set_replicas_response_200_status import OpsSetReplicasResponse200Status
@@ -325,6 +398,7 @@ from .org_remove_member_response_200 import OrgRemoveMemberResponse200
 from .org_rename_body import OrgRenameBody
 from .org_rename_response_200 import OrgRenameResponse200
 from .org_role import OrgRole
+from .org_set_backup_key_body import OrgSetBackupKeyBody
 from .org_set_member_body import OrgSetMemberBody
 from .org_set_member_response_200 import OrgSetMemberResponse200
 from .org_teams import OrgTeams
@@ -345,6 +419,10 @@ from .package_install_response_200 import PackageInstallResponse200
 from .package_install_response_200_services import PackageInstallResponse200Services
 from .package_list_response_200 import PackageListResponse200
 from .package_origin import PackageOrigin
+from .package_pipelines_response_200 import PackagePipelinesResponse200
+from .package_pipelines_response_200_additional_property import (
+    PackagePipelinesResponse200AdditionalProperty,
+)
 from .package_ref import PackageRef
 from .package_upload_response_200 import PackageUploadResponse200
 from .package_upload_response_200_services import PackageUploadResponse200Services
@@ -358,6 +436,36 @@ from .passkey_add_finish_response_200 import PasskeyAddFinishResponse200
 from .passkey_label_body import PasskeyLabelBody
 from .passkey_label_response_200 import PasskeyLabelResponse200
 from .passkey_remove_response_200 import PasskeyRemoveResponse200
+from .pipeline_receipt_receipt_response_200 import PipelineReceiptReceiptResponse200
+from .pipelines_cancel_response_200 import PipelinesCancelResponse200
+from .pipelines_estimate_run_body import PipelinesEstimateRunBody
+from .pipelines_estimate_run_body_counts import PipelinesEstimateRunBodyCounts
+from .pipelines_estimate_run_body_inputs import PipelinesEstimateRunBodyInputs
+from .pipelines_estimate_run_body_params import PipelinesEstimateRunBodyParams
+from .pipelines_estimate_run_response_200 import PipelinesEstimateRunResponse200
+from .pipelines_estimate_run_response_200_steps import (
+    PipelinesEstimateRunResponse200Steps,
+)
+from .pipelines_estimate_run_response_200_steps_additional_property import (
+    PipelinesEstimateRunResponse200StepsAdditionalProperty,
+)
+from .pipelines_get_response_200 import PipelinesGetResponse200
+from .pipelines_list_response_200 import PipelinesListResponse200
+from .pipelines_retry_body import PipelinesRetryBody
+from .pipelines_retry_body_limits import PipelinesRetryBodyLimits
+from .pipelines_retry_body_limits_additional_property import (
+    PipelinesRetryBodyLimitsAdditionalProperty,
+)
+from .pipelines_retry_response_200 import PipelinesRetryResponse200
+from .pipelines_start_body import PipelinesStartBody
+from .pipelines_start_body_inputs import PipelinesStartBodyInputs
+from .pipelines_start_body_params import PipelinesStartBodyParams
+from .pipelines_start_response_200 import PipelinesStartResponse200
+from .pipelines_validate_body import PipelinesValidateBody
+from .pipelines_validate_response_200 import PipelinesValidateResponse200
+from .pipelines_validate_response_200_errors_item import (
+    PipelinesValidateResponse200ErrorsItem,
+)
 from .presence_get_response_200 import PresenceGetResponse200
 from .presence_get_response_200_present_item import PresenceGetResponse200PresentItem
 from .presence_publish_body import PresencePublishBody
@@ -404,6 +512,11 @@ from .report_app_replicas_item import ReportAppReplicasItem
 from .report_app_upgrades_held_by import ReportAppUpgradesHeldBy
 from .report_upgrade import ReportUpgrade
 from .report_upgrade_actor_kind import ReportUpgradeActorKind
+from .restore_recover_holder_body import RestoreRecoverHolderBody
+from .restore_recover_holder_body_apps_item import RestoreRecoverHolderBodyAppsItem
+from .restore_recover_holder_body_code_item import RestoreRecoverHolderBodyCodeItem
+from .restore_recover_holder_body_slice import RestoreRecoverHolderBodySlice
+from .restore_recover_holder_response_200 import RestoreRecoverHolderResponse200
 from .retry_after import RetryAfter
 from .rollback_status import RollbackStatus
 from .run import Run
@@ -499,7 +612,6 @@ __all__ = (
     "AccessType4",
     "AccessType4Kind",
     "AccountAppsResponse200",
-    "AccountOutboundApprovalBody",
     "AccountProof",
     "AccountProofProveBody",
     "AccountRecoveryBeginBody",
@@ -508,7 +620,7 @@ __all__ = (
     "AccountRecoveryFinishBody",
     "AccountRecoveryStartBody",
     "AccountRecoveryStartResponse200",
-    "AccountReleaseApprovalBody",
+    "AccountSetBackupKeyBody",
     "AccountStatement",
     "ActivityListResponse200",
     "ActivityListResponse200ActivityItem",
@@ -533,6 +645,7 @@ __all__ = (
     "AppAttestationResponse200",
     "AppAttestationResponse200ReplicasItemType0",
     "AppAttestationResponse200ReplicasItemType1",
+    "AppComponents",
     "AppCreateBody",
     "AppCreateResponse200",
     "AppDeleteResponse200",
@@ -576,6 +689,10 @@ __all__ = (
     "Assertion",
     "AttestationDoc",
     "AttestationPurpose",
+    "BackupKeyAnswer",
+    "BackupKeyAnswerHolder",
+    "BackupKeyAnswerHolderKind",
+    "BackupKeyAnswerKeyType0",
     "BlobDeleteResponse200",
     "BlobInfoResponse200",
     "BlobListResponse200",
@@ -594,6 +711,24 @@ __all__ = (
     "ConsentPageCreateBodyType0ScopeType1",
     "ConsentPageCreateBodyType0Subject",
     "ConsentPageCreateBodyType1",
+    "ConsentPageCreateBodyType10",
+    "ConsentPageCreateBodyType10Kind",
+    "ConsentPageCreateBodyType10Subject",
+    "ConsentPageCreateBodyType11",
+    "ConsentPageCreateBodyType11Kind",
+    "ConsentPageCreateBodyType11Subject",
+    "ConsentPageCreateBodyType12",
+    "ConsentPageCreateBodyType12Kind",
+    "ConsentPageCreateBodyType12Subject",
+    "ConsentPageCreateBodyType13",
+    "ConsentPageCreateBodyType13Kind",
+    "ConsentPageCreateBodyType13Subject",
+    "ConsentPageCreateBodyType14",
+    "ConsentPageCreateBodyType14Kind",
+    "ConsentPageCreateBodyType14Subject",
+    "ConsentPageCreateBodyType15",
+    "ConsentPageCreateBodyType15Kind",
+    "ConsentPageCreateBodyType15Subject",
     "ConsentPageCreateBodyType1Kind",
     "ConsentPageCreateBodyType1Subject",
     "ConsentPageCreateBodyType2",
@@ -601,9 +736,35 @@ __all__ = (
     "ConsentPageCreateBodyType2ScopeType0",
     "ConsentPageCreateBodyType2ScopeType1",
     "ConsentPageCreateBodyType2Subject",
+    "ConsentPageCreateBodyType3",
+    "ConsentPageCreateBodyType3Kind",
+    "ConsentPageCreateBodyType3Subject",
+    "ConsentPageCreateBodyType4",
+    "ConsentPageCreateBodyType4Kind",
+    "ConsentPageCreateBodyType4Subject",
+    "ConsentPageCreateBodyType4SubjectRole",
+    "ConsentPageCreateBodyType5",
+    "ConsentPageCreateBodyType5Kind",
+    "ConsentPageCreateBodyType5Subject",
+    "ConsentPageCreateBodyType6",
+    "ConsentPageCreateBodyType6Kind",
+    "ConsentPageCreateBodyType6Subject",
+    "ConsentPageCreateBodyType7",
+    "ConsentPageCreateBodyType7Kind",
+    "ConsentPageCreateBodyType7Subject",
+    "ConsentPageCreateBodyType8",
+    "ConsentPageCreateBodyType8Kind",
+    "ConsentPageCreateBodyType8Subject",
+    "ConsentPageCreateBodyType8SubjectRole",
+    "ConsentPageCreateBodyType9",
+    "ConsentPageCreateBodyType9Kind",
+    "ConsentPageCreateBodyType9Subject",
+    "ConsentPageCreateBodyType9SubjectTeamsItem",
+    "ConsentPageCreateBodyType9SubjectTeamsItemRole",
     "ConsentPageCreateResponse200",
     "ConsentPageResultResponse200",
     "ConsentPageResultResponse200Kind",
+    "ConsentPageResultResponse200Outcome",
     "ConsentPageResultResponse200Status",
     "DeadLetter",
     "Deadlines",
@@ -638,6 +799,8 @@ __all__ = (
     "DeploymentRecordAppsAdditionalProperty",
     "DeploymentWithdrawResponse200",
     "Error",
+    "ExportsExportBody",
+    "ExportsExportResponse200",
     "FeatureNotActive",
     "FileInfoResponse200",
     "FilesListResponse200",
@@ -679,7 +842,6 @@ __all__ = (
     "MemberSetTeamsResponse200",
     "MeResponse200",
     "MeResponse200OrgsItem",
-    "MeResponse200OutboundApprovals",
     "MeResponse200PasskeysItem",
     "MeResponse200RecoveryPendingType0",
     "MeResponse200Via",
@@ -719,8 +881,18 @@ __all__ = (
     "OpsPoolsSetBodyPools",
     "OpsPoolsSetBodyPoolsAdditionalProperty",
     "OpsPoolsSetResponse200",
+    "OpsPricesGetResponse200",
+    "OpsPricesSetBody",
+    "OpsPricesSetBodyTable",
+    "OpsPricesSetResponse200",
     "OpsQuotasSetResponse200",
     "OpsReceiptKeyResponse200",
+    "OpsRecoverBody",
+    "OpsRecoverBodyCodeItem",
+    "OpsRecoverBodySystem",
+    "OpsRecoverResponse200",
+    "OpsRecoveryFilesResponse200",
+    "OpsRecoveryFilesResponse200FilesItem",
     "OpsRegisterNodeBody",
     "OpsRegisterNodeBodyRole",
     "OpsRegisterNodeResponse200",
@@ -729,10 +901,12 @@ __all__ = (
     "OpsRemoveNodeResponse200",
     "OpsRemoveNodeResponse200Status",
     "OpsRestoreBody",
+    "OpsRestoreBodyRecovery",
     "OpsRestoreResponse200",
     "OpsRestoreResponse200Backup",
     "OpsServedResponse200",
     "OpsServedResponse200OriginsItem",
+    "OpsSetBackupKeyBody",
     "OpsSetReplicasBody",
     "OpsSetReplicasResponse200",
     "OpsSetReplicasResponse200Status",
@@ -777,6 +951,7 @@ __all__ = (
     "OrgRenameBody",
     "OrgRenameResponse200",
     "OrgRole",
+    "OrgSetBackupKeyBody",
     "OrgSetMemberBody",
     "OrgSetMemberResponse200",
     "OrgTeams",
@@ -797,6 +972,8 @@ __all__ = (
     "PackageInstallResponse200Services",
     "PackageListResponse200",
     "PackageOrigin",
+    "PackagePipelinesResponse200",
+    "PackagePipelinesResponse200AdditionalProperty",
     "PackageRef",
     "PackageUploadResponse200",
     "PackageUploadResponse200Services",
@@ -810,6 +987,28 @@ __all__ = (
     "PasskeyLabelBody",
     "PasskeyLabelResponse200",
     "PasskeyRemoveResponse200",
+    "PipelineReceiptReceiptResponse200",
+    "PipelinesCancelResponse200",
+    "PipelinesEstimateRunBody",
+    "PipelinesEstimateRunBodyCounts",
+    "PipelinesEstimateRunBodyInputs",
+    "PipelinesEstimateRunBodyParams",
+    "PipelinesEstimateRunResponse200",
+    "PipelinesEstimateRunResponse200Steps",
+    "PipelinesEstimateRunResponse200StepsAdditionalProperty",
+    "PipelinesGetResponse200",
+    "PipelinesListResponse200",
+    "PipelinesRetryBody",
+    "PipelinesRetryBodyLimits",
+    "PipelinesRetryBodyLimitsAdditionalProperty",
+    "PipelinesRetryResponse200",
+    "PipelinesStartBody",
+    "PipelinesStartBodyInputs",
+    "PipelinesStartBodyParams",
+    "PipelinesStartResponse200",
+    "PipelinesValidateBody",
+    "PipelinesValidateResponse200",
+    "PipelinesValidateResponse200ErrorsItem",
     "PresenceGetResponse200",
     "PresenceGetResponse200PresentItem",
     "PresencePublishBody",
@@ -852,6 +1051,11 @@ __all__ = (
     "ReportAppUpgradesHeldBy",
     "ReportUpgrade",
     "ReportUpgradeActorKind",
+    "RestoreRecoverHolderBody",
+    "RestoreRecoverHolderBodyAppsItem",
+    "RestoreRecoverHolderBodyCodeItem",
+    "RestoreRecoverHolderBodySlice",
+    "RestoreRecoverHolderResponse200",
     "RetryAfter",
     "RollbackStatus",
     "Run",

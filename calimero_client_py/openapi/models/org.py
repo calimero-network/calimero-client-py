@@ -30,7 +30,9 @@ T = TypeVar("T", bound="Org")
 class Org:
     """An organization as `GET /orgs/{org}` answers it. `members` maps each account to its role, `capabilities` and
     `defaultCapabilities` are capability bits, `outboundApprovals` is keyed by package signer, `upgradeRuns` by run id;
-    `recovery` is absent when the organization set no recovery key, `allApps` when no member gets every app added later.
+    `recovery` is absent when the organization set no recovery key, `allApps` when no member gets every app added later,
+    `personal` unless it is its owner's personal organization (where instances created without naming an organization
+    go).
 
         Attributes:
             org_id (str):
@@ -46,6 +48,7 @@ class Org:
             upgrade_runs (OrgUpgradeRuns):
             recovery (Union[Unset, OrgRecovery]):
             all_apps (Union[Unset, list[str]]):
+            personal (Union[Unset, bool]):
             mode (Union[Unset, OrgMode]):
             release_approvers (Union[Unset, list[str]]):
             publishes (Union[Unset, list[str]]):
@@ -65,6 +68,7 @@ class Org:
     upgrade_runs: "OrgUpgradeRuns"
     recovery: Union[Unset, "OrgRecovery"] = UNSET
     all_apps: Union[Unset, list[str]] = UNSET
+    personal: Union[Unset, bool] = UNSET
     mode: Union[Unset, OrgMode] = UNSET
     release_approvers: Union[Unset, list[str]] = UNSET
     publishes: Union[Unset, list[str]] = UNSET
@@ -111,6 +115,8 @@ class Org:
         if not isinstance(self.all_apps, Unset):
             all_apps = self.all_apps
 
+        personal = self.personal
+
         mode: Union[Unset, str] = UNSET
         if not isinstance(self.mode, Unset):
             mode = self.mode.value
@@ -152,6 +158,8 @@ class Org:
             field_dict["recovery"] = recovery
         if all_apps is not UNSET:
             field_dict["allApps"] = all_apps
+        if personal is not UNSET:
+            field_dict["personal"] = personal
         if mode is not UNSET:
             field_dict["mode"] = mode
         if release_approvers is not UNSET:
@@ -206,6 +214,8 @@ class Org:
 
         all_apps = cast(list[str], d.pop("allApps", UNSET))
 
+        personal = d.pop("personal", UNSET)
+
         _mode = d.pop("mode", UNSET)
         mode: Union[Unset, OrgMode]
         if isinstance(_mode, Unset):
@@ -250,6 +260,7 @@ class Org:
             upgrade_runs=upgrade_runs,
             recovery=recovery,
             all_apps=all_apps,
+            personal=personal,
             mode=mode,
             release_approvers=release_approvers,
             publishes=publishes,
