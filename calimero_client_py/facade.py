@@ -105,6 +105,7 @@ from .openapi.api.ops import ops_deployer_grant as _ops_deployer_grant
 from .openapi.api.ops import ops_deployer_revoke_delete as _ops_deployer_revoke_delete
 from .openapi.api.ops import ops_deployer_revoke_post as _ops_deployer_revoke_post
 from .openapi.api.ops import ops_deployments_granted as _ops_deployments_granted
+from .openapi.api.ops import ops_job_node_attestation as _ops_job_node_attestation
 from .openapi.api.ops import ops_metrics as _ops_metrics
 from .openapi.api.ops import ops_org_upgrade as _ops_org_upgrade
 from .openapi.api.ops import ops_orgs as _ops_orgs
@@ -1561,7 +1562,7 @@ class Apps(Group):
     def view(self, *, app, method, args=UNSET, consistency=UNSET, min_index=UNSET):
         """Read with a view method (`POST /apps/{app}/views`, `views`).
 
-        Read on a caught-up replica (`consistency: "strong"`, the default; any value but `"stale"` reads as it), or (`"stale"`) on the one answering; `minIndex` waits until the replica applied it (`503 NOT_CAUGHT_UP`). `args`, `result` and each event's `data` are the app's own JSON, free-form here: the app's ABI (`GET /apps/{app}/abi`, or its OpenAPI document) types them.
+        Read linearizably (`consistency: "strong"`, the default; any value but `"stale"` reads as it): the replica answering waits until it applied the index the app's leader names once it confirmed it leads, and sends the view to the leader if it cannot catch up; or (`"stale"`) on the replica answering, as it stands; `minIndex` waits until the replica applied it (`503 NOT_CAUGHT_UP`). `args`, `result` and each event's `data` are the app's own JSON, free-form here: the app's ABI (`GET /apps/{app}/abi`, or its OpenAPI document) types them.
 
         **Who:** whoever the app's access admits (a public app: anyone).
 
@@ -2736,6 +2737,12 @@ _OPS_DEPLOYMENTS_GRANTED = Operation(
     answer="json",
     operator=True,
 )
+_OPS_JOB_NODE_ATTESTATION = Operation(
+    _ops_job_node_attestation,
+    "ops_job_node_attestation",
+    body="none",
+    answer="json",
+)
 _OPS_METRICS = Operation(
     _ops_metrics,
     "ops_metrics",
@@ -3084,6 +3091,20 @@ class Ops(Group):
         return self._run(
             _OPS_DEPLOYMENTS_GRANTED, (), {}, {}, operator_proof=operator_proof
         )
+
+    def job_node_attestation(self, *, id):
+        """Whether the cluster accepts a job node (`GET /ops/job-nodes/{id}/attestation`, `ops_job_node_attestation`).
+
+        Runs the check the leader makes before it sends a job node work: a quote that passes the release policy, this cluster and node, this cluster's identity, a release not retired (not the per-app release approval). `admitted` carries the attested `release`; `refused` (final), with the reason: a 400 or 404 from the node, a 2xx that is oversized or does not decode, a failed verification, or a 400 or 404 from the collateral source on the PCK certificate or TCB info request; `unreachable` (transient), with the reason: anything else, including no answer, any other status from the node and any other collateral failure. `503` when this node's directory is stale. A verified answer is reused for up to a minute.
+
+        **Who:** the ops token.
+
+        Args:
+            id: path
+
+        Returns: ForwardRef('OpsJobNodeAttestationResponse200Type0') | ForwardRef('OpsJobNodeAttestationResponse200Type1')
+        """
+        return self._run(_OPS_JOB_NODE_ATTESTATION, (id,), {}, None)
 
     def metrics(self):
         """Prometheus metrics (`GET /ops/metrics`, `ops_metrics`).

@@ -22,7 +22,7 @@ codes the document lists for the method beyond the ones every call can get
 (`UNAUTHENTICATED`, `FORBIDDEN`, `NOT_FOUND`, ...): see
 [errors](/reference/errors/).
 
-Generated from core `f0b0a6b9d`.
+Generated from core `f9f06c789`.
 
 ## `client.apps`
 
@@ -154,6 +154,7 @@ Generated from core `f0b0a6b9d`.
 | `deployer_revoke_delete(key, operator_proof=None)` | `DELETE /ops/deployers/{key}` | Revoke a deployer. **operator** |
 | `deployer_revoke_post(key, operator_proof=None)` | `POST /ops/deployers/{key}/revoke` | Revoke a deployer (POST). **operator** |
 | `deployments_granted(operator_proof=None)` | `POST /ops/deployments/granted` | Require deployer grants. **operator**. *Refusals:* `409 CONFLICT` |
+| `job_node_attestation(id)` | `GET /ops/job-nodes/{id}/attestation` | Whether the cluster accepts a job node |
 | `metrics()` | `GET /ops/metrics` | Prometheus metrics |
 | `org_upgrade(org, package, version, team=…, cascade=…, migrate=…, operator_proof=None)` | `POST /ops/orgs/{org}/upgrade` | An operator's upgrade run. **operator** |
 | `orgs(after=…, limit=…)` | `GET /ops/orgs` | Each organization's approved releases |

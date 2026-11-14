@@ -88,10 +88,12 @@ def sync_detailed(
 ) -> Response[Union[Error, ViewsResponse200]]:
     r"""Read with a view method
 
-     Read on a caught-up replica (`consistency: \"strong\"`, the default; any value but `\"stale\"` reads
-    as it), or (`\"stale\"`) on the one answering; `minIndex` waits until the replica applied it (`503
-    NOT_CAUGHT_UP`). `args`, `result` and each event's `data` are the app's own JSON, free-form here:
-    the app's ABI (`GET /apps/{app}/abi`, or its OpenAPI document) types them.
+     Read linearizably (`consistency: \"strong\"`, the default; any value but `\"stale\"` reads as it):
+    the replica answering waits until it applied the index the app's leader names once it confirmed it
+    leads, and sends the view to the leader if it cannot catch up; or (`\"stale\"`) on the replica
+    answering, as it stands; `minIndex` waits until the replica applied it (`503 NOT_CAUGHT_UP`).
+    `args`, `result` and each event's `data` are the app's own JSON, free-form here: the app's ABI (`GET
+    /apps/{app}/abi`, or its OpenAPI document) types them.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 
@@ -127,10 +129,12 @@ def sync(
 ) -> Optional[Union[Error, ViewsResponse200]]:
     r"""Read with a view method
 
-     Read on a caught-up replica (`consistency: \"strong\"`, the default; any value but `\"stale\"` reads
-    as it), or (`\"stale\"`) on the one answering; `minIndex` waits until the replica applied it (`503
-    NOT_CAUGHT_UP`). `args`, `result` and each event's `data` are the app's own JSON, free-form here:
-    the app's ABI (`GET /apps/{app}/abi`, or its OpenAPI document) types them.
+     Read linearizably (`consistency: \"strong\"`, the default; any value but `\"stale\"` reads as it):
+    the replica answering waits until it applied the index the app's leader names once it confirmed it
+    leads, and sends the view to the leader if it cannot catch up; or (`\"stale\"`) on the replica
+    answering, as it stands; `minIndex` waits until the replica applied it (`503 NOT_CAUGHT_UP`).
+    `args`, `result` and each event's `data` are the app's own JSON, free-form here: the app's ABI (`GET
+    /apps/{app}/abi`, or its OpenAPI document) types them.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 
@@ -161,10 +165,12 @@ async def asyncio_detailed(
 ) -> Response[Union[Error, ViewsResponse200]]:
     r"""Read with a view method
 
-     Read on a caught-up replica (`consistency: \"strong\"`, the default; any value but `\"stale\"` reads
-    as it), or (`\"stale\"`) on the one answering; `minIndex` waits until the replica applied it (`503
-    NOT_CAUGHT_UP`). `args`, `result` and each event's `data` are the app's own JSON, free-form here:
-    the app's ABI (`GET /apps/{app}/abi`, or its OpenAPI document) types them.
+     Read linearizably (`consistency: \"strong\"`, the default; any value but `\"stale\"` reads as it):
+    the replica answering waits until it applied the index the app's leader names once it confirmed it
+    leads, and sends the view to the leader if it cannot catch up; or (`\"stale\"`) on the replica
+    answering, as it stands; `minIndex` waits until the replica applied it (`503 NOT_CAUGHT_UP`).
+    `args`, `result` and each event's `data` are the app's own JSON, free-form here: the app's ABI (`GET
+    /apps/{app}/abi`, or its OpenAPI document) types them.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 
@@ -198,10 +204,12 @@ async def asyncio(
 ) -> Optional[Union[Error, ViewsResponse200]]:
     r"""Read with a view method
 
-     Read on a caught-up replica (`consistency: \"strong\"`, the default; any value but `\"stale\"` reads
-    as it), or (`\"stale\"`) on the one answering; `minIndex` waits until the replica applied it (`503
-    NOT_CAUGHT_UP`). `args`, `result` and each event's `data` are the app's own JSON, free-form here:
-    the app's ABI (`GET /apps/{app}/abi`, or its OpenAPI document) types them.
+     Read linearizably (`consistency: \"strong\"`, the default; any value but `\"stale\"` reads as it):
+    the replica answering waits until it applied the index the app's leader names once it confirmed it
+    leads, and sends the view to the leader if it cannot catch up; or (`\"stale\"`) on the replica
+    answering, as it stands; `minIndex` waits until the replica applied it (`503 NOT_CAUGHT_UP`).
+    `args`, `result` and each event's `data` are the app's own JSON, free-form here: the app's ABI (`GET
+    /apps/{app}/abi`, or its OpenAPI document) types them.
 
     **Who:** whoever the app's access admits (a public app: anyone).
 

@@ -293,6 +293,18 @@ from .ops_deployer_grant_response_200 import OpsDeployerGrantResponse200
 from .ops_deployer_revoke_delete_response_200 import OpsDeployerRevokeDeleteResponse200
 from .ops_deployer_revoke_post_response_200 import OpsDeployerRevokePostResponse200
 from .ops_deployments_granted_response_200 import OpsDeploymentsGrantedResponse200
+from .ops_job_node_attestation_response_200_type_0 import (
+    OpsJobNodeAttestationResponse200Type0,
+)
+from .ops_job_node_attestation_response_200_type_0_state import (
+    OpsJobNodeAttestationResponse200Type0State,
+)
+from .ops_job_node_attestation_response_200_type_1 import (
+    OpsJobNodeAttestationResponse200Type1,
+)
+from .ops_job_node_attestation_response_200_type_1_state import (
+    OpsJobNodeAttestationResponse200Type1State,
+)
 from .ops_org_upgrade_body import OpsOrgUpgradeBody
 from .ops_orgs_response_200 import OpsOrgsResponse200
 from .ops_orgs_response_200_orgs_item import OpsOrgsResponse200OrgsItem
@@ -864,6 +876,10 @@ __all__ = (
     "OpsDeployerRevokeDeleteResponse200",
     "OpsDeployerRevokePostResponse200",
     "OpsDeploymentsGrantedResponse200",
+    "OpsJobNodeAttestationResponse200Type0",
+    "OpsJobNodeAttestationResponse200Type0State",
+    "OpsJobNodeAttestationResponse200Type1",
+    "OpsJobNodeAttestationResponse200Type1State",
     "OpsOrgsResponse200",
     "OpsOrgsResponse200OrgsItem",
     "OpsOrgUpgradeBody",
